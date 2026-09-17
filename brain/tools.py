@@ -128,6 +128,35 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "look_up_standard",
+            "description": (
+                "Search outside the cell for something the cell cannot measure: what "
+                "a welding code permits, what a filler or material is rated for, "
+                "whether a named defect is a repair or a scrap. Returns an answer "
+                "with its sources. Use it when the operator asks about a rule or a "
+                "specification rather than about this part. Never use it to decide "
+                "whether a part passes; the measurement decides that. Always cite "
+                "the sources back to the operator."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "A specific technical question. Keep it technical and "
+                            "do not pad it with general words like 'fabrication', "
+                            "which turns it into a search for local businesses."
+                        ),
+                    }
+                },
+                "required": ["query"],
+            },
+        },
+    },
 ]
 
 
@@ -314,6 +343,19 @@ def record_decision(
     }
 
 
+
+def look_up_standard(session: Session, query: str) -> dict[str, Any]:
+    """Look something up outside the cell, and hand back the sources with it.
+
+    The session is unused: this deliberately reaches outside the plant's own data.
+    It is here so the signature matches every other tool and the dispatcher does
+    not need a special case.
+    """
+    from brain import lookup
+
+    return lookup.search(query).as_tool_result()
+
+
 REGISTRY: dict[str, Callable[..., dict[str, Any]]] = {
     "get_cell_status": get_cell_status,
     "get_recent_parts": get_recent_parts,
@@ -321,6 +363,7 @@ REGISTRY: dict[str, Callable[..., dict[str, Any]]] = {
     "get_drift": get_drift,
     "list_defects": list_defects,
     "record_decision": record_decision,
+    "look_up_standard": look_up_standard,
 }
 
 
