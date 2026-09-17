@@ -15,7 +15,9 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"cell/sim/*" = ["E402"]     # Isaac Sim requires SimulationApp before any other import
+# Isaac Sim requires SimulationApp before any other import, and replicator's
+# nested with-blocks are its authoring DSL, not a style choice.
+"cell/sim/*" = ["E402", "SIM117"]
 "scripts/*" = ["E402"]      # sys.path is set up before local imports
 "tests/*" = ["E402"]
 
