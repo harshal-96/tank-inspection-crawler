@@ -93,8 +93,8 @@ def main() -> int:
     # Camera and its line of sight to the joint.
     eye = plan(geo.CAMERA_EYE[0], geo.CAMERA_EYE[1])
     target = plan(*joint)
-    draw.polygon([eye, plan(joint[0] - 0.26, joint[1] + 0.26), plan(joint[0] + 0.20, joint[1] - 0.20)],
-                 fill=BEAM)
+    cone = [eye, plan(joint[0] - 0.26, joint[1] + 0.26), plan(joint[0] + 0.20, joint[1] - 0.20)]
+    draw.polygon(cone, fill=BEAM)
     draw.line([eye, target], fill=CAMERA, width=2)
     draw.ellipse([eye[0] - 7, eye[1] - 7, eye[0] + 7, eye[1] + 7], fill=CAMERA)
     draw.text((eye[0] - 26, eye[1] + 12), "depth camera", fill=CAMERA)

@@ -104,8 +104,8 @@ from isaacsim.core.api import World  # noqa: E402
 from isaacsim.core.prims import SingleRigidPrim  # noqa: E402
 from pxr import (  # noqa: E402
     Gf,
-    Sdf,
     PhysxSchema,
+    Sdf,
     Usd,
     UsdGeom,
     UsdLux,
