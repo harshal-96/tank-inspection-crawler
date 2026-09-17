@@ -100,6 +100,17 @@ function tiles(ev) {
     tone: "warn",
     sub: `pass or defect on ${i.n} beads, ${i.false_alarms} false alarms, ${i.missed} missed`,
   }));
+  const trained = (ev.drift.edge || []).find((r) => r.tier === "edge");
+  if (trained) {
+    const bestCloud = [...ev.drift.runs].sort((a, b) => b.correct - a.correct)[0];
+    html.push(tile({
+      label: "Drift named, on the cell's own GPU",
+      value: `${trained.correct}/${trained.n}`,
+      tone: "after",
+      delta: `vs ${bestCloud.correct}/${bestCloud.n} cloud`,
+      sub: "a 1.7B trained on Token Factory, answering with no network",
+    }));
+  }
   html.push(tile({
     label: "Joint locating, blind to guided",
     value: l.available ? V.fmt(l.routed.mean_mm, 2) : "–", unit: "mm",
@@ -174,6 +185,25 @@ function studies(ev) {
      `${V.pct(ev.inspection.binary_accuracy)} pass/defect, ${V.pct(ev.inspection.named_accuracy)} named`,
      "warn", "#/inspection"],
   ];
+  const trainedRun = (ev.drift.edge || []).find((r) => r.tier === "edge");
+  const untrainedRun = (ev.drift.edge || []).find((r) => r.tier === "edge_base");
+  if (trainedRun) {
+    rows.push(["Trained diagnosis, at the edge",
+      `600 simulated runs, ${trainedRun.n} held out`,
+      "the same injected faults, on seeds the training set excluded",
+      untrainedRun
+        ? `${untrainedRun.correct}/${untrainedRun.n} untrained → ${trainedRun.correct}/${trainedRun.n} trained`
+        : `${trainedRun.correct}/${trainedRun.n}`,
+      "good", "#/diagnosis"]);
+  }
+  if (ev.vision && ev.vision.available && ev.vision.arms.length > 1) {
+    const quiet = ev.vision.arms.find((a) => a.never_says_defect);
+    rows.push(["Two vision models", `${ev.vision.arms.length} models × ${ev.vision.arms[0].n} beads`,
+      "the injected defect, scored the same way for both",
+      quiet ? `equal scores, ${quiet.missed} misses from the one that never says defect`
+            : "compared on the same beads",
+      "warn", "#/inspection"]);
+  }
   V.$("ov-studies").innerHTML = `<table>
     <thead><tr><th>Study</th><th>Scale</th><th>Scored against</th><th>Result</th><th></th></tr></thead>
     <tbody>${rows.map(([a, b, c, d, tone, href]) => `<tr>

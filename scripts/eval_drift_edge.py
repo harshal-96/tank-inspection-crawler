@@ -1,0 +1,181 @@
+"""Run the drift diagnosis on the cell's own GPU, and score it like the rest.
+
+The point of the exercise. Four Nemotron sizes were asked, in the cloud, to read a
+run of parts and name which machine is going out. The small ones answered "press"
+every time, which scores 4 of 12 by arithmetic; only the 120B read the evidence.
+That put the one question a shop actually pays for behind a large model and a
+network connection.
+
+This asks the same twelve runs of a 1.7B model that was trained on Token Factory
+and now runs on the workstation beside the cell. Nothing about the question is
+made easier for it:
+
+  same generator     cell/drift.py builds the streams, the same function that
+                     built the ones the Nemotron sizes were scored on.
+  same seeds         the four the published evaluation landed on, which the
+                     training set was explicitly generated away from.
+  same prompt        the system prompt is imported, not retyped. A fine-tuned
+                     model given a better prompt than its baselines has not been
+                     compared to them.
+  same scoring       the output file has the same shape as the cloud runs, so the
+                     dashboard puts them on one axis without special cases.
+
+    python scripts/eval_drift_edge.py
+    python scripts/eval_drift_edge.py --base-only      # the untrained 1.7B, for contrast
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import statistics
+import sys
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from cell.drift import (  # noqa: E402
+    SCENARIOS,
+    SYSTEM_PROMPT,
+    build_stream,
+    quiet_seed,
+    trend,
+    user_prompt,
+)
+
+BASE_MODEL = "Qwen/Qwen3-1.7B"
+ADAPTER = "data/finetune/adapter"
+MAX_NEW_TOKENS = 220
+
+
+def load(base: str, adapter: str | None):
+    """Base model on the GPU, with the trained adapter on top of it if there is one."""
+    import torch
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    print(f"loading {base} ...")
+    tokenizer = AutoTokenizer.from_pretrained(base)
+    model = AutoModelForCausalLM.from_pretrained(
+        base,
+        dtype=torch.bfloat16,
+        device_map="cuda" if torch.cuda.is_available() else "cpu",
+    )
+    if adapter:
+        from peft import PeftModel
+
+        print(f"applying adapter {adapter} ...")
+        model = PeftModel.from_pretrained(model, adapter)
+        model = model.merge_and_unload()     # merged, so inference is plain forward passes
+    model.eval()
+    device = next(model.parameters()).device
+    print(f"ready on {device}")
+    return tokenizer, model
+
+
+def ask(tokenizer, model, rows: list[dict]) -> dict:
+    import torch
+
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": user_prompt(rows)},
+    ]
+    # Qwen3 thinks by default. The cloud baselines were all run with reasoning
+    # turned off, so this is turned off too rather than being given the advantage.
+    text = tokenizer.apply_chat_template(
+        messages, tokenize=False, add_generation_prompt=True, enable_thinking=False
+    )
+    inputs = tokenizer(text, return_tensors="pt").to(model.device)
+
+    started = time.perf_counter()
+    with torch.no_grad():
+        generated = model.generate(
+            **inputs,
+            max_new_tokens=MAX_NEW_TOKENS,
+            do_sample=False,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+    latency = (time.perf_counter() - started) * 1000
+    raw = tokenizer.decode(generated[0][inputs["input_ids"].shape[1]:],
+                           skip_special_tokens=True)
+
+    start, end = raw.find("{"), raw.rfind("}")
+    try:
+        data = json.loads(raw[start:end + 1])
+    except (ValueError, json.JSONDecodeError):
+        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:160]}
+    data["latency_ms"] = round(latency)
+    return data
+
+
+def safe(text: object) -> str:
+    return str(text).encode("ascii", "replace").decode("ascii")
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--parts", type=int, default=30)
+    parser.add_argument("--runs", type=int, default=4)
+    parser.add_argument("--base", default=BASE_MODEL)
+    parser.add_argument("--adapter", default=ADAPTER)
+    parser.add_argument("--base-only", action="store_true",
+                        help="Score the untrained model, to show what training bought")
+    parser.add_argument("--severity", type=float, default=1.0)
+    parser.add_argument("--out", default=None)
+    args = parser.parse_args()
+
+    adapter = None if args.base_only else args.adapter
+    if adapter and not Path(adapter).is_dir():
+        raise SystemExit(f"no adapter at {adapter}; run scripts/finetune_drift.py --fetch")
+
+    out = Path(args.out or ("data/drift_eval_edge_base.jsonl" if args.base_only
+                            else "data/drift_eval_edge.jsonl"))
+
+    tokenizer, model = load(args.base, adapter)
+
+    records = []
+    print(f"\n{'scenario':>9} {'seed':>5} {'tilt slope':>11} {'shift slope':>12} "
+          f"{'said':>9} {'conf':>6} {'ok':>4} {'ms':>6}")
+    print("-" * 74)
+
+    for run in range(args.runs):
+        for scenario in SCENARIOS:
+            seed = quiet_seed(args.parts, 100 + run * 137)
+            rows, truth = build_stream(args.parts, scenario, seed, args.severity)
+            verdict = ask(tokenizer, model, rows)
+            correct = verdict.get("cause") == truth
+            records.append({
+                "scenario": truth, "seed": seed, "said": verdict.get("cause"),
+                "confidence": verdict.get("confidence"), "correct": correct,
+                "tilt_slope_mm_per_part": round(trend([r["tilt_mm"] for r in rows]), 4),
+                "shift_slope_mm_per_part": round(
+                    trend([r["seam_bottom_mm"] for r in rows]), 4),
+                "evidence": safe(verdict.get("evidence")),
+                "latency_ms": verdict.get("latency_ms"),
+            })
+            r = records[-1]
+            print(f"{truth:>9} {seed:>5} {r['tilt_slope_mm_per_part']:>10.4f} "
+                  f"{r['shift_slope_mm_per_part']:>11.4f} {str(r['said']):>9} "
+                  f"{str(r['confidence']):>6} {'yes' if correct else 'NO':>4} "
+                  f"{r['latency_ms']:>6}")
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with out.open("w", encoding="utf-8") as handle:
+        for record in records:
+            handle.write(json.dumps(record) + "\n")
+
+    correct = sum(1 for r in records if r["correct"])
+    print(f"\n{correct}/{len(records)} diagnosed correctly")
+    for scenario in SCENARIOS:
+        rows = [r for r in records if r["scenario"] == scenario]
+        print(f"  {scenario:<8} {sum(1 for r in rows if r['correct'])}/{len(rows)}")
+    said = {r["said"] for r in records}
+    if len(said) == 1:
+        print(f"  [warning] answered {said.pop()!r} every time, which is not diagnosis")
+    print(f"  median latency {statistics.median(r['latency_ms'] for r in records):.0f} ms")
+    print(f"\nwrote {out}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

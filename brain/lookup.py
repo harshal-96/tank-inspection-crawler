@@ -28,9 +28,17 @@ from dotenv import load_dotenv
 # Same as the model client: the key lives in .env, which is gitignored.
 load_dotenv()
 
-TAVILY_URL = "https://api.tavily.com/search"
+TAVILY_SEARCH_URL = "https://api.tavily.com/search"
+TAVILY_EXTRACT_URL = "https://api.tavily.com/extract"
+TAVILY_URL = TAVILY_SEARCH_URL          # kept: the supervisor tool imports this name
 DEFAULT_TIMEOUT_S = 20.0
+EXTRACT_TIMEOUT_S = 45.0
 MAX_RESULTS = 4
+
+# How much of a fetched document to carry into a prompt. A standards page runs to
+# tens of thousands of characters and almost all of it is navigation; the clause
+# that matters is short and the model does not need the rest to quote it.
+EXTRACT_CHARS = 6000
 
 # No topic hint is appended to the query. An earlier version bolted
 # "welding fabrication sheet metal" onto every search to keep it on subject, and
@@ -113,7 +121,7 @@ def search(query: str, max_results: int = MAX_RESULTS,
         "max_results": max_results,
     }
     try:
-        response = httpx.post(TAVILY_URL, json=payload, timeout=timeout_s)
+        response = httpx.post(TAVILY_SEARCH_URL, json=payload, timeout=timeout_s)
         response.raise_for_status()
         data = response.json()
     except Exception as exc:  # network, auth, shape: all the same to the caller
@@ -134,6 +142,54 @@ def search(query: str, max_results: int = MAX_RESULTS,
         sources=sources,
         latency_ms=(time.perf_counter() - started) * 1000,
     )
+
+
+def extract(urls: list[str], timeout_s: float = EXTRACT_TIMEOUT_S) -> dict[str, str]:
+    """Fetch the text of pages the search returned, keyed by url.
+
+    A search snippet is a few hundred characters chosen to look relevant, which is
+    enough to decide that a page is worth reading and not enough to quote a clause
+    out of it. When the cell is about to tell somebody to stop and reset a press,
+    the sentence it rests on should come from the document rather than from the
+    summary of the document.
+
+    Failures are simply absent from the result. A page that refuses to be fetched
+    is a page the brief does not cite, which is the correct outcome.
+    """
+    if not urls:
+        return {}
+    try:
+        key = api_key()
+    except MissingTavilyKey:
+        return {}
+
+    try:
+        response = httpx.post(
+            TAVILY_EXTRACT_URL,
+            json={"urls": urls[:5], "extract_depth": "advanced"},
+            headers={"Authorization": f"Bearer {key}"},
+            timeout=timeout_s,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except Exception:  # noqa: BLE001 - a brief without full text is still a brief
+        return {}
+
+    out: dict[str, str] = {}
+    for item in data.get("results") or []:
+        url = str(item.get("url") or "").strip()
+        text = str(item.get("raw_content") or "").strip()
+        if url and text:
+            out[url] = text[:EXTRACT_CHARS]
+    return out
+
+
+def read(query: str, max_results: int = MAX_RESULTS) -> tuple[Lookup, dict[str, str]]:
+    """Search, then actually read what came back."""
+    found = search(query, max_results=max_results)
+    if found.error or not found.sources:
+        return found, {}
+    return found, extract([s.url for s in found.sources])
 
 
 def available() -> bool:

@@ -29,6 +29,13 @@ DRIFT_RUNS: dict[str, tuple[str, str]] = {
     "ultra": ("drift_eval_Nemotron-3-Ultra-550b-a55b.jsonl", "Nemotron 3 Ultra 550B"),
 }
 
+# The model trained on Token Factory and run on the workstation beside the cell,
+# and the same base untrained, which is what says whether the training did anything.
+DRIFT_EDGE: dict[str, tuple[str, str]] = {
+    "edge": ("drift_eval_edge.jsonl", "Qwen3 1.7B, fine-tuned, on the cell's GPU"),
+    "edge_base": ("drift_eval_edge_base.jsonl", "Qwen3 1.7B, untrained, on the cell's GPU"),
+}
+
 DRIFT_SEVERE: dict[str, tuple[str, str]] = {
     "nano": ("drift_sev2.5_NVIDIA-Nemotron-3-Nano-30B-A3B.jsonl", "Nemotron 3 Nano 30B-A3B"),
     "super": ("drift_sev2.5_nemotron-3-super-120b-a12b.jsonl", "Nemotron 3 Super 120B-A12B"),
@@ -91,6 +98,7 @@ def seam_study() -> dict[str, Any]:
             "asked": r["stations_asked"],
             "refused": r.get("refused_stations", 0),
             "hottest_j_per_mm": r.get("hottest_j_per_mm"),
+            "track_ms": r.get("track_ms"),
         }
         for r in rows
     ]
@@ -113,6 +121,10 @@ def seam_study() -> dict[str, Any]:
             "sub_mm_parts": sum(1 for m in worst if m < 1.0),
         },
         "bow": {"mean_mm": _mean(bows), "max_mm": max(bows)},
+        "perception_ms": {
+            "median": _median([r.get("track_ms") for r in rows]),
+            "max": max((r["track_ms"] for r in rows if r.get("track_ms")), default=None),
+        },
         "refused_stations": sum(r.get("refused_stations", 0) for r in rows),
         "parts": parts,
     }
@@ -268,6 +280,7 @@ def drift_study() -> dict[str, Any]:
 
     normal = load(DRIFT_RUNS)
     severe = load(DRIFT_SEVERE)
+    edge = load(DRIFT_EDGE)
     if not normal:
         return {"available": False}
     scenarios = sorted({c["scenario"] for run in normal for c in run["cases"]})
@@ -278,6 +291,7 @@ def drift_study() -> dict[str, Any]:
         "seeds": seeds,
         "runs": normal,
         "severe": severe,
+        "edge": edge,
     }
 
 
@@ -333,6 +347,51 @@ def inspection_study() -> dict[str, Any]:
     }
 
 
+VISION_RUNS: dict[str, tuple[str, str]] = {
+    "gemma": ("inspections.jsonl", "google/gemma-3-27b-it"),
+    "minicpm": ("inspections_minicpm.jsonl", "openbmb/MiniCPM-V-4_5"),
+}
+
+
+def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
+    clean = [r for r in rows if r["injected"] == "none"]
+    faulty = [r for r in rows if r["injected"] != "none"]
+    called_any = {r["called"] for r in rows}
+    return {
+        "model": label,
+        "n": len(rows),
+        "named_correct": sum(1 for r in rows if r["correct"]),
+        "binary_correct": sum(1 for r in rows
+                              if (r["injected"] == "none") == (r["called"] == "none")),
+        "false_alarms": sum(1 for r in clean if r["called"] != "none"),
+        "missed": sum(1 for r in faulty if r["called"] == "none"),
+        "clean": len(clean),
+        "faulty": len(faulty),
+        "defects_named": len(called_any - {"none"}),
+        "never_says_defect": called_any == {"none"},
+        "median_latency_ms": _median([r.get("latency_ms") for r in rows]),
+    }
+
+
+def vision_study() -> dict[str, Any]:
+    """Both vision models the account serves, on the same fifty beads.
+
+    Worth its own study because the two scores are nearly identical and mean
+    opposite things. One of them reaches that score by naming defects and getting
+    some of them wrong; the other reaches it by never once using the word. A
+    single accuracy figure cannot tell those apart, which is the argument for
+    scoring the two kinds of mistake separately everywhere else on this dashboard.
+    """
+    arms = []
+    for _, (name, label) in VISION_RUNS.items():
+        rows = _read(name)
+        if rows:
+            arms.append(_score_inspection(rows, label))
+    if not arms:
+        return {"available": False}
+    return {"available": True, "arms": arms}
+
+
 def all_studies() -> dict[str, Any]:
     return {
         "seam": seam_study(),
@@ -340,4 +399,5 @@ def all_studies() -> dict[str, Any]:
         "router": router_study(),
         "drift": drift_study(),
         "inspection": inspection_study(),
+        "vision": vision_study(),
     }

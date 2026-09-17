@@ -107,17 +107,34 @@ run of parts, and explain any of it to the person responsible for the line.
 | Shift-level diagnosis, press vs fixture | Nebius Token Factory | Nemotron 3 Super 120B-A12B | yes |
 | Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
 | Post-weld inspection | Nebius Token Factory | google/gemma-3-27b-it | yes |
-| Looking up standards the cell cannot measure | Tavily | search with sources | yes |
+| Writing a corrective action brief from fetched documents | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
+| Shift-level diagnosis, without a network | trained on Token Factory, runs on the cell's GPU | Qwen3-1.7B + LoRA | yes |
+| Looking up standards the cell cannot measure | Tavily | search | yes |
+| Reading the documents a fault raises | Tavily | search, then extract | yes |
 
 Four NVIDIA Nemotron sizes are served on Token Factory and this project uses three of
 them, for different jobs, because measuring them showed they are not interchangeable.
 Nothing in this table is aspirational.
 
 The inspection model is not an NVIDIA one, and that is a constraint rather than a
-preference. Token Factory serves 24 models; four are Nemotron and all four are
-text-only. Exactly one is vision-capable, so the post-weld verdict has one option.
-Reasoning about the measurement, which is text, runs on Nemotron; reasoning about the
-photograph runs on the only model that can see.
+preference. Token Factory serves 24 models on this account; four are Nemotron and all
+four are text-only. Two are vision-capable and neither is NVIDIA's. Reasoning about the
+measurement, which is text, runs on Nemotron; reasoning about the photograph runs on the
+better of the two that can see.
+
+"Better" is measured, not assumed. Both were scored on the same fifty beads against the
+same injected defects, and they name the same number correctly, which is exactly why the
+comparison is worth keeping:
+
+| | Named right | Pass/defect | False alarms | Missed | Defect types it will name |
+| --- | --- | --- | --- | --- | --- |
+| google/gemma-3-27b-it | 31 of 50 | 41 of 50 | 5 | 4 | 4 |
+| openbmb/MiniCPM-V-4_5 | 31 of 50 | 31 of 50 | 0 | **19** | **0** |
+
+MiniCPM reaches the same headline score by calling every bead a pass. It never once
+uses the word defect, so it raises no false alarms and ships nineteen bad parts. It is
+also three times faster. A single accuracy figure cannot tell those two models apart,
+which is why every score in this repository is reported as two numbers.
 
 Cosmos is not served on Token Factory at all. Reaching Cosmos Reason or Cosmos Transfer
 means self-hosting on Nebius AI Cloud, which is a different platform and a larger piece
@@ -266,8 +283,38 @@ nothing wrong at all. The control matters, because a diagnostician that always f
 something is not diagnosing, and a control run has to be checked for flatness before it
 can be used, since ordinary scatter produces trends by chance.
 
-Results are in the routing section above. The short version: this task needs a large
-model, and the small ones answer "press" every time.
+The short version of the cloud result: this task needs a large model, and the small
+ones answer "press" every time, which scores 4 of 12 without reading anything.
+
+That was the finding. It was also a problem, because it put the one question a shop
+actually pays for behind a 120B model and a network connection.
+
+**So the model was taught instead of bought.** The cell is a simulation with a forming
+model in it, so a run of parts with a known fault costs nothing to make and arrives
+already labelled. Six hundred runs were generated, a 1.7B model was fine-tuned on
+Nebius Token Factory in four minutes, and the adapter now runs on the workstation beside
+the cell with no network at all.
+
+| Model | Where | Result | How it got there |
+| --- | --- | --- | --- |
+| Qwen3-1.7B, untrained | on the cell | 4 of 12 | answered "none" every time |
+| Nemotron 3 Nano 30B-A3B | Token Factory | 4 of 12 | answered "press" every time |
+| Nemotron 3.5 Lightning | Token Factory | 4 of 12 | answered "press" every time |
+| Nemotron 3 Super 120B-A12B | Token Factory | 8 of 12 | read the evidence |
+| Nemotron 3 Ultra 550B | Token Factory | 8 of 12 | read the evidence |
+| **Qwen3-1.7B + LoRA** | **on the cell** | **12 of 12** | trained on simulated runs |
+
+The comparison is kept honest by construction. The same generator (`cell/drift.py`)
+builds the training runs and the scored runs; the four seeds the evaluation lands on are
+excluded from the training set with a margin either side; the system prompt is imported
+rather than retyped, so the trained model is not given a better prompt than its
+baselines; and reasoning is disabled for it exactly as it was for the Nemotron sizes.
+The untrained control on the same base model and the same prompt is the line that says
+the training did the work.
+
+One caveat worth stating: the trained model answers in about 4 s on a laptop GPU against
+roughly 2.3 s for the 120B in the cloud. It is slower per call and available when the
+line is not, and it is asked once a shift, so the wall clock barely matters.
 
 ### Reproducing all of it
 
@@ -277,6 +324,20 @@ python scripts/run_campaign.py --manifest data/cap50/manifest.json --no-post --r
 python scripts/eval_router_truth.py --campaign data/campaign50.jsonl
 python scripts/eval_drift.py --parts 30 --runs 4
 python scripts/draw_result_chart.py --campaign data/seam_campaign.jsonl
+
+# the second vision model, on the same beads
+python scripts/run_inspection.py --no-post --model openbmb/MiniCPM-V-4_5 --out data/inspections_minicpm.jsonl
+
+# train the shift diagnosis, then score it on the cell's own GPU
+python scripts/make_drift_dataset.py --train 600 --val 80
+python scripts/finetune_drift.py --launch
+python scripts/finetune_drift.py --watch
+python scripts/finetune_drift.py --fetch
+python scripts/eval_drift_edge.py
+python scripts/eval_drift_edge.py --base-only     # the untrained control
+
+# turn the faults this run found into cited corrective action briefs
+python scripts/raise_briefs.py
 ```
 
 Seam finding is geometric: two faces fitted from depth and intersected, walked along

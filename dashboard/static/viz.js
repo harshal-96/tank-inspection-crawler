@@ -205,8 +205,16 @@ export function heat(rowLabels, colLabels, matrix, opts = {}) {
   const h = padT + rowLabels.length * cell + 28;
   const hi = Math.max(1, ...matrix.flat());
   let out = "";
+  // Long class names run into each other at one cell wide, so alternate rows
+  // keep every label readable without shortening any of them.
+  const stagger = colLabels.some((l) => String(l).length > 7);
   colLabels.forEach((label, j) => {
-    out += `<text class="axis-label" x="${padL + j * cell + cell / 2}" y="${padT - 10}"
+    const y = padT - (stagger && j % 2 ? 22 : 10);
+    if (stagger && j % 2) {
+      out += `<line x1="${padL + j * cell + cell / 2}" y1="${y + 3}"
+        x2="${padL + j * cell + cell / 2}" y2="${padT - 5}" stroke="var(--hair)" stroke-width="1"/>`;
+    }
+    out += `<text class="axis-label" x="${padL + j * cell + cell / 2}" y="${y}"
       text-anchor="middle" font-size="9.5">${esc(label)}</text>`;
   });
   rowLabels.forEach((r, i) => {

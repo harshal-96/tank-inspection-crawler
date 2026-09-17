@@ -16,9 +16,11 @@ from fastapi import Depends, FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from sqlmodel import Session, func, select
 
+from service import disposition
 from service.db import get_session, init_db
 from service.models import (
     AgentMessage,
+    CorrectiveBrief,
     Decision,
     Inspection,
     Measurement,
@@ -231,6 +233,11 @@ def create_weld_schedule(
     session.add(schedule)
     session.commit()
     session.refresh(schedule)
+
+    # Fit-up is the first point a part can be sent back, and it is judged before
+    # the bead: a joint the arc could not bridge can still photograph well.
+    disposition.settle(session, part)
+    session.commit()
     return schedule
 
 
@@ -295,11 +302,48 @@ def create_inspection(
         injected_defect=payload.injected_defect,
         correct=correct,
     )
-    part.status = PartStatus.INSPECTED
-    session.add_all([inspection, part])
+    session.add(inspection)
+    session.commit()
+    session.refresh(inspection)
+
+    # A cell that measures and never decides is a dashboard.
+    disposition.settle(session, part)
     session.commit()
     session.refresh(inspection)
     return inspection
+
+
+@app.post("/api/parts/settle")
+def settle_parts(session: Session = Depends(get_session)) -> dict[str, Any]:
+    """Re-decide every part against the current gate.
+
+    Used to backfill a run that was recorded before the gate existed, and after a
+    rule change, so the shop floor and the database cannot disagree about which
+    parts were sent back.
+    """
+    rows = disposition.settle_all(session)
+    counts: dict[str, int] = {}
+    for row in rows:
+        counts[row["status"]] = counts.get(row["status"], 0) + 1
+    return {"settled": len(rows), "counts": counts, "parts": rows}
+
+
+@app.get("/api/dispositions")
+def list_dispositions(
+    limit: int = 200, session: Session = Depends(get_session)
+) -> list[dict[str, Any]]:
+    """What happened to each part, and the sentence that justifies it."""
+    query = select(Part).order_by(Part.id.desc()).limit(min(limit, 500))
+    out = []
+    for part in session.exec(query):
+        status, reason = disposition.decide(session, part)
+        out.append({
+            "part_id": part.id,
+            "serial": part.serial,
+            "status": status.value,
+            "reason": reason,
+        })
+    return out
 
 
 @app.get("/api/inspections", response_model=list[Inspection])
@@ -478,6 +522,30 @@ def cell_geometry() -> dict[str, Any]:
     }
 
 
+@app.post("/api/briefs", status_code=201)
+def create_brief(payload: dict[str, Any],
+                 session: Session = Depends(get_session)) -> CorrectiveBrief:
+    """Store a corrective action brief and the sources it was written from."""
+    serial = payload.pop("part_serial", None)
+    part_id = None
+    if serial:
+        part_id = _part_by_serial(session, serial).id
+    allowed = set(CorrectiveBrief.model_fields)
+    brief = CorrectiveBrief(part_id=part_id,
+                            **{k: v for k, v in payload.items() if k in allowed})
+    session.add(brief)
+    session.commit()
+    session.refresh(brief)
+    return brief
+
+
+@app.get("/api/briefs", response_model=list[CorrectiveBrief])
+def list_briefs(limit: int = 50,
+                session: Session = Depends(get_session)) -> list[CorrectiveBrief]:
+    query = select(CorrectiveBrief).order_by(CorrectiveBrief.id.desc()).limit(min(limit, 200))
+    return list(session.exec(query))
+
+
 @app.get("/api/evidence")
 def evidence_all() -> dict[str, Any]:
     """Every campaign in the repo, reduced to the findings it supports.
@@ -508,6 +576,24 @@ def evidence_one(study: str) -> dict[str, Any]:
 
 
 # ------------------------------------------------------------------------ dashboard
+
+
+@app.middleware("http")
+async def no_stale_dashboard(request, call_next):
+    """Serve the dashboard's own files fresh.
+
+    ES modules are cached by URL and browsers hold the graph hard enough that a
+    forced reload still ran the previous build here, which cost an hour of
+    debugging a fix that was already on disk. The dashboard is a few hundred
+    kilobytes of source read from localhost; there is nothing to gain by caching
+    it and a whole class of phantom bug to lose.
+    """
+    response = await call_next(request)
+    path = request.url.path
+    if path.startswith("/static/") or path in ("/", "/index.html"):
+        response.headers["Cache-Control"] = "no-store, must-revalidate"
+    return response
+
 
 if DASHBOARD_DIR.exists():
     assets = Path(__file__).resolve().parent.parent / "assets"

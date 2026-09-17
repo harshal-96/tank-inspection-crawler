@@ -22,6 +22,8 @@ export function render() {
     </p>
 
     <div class="grid">
+      <div class="tiles" id="sm-tiles"></div>
+
       <div class="card w8">
         <header><h2>Station error, part by part</h2></header>
         <div class="hint">Each column is a part; each mark is one of its twenty stations. The dark
@@ -83,6 +85,7 @@ let ev = null;
 
 export async function mount() {
   [ev] = await Promise.all([loadEvidence(), refreshLive()]);
+  tiles();
   strip();
   decomp();
   refused();
@@ -94,6 +97,33 @@ export async function mount() {
 export function update() { picker(); detail(); }
 
 /* --------------------------------------------------------------------- charts */
+
+function tiles() {
+  const s = ev.seam;
+  if (!s.available) return;
+  const perception = s.perception_ms || {};
+  V.$("sm-tiles").innerHTML = [
+    tile("Tracked to", V.fmt(s.tracked.mean_mm, 3), "after",
+      `mean over ${s.stations_measured.toLocaleString()} stations`, "mm"),
+    tile("A taught path misses by", V.fmt(s.taught.mean_mm, 1), "before",
+      `worst part ${V.fmt(s.taught.max_mm, 1)} mm`, "mm"),
+    tile("Parts under 1 mm, every station", `${s.tracked.sub_mm_parts}/${s.n_parts}`, "good",
+      `worst single station ${V.fmt(s.tracked.worst_station_mm, 2)} mm`),
+    tile("The seam's own bow", V.fmt(s.bow.mean_mm, 2), "",
+      `worst ${V.fmt(s.bow.max_mm, 2)} mm, and no straight path removes it`, "mm"),
+    perception.median
+      ? tile("Depth frame to weld path", V.fmt(perception.median, 0), "",
+          `median, worst ${V.fmt(perception.max, 0)} ms, on the cell's own CPU`, "ms")
+      : "",
+    tile("Stations refused", String(s.refused_stations), s.refused_stations ? "warn" : "good",
+      `of ${s.stations_measured.toLocaleString()}, where the joint was too open to bridge`),
+  ].filter(Boolean).join("");
+}
+
+const tile = (label, value, tone, sub, unit = "") => `<div class="tile">
+  <div class="label">${V.esc(label)}</div>
+  <div class="value ${tone}">${value}${unit ? `<span class="unit">${unit}</span>` : ""}</div>
+  <div class="sub">${V.esc(sub)}</div></div>`;
 
 function strip() {
   if (!ev.seam.available) return;

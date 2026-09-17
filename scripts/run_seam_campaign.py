@@ -124,8 +124,13 @@ def main() -> int:
     for row in manifest["rows"]:
         view = min(row["views"], key=lambda v: abs(v["orbit_deg"] - args.view))
         depth = np.load(root / view["depth"])
+        # Timed from the depth frame to a finished path, which is the work the cell
+        # does between the camera firing and the torch being allowed to move. The
+        # file read is outside it; on a real sensor that is a frame arriving.
+        track_from = time.perf_counter()
         cloud = transform_points(backproject(depth, intrinsics), to_world)
         track = find_and_track(cloud, taught_start, taught_end, stations=args.stations)
+        track_ms = (time.perf_counter() - track_from) * 1000.0
 
         truth = np.array(row["true_seam"])
         # Score over the stretch the camera can actually see.
@@ -137,6 +142,7 @@ def main() -> int:
             "seam_bow_mm": straight_line_miss(truth),
             "stations_measured": len(track.measured),
             "stations_asked": args.stations,
+            "track_ms": round(track_ms, 1),
         }
         if track.measured:
             record.update(score_path(track.measured, truth))
@@ -177,6 +183,7 @@ def main() -> int:
                 seam_bow_mm=record["seam_bow_mm"],
                 error_mm=record.get("mean_mm"),
                 worst_station_mm=record.get("max_mm"),
+                latency_ms=track_ms,
             )
             # A seam can come back with every station refused, and asking for the
             # hottest of nothing raises rather than reporting the refusal.

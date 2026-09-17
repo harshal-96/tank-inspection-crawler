@@ -196,6 +196,17 @@ class CellClient:
             },
         )
 
+    def get_weld_schedules(self, limit: int = 200) -> list[dict[str, Any]]:
+        """Read back what was scheduled, so a later pass can find the refusals."""
+        try:
+            return self._request("GET", f"/api/weld-schedules?limit={limit}") or []
+        except Exception:  # noqa: BLE001
+            return []
+
+    def post_brief(self, payload: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """Store a corrective action brief with the sources it was written from."""
+        return self._post("/api/briefs", payload)
+
     def post_view_decision(
         self, part_serial: str, **fields: Any
     ) -> Optional[dict[str, Any]]:

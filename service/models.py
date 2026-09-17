@@ -280,3 +280,38 @@ class ShiftReport(SQLModel, table=True):
     period_end: datetime
     content_md: str
     model: Optional[str] = None
+
+
+class CorrectiveBrief(SQLModel, table=True):
+    """A cited answer to "what do I do about this", raised by a measurement.
+
+    Kept because the citation is the point. A verdict an operator cannot check is
+    a verdict nobody on a shop floor is allowed to act on, so the sources the
+    brief was written from are stored beside it rather than being thrown away
+    once the text was generated.
+    """
+
+    __tablename__ = "corrective_briefs"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    ts: datetime = Field(default_factory=utcnow, index=True)
+    part_id: Optional[int] = Field(default=None, foreign_key="parts.id", index=True)
+
+    topic: str = Field(index=True,
+                       description="What raised it, e.g. the joint opening too far to weld")
+    trigger: str = Field(default="", description="gap, drift, defect: which measurement asked")
+    query: str = Field(description="What was searched, built from the measurement")
+
+    headline: str = ""
+    what_the_cell_measured: str = ""
+    what_the_sources_say: str = ""
+    do_now: list[str] = Field(default_factory=list, sa_column=Column(JSON))
+    confidence: str = "low"
+    caveat: str = ""
+
+    sources: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+    documents_read: int = 0
+    model: Optional[str] = None
+    search_ms: Optional[float] = None
+    total_ms: Optional[float] = None
+    error: Optional[str] = None

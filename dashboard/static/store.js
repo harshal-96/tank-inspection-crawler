@@ -50,16 +50,18 @@ export async function loadCell() {
 
 export async function refreshLive() {
   try {
-    const [stats, parts, seams, schedules, decisions, inspections, measurements] =
-      await Promise.all([
-        json("/api/stats"),
-        json("/api/parts?limit=200"),
-        json("/api/seam-tracks?limit=200"),
-        json("/api/weld-schedules?limit=200"),
-        json("/api/view-decisions?limit=200"),
-        json("/api/inspections?limit=200"),
-        json("/api/measurements?limit=200"),
-      ]);
+    const [stats, parts, seams, schedules, decisions, inspections, measurements,
+           briefs, dispositions] = await Promise.all([
+      json("/api/stats"),
+      json("/api/parts?limit=200"),
+      json("/api/seam-tracks?limit=200"),
+      json("/api/weld-schedules?limit=200"),
+      json("/api/view-decisions?limit=200"),
+      json("/api/inspections?limit=200"),
+      json("/api/measurements?limit=200"),
+      json("/api/briefs?limit=50"),
+      json("/api/dispositions?limit=200"),
+    ]);
     // Everything indexes by part_id, so the detail views line up by construction.
     const byPart = new Map();
     const put = (rows, key) => rows.forEach((r) => {
@@ -73,8 +75,12 @@ export async function refreshLive() {
     put(inspections, "inspection");
     put(measurements, "measurement");
 
+    const byId = new Map(dispositions.map((d) => [d.part_id, d]));
+    for (const [id, slot] of byPart) slot.disposition = byId.get(id) || null;
+
     state.live = {
       stats, parts, seams, schedules, decisions, inspections, measurements,
+      briefs, dispositions,
       byPart,
       ids: [...byPart.keys()].sort((a, b) => b - a),
     };

@@ -16,9 +16,12 @@ import * as inspection from "./pages/inspection.js";
 import * as cell from "./pages/cell.js";
 import * as parts from "./pages/parts.js";
 import * as supervisor from "./pages/supervisor.js";
+import * as briefs from "./pages/briefs.js";
 import * as method from "./pages/method.js";
+import * as platform from "./pages/platform.js";
 
-const PAGES = [overview, seam, routing, diagnosis, inspection, cell, parts, supervisor, method];
+const PAGES = [overview, seam, routing, diagnosis, inspection,
+               cell, parts, briefs, supervisor, method, platform];
 const BY_ID = new Map(PAGES.map((p) => [p.meta.id, p]));
 const GROUPS = ["Result", "Studies", "Cell", "Reference"];
 

@@ -35,6 +35,9 @@ def main() -> int:
     parser.add_argument("--no-post", action="store_true")
     parser.add_argument("--api", default=None)
     parser.add_argument("--out", default="data/inspections.jsonl")
+    parser.add_argument("--model", default=None,
+                        help="Vision model to judge with. Token Factory serves more than "
+                             "one; they do not agree, and which one is used is a result.")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest)
@@ -58,7 +61,7 @@ def main() -> int:
         if not image.exists():
             continue
         injected = row.get("injected_defect") or "none"
-        result = inspect_weld(image)
+        result = inspect_weld(image, model=args.model)
         called = result.defect_type.value
         correct = called == injected
 

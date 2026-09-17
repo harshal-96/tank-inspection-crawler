@@ -157,6 +157,48 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             },
         },
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "write_corrective_brief",
+            "description": (
+                "Research what to DO about a fault the cell has already measured, "
+                "and store the answer. Use this when the operator asks how to fix "
+                "something, or when a measurement has found a fault worth acting "
+                "on: a joint too open to weld, a machine drifting, a defect "
+                "recurring. It reads the source documents rather than their "
+                "snippets, writes the steps with a citation on each claim, and "
+                "keeps the result so the next shift can check it. Slower than "
+                "look_up_standard and worth it when somebody is about to stop a "
+                "machine. Do not use it to decide whether a part passes."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "topic": {
+                        "type": "string",
+                        "description": "The fault in a few words, e.g. press brake "
+                                       "angle drifting.",
+                    },
+                    "measured": {
+                        "type": "string",
+                        "description": (
+                            "What the cell actually measured, numbers included. "
+                            "Take these from the other tools; do not estimate them."
+                        ),
+                    },
+                    "query": {
+                        "type": "string",
+                        "description": (
+                            "What to search for. Leave empty to search the topic. "
+                            "Keep it technical and unpadded."
+                        ),
+                    },
+                },
+                "required": ["topic", "measured"],
+            },
+        },
+    },
 ]
 
 
@@ -356,6 +398,44 @@ def look_up_standard(session: Session, query: str) -> dict[str, Any]:
     return lookup.search(query).as_tool_result()
 
 
+def write_corrective_brief(session: Session, topic: str, measured: str,
+                           query: str = "") -> dict[str, Any]:
+    """Research what to do about a fault the cell has already measured, and store it.
+
+    Different from look_up_standard, which answers a question. This answers
+    "what do I do now": it reads the documents rather than their snippets, writes
+    the instruction with a citation on every claim, and keeps the result so an
+    operator on the next shift can check where each number came from.
+    """
+    from brain import advisor
+    from service.models import CorrectiveBrief
+
+    brief = advisor.write_brief(
+        topic=topic,
+        query=query.strip() or topic,
+        measured=measured,
+    )
+    row = CorrectiveBrief(
+        topic=brief.topic, trigger="supervisor", query=brief.query,
+        headline=brief.headline,
+        what_the_cell_measured=brief.what_the_cell_measured,
+        what_the_sources_say=brief.what_the_sources_say,
+        do_now=brief.do_now, confidence=brief.confidence, caveat=brief.caveat,
+        sources=brief.sources, documents_read=brief.documents_read,
+        model=brief.model, search_ms=brief.search_ms, total_ms=brief.total_ms,
+        error=brief.error,
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+
+    result = brief.as_dict()
+    result["brief_id"] = row.id
+    result["note"] = ("Stored. Give the operator the headline and the steps, and "
+                      "keep the [n] citations attached to the claims that carry them.")
+    return result
+
+
 REGISTRY: dict[str, Callable[..., dict[str, Any]]] = {
     "get_cell_status": get_cell_status,
     "get_recent_parts": get_recent_parts,
@@ -364,6 +444,7 @@ REGISTRY: dict[str, Callable[..., dict[str, Any]]] = {
     "list_defects": list_defects,
     "record_decision": record_decision,
     "look_up_standard": look_up_standard,
+    "write_corrective_brief": write_corrective_brief,
 }
 
 

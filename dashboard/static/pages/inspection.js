@@ -56,6 +56,15 @@ export function render() {
       </div>
 
       <div class="card w12">
+        <header><h2>Two vision models, the same score, opposite behaviour</h2></header>
+        <div class="hint">The account serves two models that can see. On these fifty beads they
+          name the same number of defects correctly. That number means completely different
+          things, which is the argument for never quoting a single accuracy figure.</div>
+        <div id="in-vision"></div>
+        <footer id="in-vision-meta"></footer>
+      </div>
+
+      <div class="card w12">
         <header>
           <h2>Every bead, with the reasoning attached</h2>
           <span class="grow" style="flex:1"></span>
@@ -82,6 +91,7 @@ export async function mount() {
   split();
   errors();
   classes();
+  vision();
   V.$("in-filter").querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       filter = b.dataset.f;
@@ -117,7 +127,7 @@ function matrix() {
   const i = ev.inspection;
   const labels = i.labels.map((l) => DEFECT_LABEL[l] || l);
   V.paint(V.$("in-matrix"), V.heat(labels, labels, i.matrix, {
-    cell: 52, padL: 96, padT: 46,
+    cell: 54, padL: 96, padT: 58,
     xTitle: "rows: injected · columns: called",
     tip: (r, c, v) => v === 0 ? `no beads`
       : `<b>${v}</b> bead${v > 1 ? "s" : ""} with <b>${labels[r]}</b> injected
@@ -219,6 +229,67 @@ function classes() {
     <span><i style="background:var(--good)"></i>named correctly</span>
     <span><i style="background:var(--warning)"></i>seen, named wrong</span>
     <span><i style="background:var(--critical)"></i>called clean</span></div>`);
+}
+
+function vision() {
+  const host = V.$("in-vision");
+  if (!ev.vision || !ev.vision.available || ev.vision.arms.length < 2) {
+    if (host) host.innerHTML = `<div class="empty">Only one vision model has been scored.</div>`;
+    return;
+  }
+  const arms = ev.vision.arms;
+  const w = 720, rowH = 74, padL = 190, padR = 24;
+  const h = arms.length * rowH + 44;
+  const track = w - padL - padR;
+  let out = V.axisTitle(padL, 16, "fifty beads: clean called clean, defect caught, "
+                                  + "false alarm, missed");
+
+  arms.forEach((a, i) => {
+    const y = 34 + i * rowH;
+    out += `<text x="${padL - 12}" y="${y + 13}" text-anchor="end" font-size="12"
+      fill="var(--text-primary)" font-family="var(--sans)">${V.esc(a.model.split("/").pop())}</text>`;
+    out += `<text x="${padL - 12}" y="${y + 29}" text-anchor="end" font-size="10.5"
+      fill="var(--text-muted)" font-family="var(--sans)">${a.named_correct}/${a.n} named correctly</text>`;
+
+    const segments = [
+      { n: a.clean - a.false_alarms, colour: "var(--good)", what: "clean, called clean" },
+      { n: a.faulty - a.missed, colour: "var(--series-1)", what: "defect, caught" },
+      { n: a.false_alarms, colour: "var(--warning)", what: "false alarm, a good part scrapped" },
+      { n: a.missed, colour: "var(--critical)", what: "missed, a bad part shipped" },
+    ];
+    let x = padL;
+    segments.forEach((seg) => {
+      if (seg.n > 0) {
+        const sw = (seg.n / a.n) * track;
+        out += `<rect x="${x + 1}" y="${y}" width="${Math.max(0, sw - 2)}" height="24" rx="5"
+          fill="${seg.colour}" opacity=".9"
+          data-tip="<b>${seg.n}</b> of ${a.n}: ${V.esc(seg.what)}"/>`;
+        if (sw > 34) out += `<text x="${x + sw / 2}" y="${y + 16}" text-anchor="middle"
+          font-size="11" fill="#0b0e13" font-weight="600">${seg.n}</text>`;
+        x += sw;
+      }
+    });
+    const verdict = a.never_says_defect
+      ? "never once used the word defect"
+      : `named ${a.defects_named} different defect types`;
+    out += `<text x="${padL}" y="${y + 44}" font-size="11" fill="var(--text-muted)"
+      font-family="var(--sans)">${V.esc(verdict)} · median
+      ${V.fmt(a.median_latency_ms, 0)} ms</text>`;
+  });
+  V.paint(host, V.svg(w, h, out));
+
+  const quiet = arms.find((a) => a.never_says_defect);
+  const working = arms.find((a) => !a.never_says_defect);
+  if (quiet && working) {
+    V.$("in-vision-meta").innerHTML =
+      `Both models name <b>${quiet.named_correct}</b> of ${quiet.n} correctly.
+       <b>${V.esc(quiet.model.split("/").pop())}</b> gets there by calling every bead a pass:
+       zero false alarms, and <b>${quiet.missed}</b> bad parts shipped. It is faster and it is
+       useless. <b>${V.esc(working.model.split("/").pop())}</b> gets there by looking, which costs
+       <b>${working.false_alarms}</b> false alarms and misses <b>${working.missed}</b>.
+       This is the same trap the small model falls into on the drift question, and the reason
+       every score on this dashboard is reported as two numbers rather than one.`;
+  }
 }
 
 function cases() {

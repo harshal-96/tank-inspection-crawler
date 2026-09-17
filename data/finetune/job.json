@@ -1,0 +1,21 @@
+{
+  "job_id": "ftjob-0e37a759103b47acb4a9888bff26793f",
+  "base_model": "Qwen/Qwen3-1.7B",
+  "training_file": "file-01a0b1ae-ddb4-703f-8a2d-245ba6ff6071",
+  "validation_file": "file-01a0b1ae-df32-7385-8f59-7eb4916a6965",
+  "hyperparameters": {
+    "batch_size": 8,
+    "learning_rate": 0.0001,
+    "n_epochs": 3,
+    "warmup_ratio": 0.03,
+    "weight_decay": 0.0,
+    "lora": true,
+    "lora_r": 32,
+    "lora_alpha": 64,
+    "lora_dropout": 0.05,
+    "packing": true,
+    "max_grad_norm": 1.0,
+    "context_length": 8192
+  },
+  "launched_at": "2026-09-18T04:53:46"
+}

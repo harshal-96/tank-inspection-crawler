@@ -57,6 +57,16 @@ export function render() {
       </div>
 
       <div class="card w12">
+        <header><h2>Taught instead of bought</h2></header>
+        <div class="hint">The cell is a simulation with a forming model in it, so a run of parts
+          with a known fault costs nothing to make and arrives already labelled. Six hundred of
+          them were generated, away from the seeds below, and a 1.7B model was fine-tuned on
+          Token Factory. It now runs on the workstation beside the cell, with no network.</div>
+        <div id="dg-edge"></div>
+        <footer id="dg-edge-meta"></footer>
+      </div>
+
+      <div class="card w12">
         <header><h2>The same models at 2.5&times; severity</h2></header>
         <div class="hint">If a model is reading the evidence, a stronger signal should help it. If it
           is guessing, a stronger signal changes nothing.</div>
@@ -84,6 +94,7 @@ export async function mount() {
   grid();
   spread();
   severity();
+  edge();
   picker();
 }
 
@@ -91,18 +102,32 @@ function tiles() {
   const d = ev.drift;
   const best = [...d.runs].sort((a, b) => b.accuracy - a.accuracy)[0];
   const nano = d.runs.find((r) => r.tier === "nano");
+  const trained = (d.edge || []).find((r) => r.tier === "edge");
+  const untrained = (d.edge || []).find((r) => r.tier === "edge_base");
   const sevSuper = d.severe.find((r) => r.tier === "super");
-  const sevNano = d.severe.find((r) => r.tier === "nano");
+
   V.$("dg-tiles").innerHTML = [
-    tile("Best diagnosis", `${best.correct}/${best.n}`, "good",
+    trained
+      ? tile("Trained, on the cell's own GPU", `${trained.correct}/${trained.n}`, "after",
+          `a 1.7B with no network, against ${best.correct}/${best.n} for the 120B`)
+      : "",
+    tile("Best in the cloud", `${best.correct}/${best.n}`, "good",
       `${best.model} reading the same twelve runs`),
-    tile("Smallest model", `${nano.correct}/${nano.n}`, "bad",
+    tile("Smallest in the cloud", `${nano.correct}/${nano.n}`, "bad",
       nano.degenerate ? `answered "${nano.always_said}" every time` : "mixed answers"),
-    sevSuper ? tile("At 2.5× severity", `${sevSuper.correct}/${sevSuper.n}`, "good",
-      "the larger model improves when the signal does") : "",
-    sevNano ? tile("Smallest at 2.5×", `${sevNano.correct}/${sevNano.n}`, "bad",
-      "unchanged, which is what guessing looks like") : "",
-    tile("Median time to answer", `${V.fmt(best.median_latency_ms / 1000, 1)}`, "", "seconds, once per shift", "s"),
+    untrained
+      ? tile("The same 1.7B, untrained", `${untrained.correct}/${untrained.n}`, "bad",
+          untrained.degenerate
+            ? `answered "${untrained.always_said}" every time, which is what training fixed`
+            : "before fine-tuning")
+      : "",
+    sevSuper ? tile("120B at 2.5× severity", `${sevSuper.correct}/${sevSuper.n}`, "good",
+      "it improves when the signal does, which is what reading looks like") : "",
+    trained
+      ? tile("Time to a diagnosis", `${V.fmt(trained.median_latency_ms / 1000, 1)}`, "",
+          "seconds, on a laptop GPU, asked once a shift", "s")
+      : tile("Median time to answer", `${V.fmt(best.median_latency_ms / 1000, 1)}`, "",
+          "seconds, once per shift", "s"),
   ].filter(Boolean).join("");
 }
 
@@ -194,6 +219,56 @@ function spread() {
      which scores <b>4/12</b> whether or not anything was read. The score alone would have made them look
      like partial successes; the answer distribution is what shows they were not diagnosing.
      This is why the shift-level question is routed up rather than kept on the small model.`;
+}
+
+/** The cloud ladder and the trained edge model on one axis. */
+function edge() {
+  const host = V.$("dg-edge");
+  const runs = ev.drift.edge || [];
+  if (!runs.length) {
+    host.innerHTML = `<div class="empty">The edge evaluation has not been run.</div>`;
+    return;
+  }
+  const trained = runs.find((r) => r.tier === "edge");
+  const untrained = runs.find((r) => r.tier === "edge_base");
+
+  const bars = [];
+  if (untrained) {
+    bars.push({ label: "1.7B, untrained, on the cell", value: untrained.correct,
+      display: `${untrained.correct}/${untrained.n}`, colour: "var(--before)",
+      tip: untrained.degenerate
+        ? `<b>${untrained.model}</b><br>answered <b>${untrained.always_said}</b> to every run`
+        : `<b>${untrained.model}</b>` });
+  }
+  ev.drift.runs.forEach((r) => {
+    bars.push({ label: `${r.tier}, in the cloud`, value: r.correct,
+      display: `${r.correct}/${r.n}`, colour: V.ARM_COLOUR[r.tier],
+      tip: r.degenerate
+        ? `<b>${r.model}</b><br>answered <b>${r.always_said}</b> to every run, which scores
+           ${r.correct}/${r.n} without reading anything`
+        : `<b>${r.model}</b><br>${r.correct} of ${r.n} named correctly` });
+  });
+  if (trained) {
+    bars.push({ label: "1.7B, trained, on the cell", value: trained.correct,
+      display: `${trained.correct}/${trained.n}`, colour: "var(--after)",
+      tip: `<b>${trained.model}</b><br>${trained.correct} of ${trained.n}, median
+            ${V.fmt(trained.median_latency_ms, 0)} ms, no network` });
+  }
+  V.paint(host, V.ranked(bars, { width: 620, rowH: 34, padL: 210, max: 12 }));
+
+  if (trained) {
+    const best = [...ev.drift.runs].sort((a, b) => b.correct - a.correct)[0];
+    V.$("dg-edge-meta").innerHTML =
+      `<b>${trained.correct}/${trained.n}</b> on the held-out cases, against
+       <b>${best.correct}/${best.n}</b> for the largest cloud model that reads the evidence.
+       ${untrained ? `The same model untrained scores <b>${untrained.correct}/${untrained.n}</b>
+       by answering <b>${untrained.always_said}</b> every time, which is the same arithmetic the
+       small Nemotron sizes fall into and is what says the training did the work rather than the
+       prompt. ` : ""}
+       It answers in <b>${V.fmt(trained.median_latency_ms, 0)} ms</b> on a laptop GPU, slower per
+       call than the cloud and available when the line is not. The training set was generated by
+       the simulator, so the labels cost nothing and the seeds scored here were excluded from it.`;
+  }
 }
 
 function severity() {
