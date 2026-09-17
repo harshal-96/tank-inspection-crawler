@@ -5,7 +5,7 @@ it with a swapped base URL. Everything provider-specific is isolated here.
 
 Auth note: Token Factory API keys are NOT the same credential as a Nebius AI
 Cloud console user_id/org_id. Create a key at tokenfactory.nebius.com under your
-project, then set NEBIUS_API_KEY.
+project.
 """
 
 from __future__ import annotations
@@ -36,30 +36,35 @@ DEFAULT_VISION_MODEL = "google/gemma-3-27b-it"
 # The OpenAPI spec caps the image_url string at this length.
 MAX_IMAGE_URL_CHARS = 13_981_514
 
+# Accepted names for the Token Factory key, in priority order.
+API_KEY_VARS = ("NEBIUS_API_KEY", "INFERENCE_API_KEY", "NEBIUS_INFERENCE_API_KEY")
+
+_MISSING_KEY_HELP = """No Token Factory API key found.
+Set one of: {names}
+  1. Open https://tokenfactory.nebius.com and select your project
+  2. Create an API key under API keys
+  3. Add it to .env
+Note: a Nebius AI Cloud user_id/org_id will not work here, it is a different
+product with different auth."""
+
 
 class MissingCredentials(RuntimeError):
-    """Raised when NEBIUS_API_KEY is absent, with instructions rather than a stack trace."""
+    """Raised when no API key is set, with instructions rather than a stack trace."""
 
 
 def api_key() -> str:
-    key = os.getenv("NEBIUS_API_KEY", "").strip()
-    if not key:
-        raise MissingCredentials(
-            "NEBIUS_API_KEY is not set.\n"
-            "  1. Open https://tokenfactory.nebius.com and select your project\n"
-            "  2. Create an API key under API keys\n"
-            "  3. Add NEBIUS_API_KEY=<key> to .env\n"
-            "Note: a Nebius AI Cloud user_id/org_id will not work here, it is a "
-            "different product with different auth."
-        )
-    return key
+    for var in API_KEY_VARS:
+        value = os.getenv(var, "").strip()
+        if value:
+            return value
+    raise MissingCredentials(_MISSING_KEY_HELP.format(names=", ".join(API_KEY_VARS)))
 
 
 def client() -> OpenAI:
     """An OpenAI SDK client pointed at Token Factory."""
     return OpenAI(
         api_key=api_key(),
-        base_url=os.getenv("NEBIUS_BASE_URL", DEFAULT_BASE_URL),
+        base_url=os.getenv("NEBIUS_BASE_URL", "").strip() or DEFAULT_BASE_URL,
     )
 
 

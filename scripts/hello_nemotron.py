@@ -21,6 +21,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from brain import nebius  # noqa: E402
+from service.models import DefectType  # noqa: E402
 
 OK, BAD, INFO = "[ ok ]", "[fail]", "[ .. ]"
 
@@ -161,42 +162,32 @@ def _test_image(path: Path) -> Path:
 
 def check_vision() -> bool:
     _rule("4. Vision model, weld inspection")
-    client, model = nebius.client(), nebius.vision_model()
+    from brain.inspector import inspect_weld
+
     img = _test_image(Path("data/captures/preflight_bead.png"))
-
-    schema_hint = (
-        'Reply with JSON only: {"verdict":"pass"|"defect",'
-        '"defect_type":"none"|"undercut"|"skip"|"porosity"|"spatter"|"burn_through",'
-        '"reasoning":"one sentence"}'
-    )
-
     try:
-        t0 = time.perf_counter()
-        res = client.chat.completions.create(
-            model=model,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "text",
-                            "text": "Inspect this weld bead for defects. " + schema_hint,
-                        },
-                        nebius.image_part(img),
-                    ],
-                }
-            ],
-            max_tokens=400,
-        )
-        dt = (time.perf_counter() - t0) * 1000
+        result = inspect_weld(img)
     except Exception as exc:  # noqa: BLE001
         print(f"{BAD} vision call failed: {type(exc).__name__}: {exc}")
         return False
 
-    raw = nebius.strip_reasoning(res.choices[0].message.content)
-    print(f"{OK} responded in {dt:.0f} ms using {model}")
-    print(f"{INFO} {raw[:300]}")
-    print(f"{INFO} test image: {img}  (has a deliberate gap, a correct answer names a skip)")
+    print(f"{OK} {result.model} responded in {result.latency_ms:.0f} ms")
+    print(f"{INFO} verdict={result.verdict.value} type={result.defect_type.value} "
+          f"severity={result.severity}")
+    print(f"{INFO} {result.reasoning}")
+    print(f"{INFO} tokens in/out: {result.prompt_tokens}/{result.completion_tokens}")
+
+    if result.parse_error:
+        print(f"{BAD} reply did not parse: {result.parse_error}")
+        return False
+
+    # The test image carries a deliberate gap, so the only correct answer is a skip.
+    if result.defect_type is not DefectType.SKIP:
+        print(f"{BAD} expected defect_type=skip on an image with a deliberate gap")
+        print("       The model can see the gap; if this fails the prompt has regressed.")
+        return False
+
+    print(f"{OK} correctly identified the injected gap as a skip")
     return True
 
 
