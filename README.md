@@ -20,26 +20,38 @@ This project takes the other route: assume the part will move, and measure it.
 
 ## What it does
 
-Three things happen to every part.
+**1. Measure the joint, geometrically.** A depth camera looks at the clamped part. A
+fillet joint is the line where two panel faces meet, so the cell fits a plane to each
+face and intersects them. That gives the weld path in millimetres directly, with no
+pixel-to-millimetre calibration to fit, no labelled images, and nothing to retrain when
+the part changes, because every fillet joint is still two planes meeting. This is the
+principle a laser seam tracker works on.
 
-**1. Measure and correct, at the edge.** A fixed camera photographs the clamped part. A
-detector running locally on an optimised inference engine finds the actual joint, a
-calibrated mapping converts pixels to robot coordinates, and the robot retargets before
-it strikes an arc. This runs on the machine, in milliseconds, because a cell cannot wait
-on a network round trip to decide where to weld.
+**2. Decide whether to believe it, in the cloud.** One look is not evidence. The
+measurement comes with signals a real cell has: the angle between the fitted faces, how
+evenly the two faces were seen, the fit residual on each, how much of the joint was
+covered. An NVIDIA Nemotron model reads those and decides whether the measurement can be
+trusted or whether the part should be presented differently and measured again. The robot
+re-presents, the cell measures again, and the accepted views are fused.
 
-**2. Inspect, in the cloud.** After the weld, a second camera photographs the bead. An
-NVIDIA Nemotron vision model running on Nebius Token Factory returns a verdict with its
-reasoning: pass, or a named defect. Quality judgement is a slower, harder, more
-linguistic problem than localisation, so it goes where the large models are.
+This is the part that matters. A single view can look perfectly healthy and still be
+twenty millimetres out, and nothing inside that view will say so. Two views disagreeing
+say so at once.
 
-**3. Supervise.** An NVIDIA Nemotron reasoning model runs as a cell supervisor with tools
-over the production database. It reads the per-part measurement stream, spots drift that
-no single part would reveal, decides accept, rework or recalibrate, writes shift reports,
-and answers the operator in plain language.
+**3. Inspect the weld, in the cloud.** After welding, a second camera photographs the
+bead and a vision model returns a verdict with its reasoning: pass, or a named defect.
+Defects are deliberately injected in simulation, so every verdict is scored against a
+known answer rather than admired.
 
-That split is the point. Millimetre correction belongs at the edge. Judgement,
-pattern-finding across a shift, and explanation belong in the cloud.
+**4. Supervise.** A Nemotron reasoning model runs as a cell supervisor with tools over
+the production database. It reads the per-part stream, spots drift that no single part
+would reveal, decides accept, rework or recalibrate, writes shift reports, and answers
+the operator in plain language. It records recommendations; it does not move the cell.
+
+The division is deliberate. Geometry does what geometry is good at, which is turning
+surfaces into millimetres. The models do what geometry cannot: judge whether a
+measurement deserves trust, judge whether a weld is sound, and explain either to the
+person responsible for the line.
 
 ## How Nebius and NVIDIA are used
 
@@ -120,12 +132,16 @@ perception path is shown working outside simulation as well.
         v
   EDGE (in the cell)                    CLOUD (Nebius)
   ------------------                    --------------
-  camera -> detector -> correction        Cosmos Reason -> inspection verdict
-     |                      |             Nemotron      -> supervisor decisions
-     |                      v                    ^
-     |              robot retargets              |
-     v                                           |
-  post-weld capture -----------------------------+
+  depth -> plane fit -> weld path  --->   Nemotron: trust this view,
+     ^                    |                         or look again?
+     |                    |                              |
+     +-- robot re-presents the part <--------------------+
+                          |
+                    fuse, then weld
+                          |
+                          v
+  post-weld capture  -------------->      Cosmos Reason -> inspection verdict
+                                          Nemotron      -> supervisor decisions
      |
      v
   FastAPI service + database  <->  operator dashboard
