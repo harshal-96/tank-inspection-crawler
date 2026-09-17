@@ -177,24 +177,108 @@ export class Cell3D {
     this.#box(p.width_m, t, wall, x0, y0 - hl - t / 2, top + wall / 2, COLOUR.sheet, mat);
   }
 
+  /** The depth camera on its post.
+   *
+   *  Built in its own frame with +Z pointing down the sight line, so the housing,
+   *  the two imagers and the projector between them all face the work without any
+   *  of them having to be positioned by hand in world coordinates. It is a
+   *  stereo head with an active projector, which is the class of sensor this
+   *  method needs: it has to return usable depth on a bare folded sheet, and a
+   *  bare folded sheet has nothing on it to match.
+   */
   #sensor(g) {
     const eye = new THREE.Vector3(...g.camera.eye_m);
     const aim = new THREE.Vector3(...g.camera.aim_m);
     const look = aim.clone().sub(eye).normalize();
-    const body = eye.clone().addScaledVector(look, -0.1);
 
-    const head = this.#box(0.1, 0.09, 0.08, body.x, body.y, body.z, 0x1b2129,
-                           { metalness: 0.3, roughness: 0.4 });
-    head.lookAt(aim);
+    const head = new THREE.Group();
+    head.position.copy(eye).addScaledVector(look, -0.055);
+    head.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), look);
+    this.scene.add(head);
 
-    // A short post beside it rather than a long boom behind it: behind is the
-    // camera's own sight line, and a column there stands in every view.
+    const shell = (w, h, d, x, y, z, colour, opts = {}) => {
+      const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(w, h, d),
+        new THREE.MeshStandardMaterial({
+          color: colour,
+          metalness: opts.metalness ?? 0.55,
+          roughness: opts.roughness ?? 0.42,
+        })
+      );
+      mesh.position.set(x, y, z);
+      head.add(mesh);
+      return mesh;
+    };
+    const barrel = (r, len, x, colour, opts = {}) => {
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(r, r, len, 24),
+        new THREE.MeshStandardMaterial({
+          color: colour,
+          metalness: opts.metalness ?? 0.8,
+          roughness: opts.roughness ?? 0.3,
+          emissive: opts.emissive ?? 0x000000,
+          emissiveIntensity: opts.emissiveIntensity ?? 0,
+        })
+      );
+      mesh.rotation.x = Math.PI / 2;          // lie the cylinder along the sight line
+      mesh.position.set(x, 0, len / 2);
+      head.add(mesh);
+      return mesh;
+    };
+
+    // Extruded aluminium housing, wide and shallow, the way a stereo bar is built.
+    shell(0.175, 0.046, 0.052, 0, 0, 0, 0x6e7885, { metalness: 0.55, roughness: 0.36 });
+    // A darker face plate the optics sit behind.
+    shell(0.168, 0.038, 0.004, 0, 0, 0.028, 0x14181d, { metalness: 0.2, roughness: 0.55 });
+    // Finned back, which is what these run hot enough to need.
+    for (let i = -2; i <= 2; i++) {
+      shell(0.006, 0.040, 0.020, i * 0.018, 0, -0.034, 0x4e5764, { roughness: 0.55 });
+    }
+
+    // Two imagers on a baseline, and the projector between them.
+    [-0.062, 0.062].forEach((x) => {
+      barrel(0.0175, 0.010, x, 0x8e99a6, { metalness: 0.9, roughness: 0.22 });  // turned ring
+      barrel(0.0145, 0.016, x, 0x1a1f25, { metalness: 0.5, roughness: 0.5 });
+      barrel(0.0105, 0.020, x, 0x0a1622, { metalness: 0.95, roughness: 0.08 });  // glass
+    });
+    barrel(0.014, 0.009, 0, 0x8e99a6, { metalness: 0.9, roughness: 0.22 });
+    barrel(0.011, 0.014, 0, 0x1a1f25, { metalness: 0.5, roughness: 0.5 });
+    barrel(0.0075, 0.018, 0, 0x2a1f0e, {
+      metalness: 0.4, roughness: 0.25, emissive: 0x6b4a10, emissiveIntensity: 0.55,
+    });
+    // Status lamp, so the head reads as powered rather than as a block.
+    const lamp = new THREE.Mesh(
+      new THREE.SphereGeometry(0.004, 12, 12),
+      new THREE.MeshStandardMaterial({
+        color: 0x76b900, emissive: 0x76b900, emissiveIntensity: 1.4,
+      })
+    );
+    lamp.position.set(0.078, 0.014, 0.027);
+    head.add(lamp);
+
+    // A short throw off the head itself. Without it the housing is a silhouette
+    // from every angle that is not directly under the key light.
+    const near = new THREE.PointLight(0xbcd0e6, 0.30, 1.1, 2);
+    near.position.set(0.10, 0.22, 0.30);
+    head.add(near);
+
+    // Tilt bracket under the housing, then the post it hangs off.
+    shell(0.05, 0.028, 0.044, 0, -0.037, -0.004, 0x515c69, { metalness: 0.75, roughness: 0.35 });
+
     const lateral = new THREE.Vector3(-look.y, look.x, 0).normalize().multiplyScalar(0.3);
-    const foot = new THREE.Vector3(body.x + lateral.x, body.y + lateral.y, 0);
-    this.#box(0.07, 0.07, body.z + 0.05, foot.x, foot.y, (body.z + 0.05) / 2,
+    const mount = eye.clone().addScaledVector(look, -0.055);
+    const foot = new THREE.Vector3(mount.x + lateral.x, mount.y + lateral.y, 0);
+    const postTop = mount.z + 0.06;
+    this.#box(0.07, 0.07, postTop, foot.x, foot.y, postTop / 2,
               0x3a4552, { metalness: 0.7, roughness: 0.4 });
-    this.#box(0.3, 0.05, 0.05, (foot.x + body.x) / 2, (foot.y + body.y) / 2, body.z + 0.05,
-              0x3a4552, { metalness: 0.7, roughness: 0.4 });
+    this.#box(0.16, 0.16, 0.02, foot.x, foot.y, 0.01, 0x2b333d,
+              { metalness: 0.6, roughness: 0.5 });
+    // A cross arm from the post to the bracket, short enough not to stand in the view.
+    this.#cyl(
+      new THREE.Vector3(foot.x, foot.y, postTop - 0.03),
+      new THREE.Vector3(mount.x, mount.y, mount.z - 0.05),
+      0.016, 0x3a4552, { metalness: 0.75, roughness: 0.35 }
+    );
 
     // What it is looking at, drawn faintly so the standoff is legible.
     const sight = new THREE.Line(
@@ -416,6 +500,25 @@ export class Cell3D {
     if (!g) return;
     this.controls.target.set(g.fixture.x_m, 0, g.fixture.table_top_m + 0.2);
     this.camera.position.set(g.fixture.x_m + 2.9, -3.4, 2.4);
+  }
+
+  /** Stand where the sensor stands, close enough to read the head. */
+  frameSensor() {
+    const g = this.geometry;
+    if (!g) return;
+    const eye = new THREE.Vector3(...g.camera.eye_m);
+    const aim = new THREE.Vector3(...g.camera.aim_m);
+    const look = aim.clone().sub(eye).normalize();
+    const side = new THREE.Vector3(-look.y, look.x, 0).normalize();
+    const head = eye.clone().addScaledVector(look, -0.055);
+    // Three quarters on, from above and outboard: the lens face is turned toward
+    // the viewer and the cell falls away behind it, which is the view that shows
+    // both what the sensor is and how far off the work it stands.
+    this.controls.target.copy(head);
+    this.camera.position.copy(head)
+      .addScaledVector(look, 0.26)
+      .addScaledVector(side, -0.30)
+      .add(new THREE.Vector3(0, 0, 0.11));
   }
 
   frameSeam() {

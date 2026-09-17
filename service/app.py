@@ -478,6 +478,35 @@ def cell_geometry() -> dict[str, Any]:
     }
 
 
+@app.get("/api/evidence")
+def evidence_all() -> dict[str, Any]:
+    """Every campaign in the repo, reduced to the findings it supports.
+
+    The dashboard is a research view, so it needs the studies, not just the live
+    rows. The arithmetic happens here rather than in the browser so the write-up,
+    the API and the charts can never quietly disagree.
+    """
+    from service import evidence
+
+    return evidence.all_studies()
+
+
+@app.get("/api/evidence/{study}")
+def evidence_one(study: str) -> dict[str, Any]:
+    from service import evidence
+
+    studies = {
+        "seam": evidence.seam_study,
+        "locating": evidence.locating_study,
+        "router": evidence.router_study,
+        "drift": evidence.drift_study,
+        "inspection": evidence.inspection_study,
+    }
+    if study not in studies:
+        raise HTTPException(status_code=404, detail=f"no study named {study!r}")
+    return studies[study]()
+
+
 # ------------------------------------------------------------------------ dashboard
 
 if DASHBOARD_DIR.exists():
