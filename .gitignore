@@ -1,0 +1,41 @@
+# Secrets
+.env
+.env.*
+!.env.example
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Model weights and engines (tracked via releases, not git)
+*.pt
+*.onnx
+*.engine
+*.trt
+
+# Generated data
+data/*.db
+data/*.db-journal
+data/captures/
+data/inspections/
+data/datasets/
+runs/
+renders/
+
+# Isaac Sim / USD scratch
+*.usd
+*.usda
+*.usdc
+!assets/**/*.usd
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
