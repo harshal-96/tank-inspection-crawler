@@ -246,6 +246,9 @@ def main() -> int:
             "looks": [
                 {
                     "view_deg": look.view_deg,
+                    # The estimate itself, not just its error, so fusion rules can
+                    # be compared offline without re-running the planner.
+                    "joint_mm": look.joint_mm,
                     "error_mm": look.error_mm,
                     "failed": look.failed,
                     "signals": look.signals,
