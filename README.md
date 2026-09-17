@@ -76,13 +76,29 @@ and a defect that was deliberately injected into a weld bead can be compared aga
 verdict the vision model returned. Both are scored over full campaigns rather than
 demonstrated once.
 
-| Metric | Result |
-| --- | --- |
-| Correction error, mean | TBD |
-| Correction error, p95 | TBD |
-| Inspection accuracy | TBD |
-| Inspection confusion matrix | TBD |
-| Edge inference latency | TBD |
+Joint position error against the true joint, over 12 parts arriving under physics
+with randomised offset. Both arms read the same renders of the same parts.
+
+| | Mean | p95 | Max | Sub-millimetre |
+| --- | --- | --- | --- | --- |
+| No correction | 23.17 mm | 40.72 | 40.72 | 0 of 12 |
+| One fixed view, camera well placed | 2.25 mm | 19.92 | 19.92 | 11 of 12 |
+| One fixed view, camera poorly placed | measurement failed on 11 of 12 | | 64.73 | 0 of 12 |
+| Look, judge, look again | **0.64 mm** | 0.67 | **0.67** | **12 of 12** |
+
+The honest reading is that the loop does not make a good measurement better. The
+median barely moves. What it removes is the tail: one part in twelve presented a
+face nearly edge-on to the fixed camera and came back 19.9 mm out, with nothing in
+that single view to say so. Two views disagreeing by 20 mm says so immediately. On
+a line, the tail is what scraps parts.
+
+It also removes the dependence on getting the camera placement right. Moved to an
+angle that suits this part family badly, the fixed view stops working altogether
+while the loop still lands every part inside 0.7 mm.
+
+Joint finding is geometric: two planes fitted to the panel faces and intersected.
+There is no trained model in that path, nothing to label and nothing to retrain
+when the part changes, because every fillet joint is still two planes meeting.
 
 A second station runs the same detector on a real camera and a real metal part, so the
 perception path is shown working outside simulation as well.
