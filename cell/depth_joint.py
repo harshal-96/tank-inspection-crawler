@@ -1,0 +1,236 @@
+"""Find the weld joint from depth, by geometry rather than by training.
+
+A fillet joint is the line where two panel faces meet. Given a depth image, the
+two faces are planes in the point cloud, and the joint is their intersection. That
+is metric by construction: no pixel-to-millimetre calibration to fit, no labelled
+images, and nothing to retrain when the part changes, because every fillet joint
+is still two planes meeting.
+
+This is the principle a laser seam tracker works on. The interesting question is
+not whether it works on perfect data, which it does trivially, but how it degrades
+as sensor noise rises. `noisy_depth` exists so that degradation can be measured
+rather than assumed.
+
+Pure numpy. No Isaac, no network.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Optional
+
+import numpy as np
+
+
+@dataclass(frozen=True)
+class Intrinsics:
+    """Pinhole intrinsics in pixels."""
+
+    width: int
+    height: int
+    fx: float
+    fy: float
+    cx: float
+    cy: float
+
+    @classmethod
+    def from_camera(
+        cls,
+        width: int,
+        height: int,
+        focal_length_mm: float,
+        horizontal_aperture_mm: float,
+        vertical_aperture_mm: Optional[float] = None,
+    ) -> "Intrinsics":
+        """Build intrinsics from the physical camera parameters USD stores."""
+        vertical_aperture_mm = vertical_aperture_mm or horizontal_aperture_mm
+        return cls(
+            width=width,
+            height=height,
+            fx=focal_length_mm / horizontal_aperture_mm * width,
+            fy=focal_length_mm / vertical_aperture_mm * height,
+            cx=width / 2.0,
+            cy=height / 2.0,
+        )
+
+
+@dataclass(frozen=True)
+class Plane:
+    """The set of points p where normal . p == offset. Normal is unit length."""
+
+    normal: np.ndarray
+    offset: float
+
+    def distance(self, points: np.ndarray) -> np.ndarray:
+        """Signed perpendicular distance from each point to the plane."""
+        return points @ self.normal - self.offset
+
+
+def backproject(
+    depth: np.ndarray, intrinsics: Intrinsics, mask: Optional[np.ndarray] = None
+) -> np.ndarray:
+    """Depth image to an (N, 3) point cloud in the camera frame.
+
+    Depth is distance along the optical axis, which is what a depth camera and
+    Isaac's distance-to-image-plane annotator both report. The camera looks down
+    its own -z, with +x right and +y up, so image rows run opposite to +y.
+    """
+    if depth.shape != (intrinsics.height, intrinsics.width):
+        raise ValueError(
+            f"depth is {depth.shape}, intrinsics describe "
+            f"{(intrinsics.height, intrinsics.width)}"
+        )
+
+    valid = np.isfinite(depth) & (depth > 0)
+    if mask is not None:
+        valid &= mask.astype(bool)
+
+    rows, cols = np.nonzero(valid)
+    z = depth[rows, cols]
+    x = (cols - intrinsics.cx) * z / intrinsics.fx
+    y = -(rows - intrinsics.cy) * z / intrinsics.fy
+    return np.stack([x, y, -z], axis=1)
+
+
+def transform_points(points: np.ndarray, camera_to_world: np.ndarray) -> np.ndarray:
+    """Apply a 4x4 transform to an (N, 3) cloud."""
+    if camera_to_world.shape != (4, 4):
+        raise ValueError("camera_to_world must be 4x4")
+    homogeneous = np.hstack([points, np.ones((len(points), 1))])
+    return (homogeneous @ camera_to_world.T)[:, :3]
+
+
+def fit_plane(points: np.ndarray) -> Plane:
+    """Least-squares plane through the points, via the smallest principal axis."""
+    if len(points) < 3:
+        raise ValueError("need at least three points to fit a plane")
+    centroid = points.mean(axis=0)
+    _, _, vh = np.linalg.svd(points - centroid, full_matrices=False)
+    normal = vh[-1]
+    normal = normal / np.linalg.norm(normal)
+    return Plane(normal=normal, offset=float(normal @ centroid))
+
+
+def fit_plane_ransac(
+    points: np.ndarray,
+    threshold: float = 0.002,
+    iterations: int = 200,
+    rng: Optional[np.random.Generator] = None,
+) -> tuple[Plane, np.ndarray]:
+    """Dominant plane plus its inlier mask, robust to the other panel and to noise."""
+    if len(points) < 3:
+        raise ValueError("need at least three points to fit a plane")
+    rng = rng or np.random.default_rng(0)
+
+    best_plane, best_inliers = None, np.zeros(len(points), dtype=bool)
+    for _ in range(iterations):
+        sample = points[rng.choice(len(points), size=3, replace=False)]
+        edge_a, edge_b = sample[1] - sample[0], sample[2] - sample[0]
+        normal = np.cross(edge_a, edge_b)
+        norm = np.linalg.norm(normal)
+        if norm < 1e-9:  # collinear sample
+            continue
+        normal = normal / norm
+        candidate = Plane(normal=normal, offset=float(normal @ sample[0]))
+
+        inliers = np.abs(candidate.distance(points)) < threshold
+        if inliers.sum() > best_inliers.sum():
+            best_plane, best_inliers = candidate, inliers
+
+    if best_plane is None or best_inliers.sum() < 3:
+        raise RuntimeError("no plane found; check the threshold against the noise level")
+
+    # Refit on every inlier: the three-point sample only selects the support.
+    return fit_plane(points[best_inliers]), best_inliers
+
+
+def fit_two_planes(
+    points: np.ndarray,
+    threshold: float = 0.002,
+    iterations: int = 200,
+    min_angle_deg: float = 25.0,
+    rng: Optional[np.random.Generator] = None,
+) -> tuple[Plane, Plane]:
+    """The two panel faces. The second is fitted to whatever the first did not claim.
+
+    Rejects a second plane that is nearly parallel to the first, which means the
+    cloud held one surface rather than a joint.
+    """
+    rng = rng or np.random.default_rng(0)
+    first, inliers = fit_plane_ransac(points, threshold, iterations, rng)
+
+    remaining = points[~inliers]
+    if len(remaining) < 3:
+        raise RuntimeError("only one surface in view; no joint to find")
+    second, _ = fit_plane_ransac(remaining, threshold, iterations, rng)
+
+    cosine = abs(float(first.normal @ second.normal))
+    angle = np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0)))
+    if angle < min_angle_deg:
+        raise RuntimeError(
+            f"the two surfaces differ by only {angle:.1f} degrees, "
+            "which is not a joint"
+        )
+    return first, second
+
+
+def intersect_planes(a: Plane, b: Plane) -> tuple[np.ndarray, np.ndarray]:
+    """The line where two planes meet, as a point on it and a unit direction."""
+    direction = np.cross(a.normal, b.normal)
+    norm = np.linalg.norm(direction)
+    if norm < 1e-9:
+        raise ValueError("planes are parallel and do not intersect in a line")
+    direction = direction / norm
+
+    # One point on the line: the one that also lies on the plane through the
+    # origin perpendicular to the line, which makes the system well conditioned.
+    matrix = np.stack([a.normal, b.normal, direction])
+    point = np.linalg.solve(matrix, np.array([a.offset, b.offset, 0.0]))
+    return point, direction
+
+
+def joint_at_height(point: np.ndarray, direction: np.ndarray, z: float) -> tuple[float, float]:
+    """Where the joint line crosses a given height, as (x, y)."""
+    if abs(direction[2]) < 1e-9:
+        raise ValueError("the joint line is horizontal; it has no single crossing at z")
+    t = (z - point[2]) / direction[2]
+    crossing = point + t * direction
+    return (float(crossing[0]), float(crossing[1]))
+
+
+def find_joint(
+    depth: np.ndarray,
+    intrinsics: Intrinsics,
+    camera_to_world: np.ndarray,
+    at_height: float,
+    mask: Optional[np.ndarray] = None,
+    threshold: float = 0.002,
+    iterations: int = 200,
+    rng: Optional[np.random.Generator] = None,
+) -> tuple[float, float]:
+    """Depth image in, joint position at a given height out, in world metres."""
+    cloud = backproject(depth, intrinsics, mask)
+    if len(cloud) < 6:
+        raise RuntimeError("not enough valid depth samples to find a joint")
+    world = transform_points(cloud, camera_to_world)
+    first, second = fit_two_planes(world, threshold, iterations, rng=rng)
+    point, direction = intersect_planes(first, second)
+    return joint_at_height(point, direction, at_height)
+
+
+def noisy_depth(
+    depth: np.ndarray,
+    sigma_m: float,
+    rng: Optional[np.random.Generator] = None,
+    dropout: float = 0.0,
+) -> np.ndarray:
+    """Add Gaussian range noise and random dropout, as a real sensor would.
+
+    Simulated depth is exact, so a joint finder scored on it measures nothing.
+    Accuracy is only meaningful as a curve against the noise a real sensor has.
+    """
+    rng = rng or np.random.default_rng(0)
+    out = depth + rng.normal(0.0, sigma_m, size=depth.shape) if sigma_m > 0 else depth.copy()
+    if dropout > 0:
+        out = np.where(rng.random(depth.shape) < dropout, np.nan, out)
+    return out
