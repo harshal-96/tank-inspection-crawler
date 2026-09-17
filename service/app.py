@@ -9,7 +9,7 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException
@@ -449,7 +449,38 @@ def agent_reports(limit: int = 10, session: Session = Depends(get_session)) -> l
     return list(session.exec(query))
 
 
+@app.get("/api/cell")
+def cell_geometry() -> dict[str, Any]:
+    """The cell's own dimensions, so the 3D view is driven by the same constants.
+
+    Not a copy of the numbers in the browser. If a dimension changes in
+    cell/geometry.py the picture changes with it, which is the only way a view of
+    a cell can be trusted to be a view of THAT cell.
+    """
+    from cell import geometry as geo
+
+    return {
+        "part": {
+            "width_m": geo.PART_W,
+            "length_m": geo.PART_H,
+            "side_height_m": geo.PART_D,
+            "thickness_m": geo.PART_T,
+        },
+        "fixture": {"x_m": geo.FIXTURE_X, "table_top_m": geo.TABLE_TOP},
+        "seam": {
+            "x_m": geo.FIXTURE_X + geo.JOINT_LOCAL[0],
+            "y_m": geo.JOINT_LOCAL[1],
+            "bottom_z_m": geo.TABLE_TOP + geo.PART_T,
+            "top_z_m": geo.TABLE_TOP + geo.PART_T + geo.PART_D,
+        },
+        "camera": {"eye_m": list(geo.CAMERA_EYE), "aim_m": list(geo.CAMERA_AIM)},
+    }
+
+
 # ------------------------------------------------------------------------ dashboard
 
 if DASHBOARD_DIR.exists():
+    assets = Path(__file__).resolve().parent.parent / "assets"
+    if assets.is_dir():
+        app.mount("/assets", StaticFiles(directory=assets), name="assets")
     app.mount("/", StaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")
