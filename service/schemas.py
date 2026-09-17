@@ -80,6 +80,9 @@ class ErrorStats(BaseModel):
     p95_mm: Optional[float] = None
     max_mm: Optional[float] = None
     sub_mm_rate: Optional[float] = None
+    over_3mm: Optional[int] = Field(
+        default=None, description="Count of parts above the 3 mm action threshold"
+    )
 
 
 class InspectionStats(BaseModel):

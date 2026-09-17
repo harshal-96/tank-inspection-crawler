@@ -25,6 +25,8 @@ from service.models import DefectType  # noqa: E402
 
 OK, BAD, INFO = "[ ok ]", "[fail]", "[ .. ]"
 
+QUESTION = "What is our mean correction error over the last 20 parts?"
+
 
 def _rule(title: str) -> None:
     print(f"\n{title}\n" + "-" * len(title))
@@ -95,9 +97,12 @@ def check_text() -> bool:
             messages=[
                 {
                     "role": "system",
-                    "content": "You supervise a robotic welding cell. Use tools for any number you do not already have.",
+                    "content": (
+                        "You supervise a robotic welding cell. Use tools for any "
+                        "number you do not already have."
+                    ),
                 },
-                {"role": "user", "content": "What is our mean correction error over the last 20 parts?"},
+                {"role": "user", "content": QUESTION},
             ],
             tools=tools,
             tool_choice="auto",
@@ -124,7 +129,7 @@ def check_text() -> bool:
             model=model,
             messages=[
                 {"role": "system", "content": "You supervise a robotic welding cell."},
-                {"role": "user", "content": "What is our mean correction error over the last 20 parts?"},
+                {"role": "user", "content": QUESTION},
                 msg.model_dump(exclude_none=True),
                 {
                     "role": "tool",
@@ -141,7 +146,8 @@ def check_text() -> bool:
     reply = nebius.strip_reasoning(second.choices[0].message.content)
     print(f"{OK} answered: {reply[:200]}")
     if second.usage:
-        print(f"{INFO} tokens in/out: {second.usage.prompt_tokens}/{second.usage.completion_tokens}")
+        usage = second.usage
+        print(f"{INFO} tokens in/out: {usage.prompt_tokens}/{usage.completion_tokens}")
     return True
 
 

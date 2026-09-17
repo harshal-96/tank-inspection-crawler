@@ -6,7 +6,6 @@ and the supervisor agent's tools query it. Nothing keeps its own copy of the sta
 
 from __future__ import annotations
 
-import statistics
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -19,25 +18,26 @@ from sqlmodel import Session, func, select
 
 from service.db import get_session, init_db
 from service.models import (
+    AgentMessage,
     Decision,
     Inspection,
     Measurement,
     Part,
     PartStatus,
+    ShiftReport,
     Station,
     Verdict,
-    utcnow,
 )
 from service.schemas import (
     CellStats,
+    ChatRequest,
+    ChatResponse,
     DecisionCreate,
-    DriftSignal,
-    ErrorStats,
     InspectionCreate,
-    InspectionStats,
     MeasurementCreate,
     PartCreate,
 )
+from service.stats import compute_stats, error_mm
 
 load_dotenv()
 
@@ -71,22 +71,6 @@ def _part_by_serial(session: Session, serial: str) -> Part:
 def _next_serial(session: Session) -> str:
     count = session.exec(select(func.count()).select_from(Part)).one()
     return f"P-{count + 1:06d}"
-
-
-def _error_mm(
-    detected_x: float, detected_y: float, true_x: Optional[float], true_y: Optional[float]
-) -> Optional[float]:
-    """Planar distance between the detected joint and the real one, in millimetres."""
-    if true_x is None or true_y is None:
-        return None
-    return 1000.0 * ((detected_x - true_x) ** 2 + (detected_y - true_y) ** 2) ** 0.5
-
-
-def _percentile(values: list[float], pct: float) -> float:
-    """Nearest-rank percentile. Stable for the small n a shift produces."""
-    ordered = sorted(values)
-    idx = max(0, min(len(ordered) - 1, round(pct / 100.0 * len(ordered) + 0.5) - 1))
-    return ordered[idx]
 
 
 # --------------------------------------------------------------------------- health
@@ -155,7 +139,7 @@ def create_measurement(
         latency_ms=payload.latency_ms,
         true_x=payload.true_x,
         true_y=payload.true_y,
-        error_mm=_error_mm(
+        error_mm=error_mm(
             payload.detected_x, payload.detected_y, payload.true_x, payload.true_y
         ),
     )
@@ -259,84 +243,102 @@ def cell_stats(
     session: Session = Depends(get_session),
 ) -> CellStats:
     """Everything the dashboard and the drift check need, in one round trip."""
+    return compute_stats(session, window=window, scored=scored)
 
-    parts_total = session.exec(select(func.count()).select_from(Part)).one()
-    parts_accepted = session.exec(
-        select(func.count()).select_from(Part).where(Part.status == PartStatus.ACCEPTED)
-    ).one()
-    parts_rework = session.exec(
-        select(func.count()).select_from(Part).where(Part.status == PartStatus.REWORK)
-    ).one()
 
-    # Correction accuracy, ground-truthed rows only.
-    errors = list(
+# -------------------------------------------------------------------- supervisor
+
+
+def _recent_history(session: Session, limit: int) -> list[dict[str, str]]:
+    """Prior turns, oldest first. Tool traffic is left out; the agent re-queries."""
+    rows = list(
         session.exec(
-            select(Measurement.error_mm)
-            .where(Measurement.error_mm.is_not(None))
-            .order_by(Measurement.id.desc())
-            .limit(scored)
+            select(AgentMessage)
+            .where(AgentMessage.role.in_(["user", "assistant"]))
+            .order_by(AgentMessage.id.desc())
+            .limit(max(0, min(limit, 40)))
         )
     )
-    if errors:
-        correction = ErrorStats(
-            n=len(errors),
-            mean_mm=statistics.fmean(errors),
-            median_mm=statistics.median(errors),
-            p95_mm=_percentile(errors, 95),
-            max_mm=max(errors),
-            sub_mm_rate=sum(1 for e in errors if e < 1.0) / len(errors),
-        )
-    else:
-        correction = ErrorStats(n=0)
+    return [{"role": r.role, "content": r.content or ""} for r in reversed(rows)]
 
-    # Inspection accuracy, rows where a defect was injected so truth is known.
-    graded = list(
-        session.exec(
-            select(Inspection)
-            .where(Inspection.correct.is_not(None))
-            .order_by(Inspection.id.desc())
-            .limit(scored)
+
+@app.post("/api/agent/chat", response_model=ChatResponse)
+def agent_chat(payload: ChatRequest, session: Session = Depends(get_session)) -> ChatResponse:
+    """Ask the cell supervisor a question."""
+    # Imported here so the service still starts without cloud credentials.
+    from brain.nebius import MissingCredentials
+    from brain.supervisor import ask
+
+    history = _recent_history(session, payload.history_limit)
+    session.add(AgentMessage(role="user", content=payload.message))
+    session.commit()
+
+    try:
+        result = ask(payload.message, session, history=history)
+    except MissingCredentials as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(
+            status_code=502, detail=f"Supervisor unavailable: {type(exc).__name__}: {exc}"
+        ) from exc
+
+    calls = [c.as_dict() for c in result.tool_calls]
+    session.add(
+        AgentMessage(
+            role="assistant",
+            content=result.reply,
+            tool_calls=calls or None,
+            model=result.model,
         )
     )
-    stats = InspectionStats(n_scored=len(graded))
-    for row in graded:
-        clean = row.injected_defect is not None and row.injected_defect.value == "none"
-        called_pass = row.verdict == Verdict.PASS
-        if clean and called_pass:
-            stats.true_pass += 1
-        elif clean and not called_pass:
-            stats.false_defect += 1
-        elif not clean and called_pass:
-            stats.false_pass += 1
-        else:
-            stats.true_defect += 1
-    if graded:
-        stats.accuracy = (stats.true_pass + stats.true_defect) / len(graded)
+    session.commit()
 
-    # Drift: is the recent window sitting off the earlier baseline?
-    lateral = list(
-        session.exec(
-            select(Measurement.detected_y).order_by(Measurement.id.desc()).limit(scored)
-        )
+    return ChatResponse(
+        reply=result.reply,
+        tool_calls=calls,
+        model=result.model,
+        latency_ms=result.latency_ms,
     )
-    drift = DriftSignal(window=window)
-    if len(lateral) >= window * 2:
-        recent = statistics.fmean(lateral[:window]) * 1000.0
-        baseline = statistics.fmean(lateral[window:]) * 1000.0
-        drift.recent_mean_y_mm = recent
-        drift.baseline_mean_y_mm = baseline
-        drift.shift_mm = recent - baseline
-        drift.trending = abs(recent - baseline) > 1.0
 
-    return CellStats(
-        generated_at=utcnow(),
-        parts_total=parts_total,
-        parts_accepted=parts_accepted,
-        parts_rework=parts_rework,
-        correction=correction,
-        inspection=stats,
-        drift=drift,
+
+@app.get("/api/agent/messages", response_model=list[AgentMessage])
+def agent_messages(limit: int = 50, session: Session = Depends(get_session)) -> list[AgentMessage]:
+    query = select(AgentMessage).order_by(AgentMessage.id.desc()).limit(min(limit, 200))
+    return list(reversed(list(session.exec(query))))
+
+
+@app.post("/api/agent/report", response_model=ShiftReport, status_code=201)
+def agent_report(session: Session = Depends(get_session)) -> ShiftReport:
+    """Generate and store an end-of-shift report."""
+    from brain.nebius import MissingCredentials
+    from brain.supervisor import shift_report
+
+    first = session.exec(select(Part).order_by(Part.id.asc())).first()
+    last = session.exec(select(Part).order_by(Part.id.desc())).first()
+    if first is None or last is None:
+        raise HTTPException(status_code=409, detail="No parts on record to report on")
+
+    try:
+        result = shift_report(session)
+    except MissingCredentials as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+    report = ShiftReport(
+        period_start=first.created_at,
+        period_end=last.created_at,
+        content_md=result.reply,
+        model=result.model,
     )
+    session.add(report)
+    session.commit()
+    session.refresh(report)
+    return report
+
+
+@app.get("/api/agent/reports", response_model=list[ShiftReport])
+def agent_reports(limit: int = 10, session: Session = Depends(get_session)) -> list[ShiftReport]:
+    query = select(ShiftReport).order_by(ShiftReport.id.desc()).limit(min(limit, 50))
+    return list(session.exec(query))
 
 
 # ------------------------------------------------------------------------ dashboard

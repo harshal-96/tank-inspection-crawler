@@ -1,0 +1,24 @@
+[project]
+name = "self-correcting-cell"
+version = "0.1.0"
+description = "A robotic welding cell that measures every part, inspects its own welds and supervises itself."
+requires-python = ">=3.12"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "W", "C4", "SIM"]
+ignore = [
+  "B008",  # FastAPI's Depends() in defaults is the documented pattern
+]
+
+[tool.ruff.lint.per-file-ignores]
+"cell/sim/*" = ["E402"]     # Isaac Sim requires SimulationApp before any other import
+"scripts/*" = ["E402"]      # sys.path is set up before local imports
+"tests/*" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["ignore::DeprecationWarning"]
