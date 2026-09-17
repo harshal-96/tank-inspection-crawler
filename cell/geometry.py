@@ -50,10 +50,21 @@ FILLET_LEG = 0.008
 # Torch stand-off from the joint along the outward diagonal.
 STICKOUT_M = 0.012
 
-# The inspection camera. Framing was chosen empirically, not from a projection
-# calculation, because the two disagree at this angle.
-CAMERA_EYE = (4.75, -1.45, 1.25)
-CAMERA_AIM = (FIXTURE_X + JOINT_LOCAL[0], JOINT_LOCAL[1], TABLE_TOP + 0.2)
+# The inspection camera looks square on at the cabinet edge, from outside the
+# corner along its diagonal, at the mid height of the edge. The whole weld joint
+# is in shot, top to bottom, and the camera sees two large flat panel faces and
+# nothing else: no rims, no horizontal surfaces for the plane fit to mistake for
+# the fixture.
+_EDGE_MID_Z = TABLE_TOP + PART_D / 2
+_STANDOFF_M = 0.95
+_DIAGONAL = 0.7071067811865476
+
+CAMERA_AIM = (FIXTURE_X + PART_W / 2, -(PART_H / 2), _EDGE_MID_Z)
+CAMERA_EYE = (
+    CAMERA_AIM[0] + _STANDOFF_M * _DIAGONAL,
+    CAMERA_AIM[1] - _STANDOFF_M * _DIAGONAL,
+    _EDGE_MID_Z + 0.06,
+)
 
 
 def nominal_joint() -> tuple[float, float]:

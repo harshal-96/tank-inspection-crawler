@@ -60,6 +60,7 @@ def parse_args() -> argparse.Namespace:
         help="Do not register parts with the service. Useful when testing offline.",
     )
     parser.add_argument("--api", default=None, help="Service base URL")
+    parser.add_argument("--subframes", type=int, default=12)
     parser.add_argument(
         "--views",
         type=int,
@@ -103,6 +104,7 @@ from isaacsim.core.api import World  # noqa: E402
 from isaacsim.core.prims import SingleRigidPrim  # noqa: E402
 from pxr import (  # noqa: E402
     Gf,
+    Sdf,
     PhysxSchema,
     Usd,
     UsdGeom,
@@ -137,6 +139,36 @@ stage = omni.usd.get_context().get_stage()
 # --------------------------------------------------------------------------- scene
 
 
+_MATERIALS: dict[tuple, object] = {}
+
+
+def surface(color) -> object:
+    """A real shaded material for a colour, cached.
+
+    displayColor alone leaves a prim on the renderer's fallback path, where it can
+    ignore the lighting entirely and draw black. A UsdPreviewSurface is what the
+    path tracer actually wants.
+    """
+    key = tuple(round(c, 4) for c in color)
+    if key in _MATERIALS:
+        return _MATERIALS[key]
+
+    name = "mat_%03d_%03d_%03d" % tuple(int(c * 255) for c in key)
+    material = UsdShade.Material.Define(stage, f"/World/Looks/{name}")
+    shader = UsdShade.Shader.Define(stage, f"/World/Looks/{name}/Shader")
+    shader.CreateIdAttr("UsdPreviewSurface")
+    shader.CreateInput("diffuseColor", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*key))
+    shader.CreateInput("roughness", Sdf.ValueTypeNames.Float).Set(0.55)
+    shader.CreateInput("metallic", Sdf.ValueTypeNames.Float).Set(0.0)
+    material.CreateSurfaceOutput().ConnectToSource(shader.ConnectableAPI(), "surface")
+    _MATERIALS[key] = material
+    return material
+
+
+def shade(prim, color) -> None:
+    UsdShade.MaterialBindingAPI.Apply(prim.GetPrim()).Bind(surface(color))
+
+
 def box(path: str, size, translate, color=(0.55, 0.57, 0.6)):
     """An axis-aligned box.
 
@@ -151,6 +183,7 @@ def box(path: str, size, translate, color=(0.55, 0.57, 0.6)):
     prim.AddTranslateOp().Set(Gf.Vec3d(*translate))
     prim.AddScaleOp().Set(Gf.Vec3f(size[0] / 2.0, size[1] / 2.0, size[2] / 2.0))
     prim.CreateDisplayColorAttr([Gf.Vec3f(*color)])
+    shade(prim, color)
     return prim
 
 
@@ -212,15 +245,16 @@ def slide_material():
 
 
 def build_part(path: str, physics: bool):
-    """The sheet-metal part: a base panel with four walls standing on it.
+    """A closed sheet-metal cabinet: six panels enclosing a box.
 
-    The origin sits at the base, not the centre, so the walls run from z 0 up to
-    the part depth. Every other height in the cell is written against that
-    convention, the bead included: a part centred on its own origin puts the bead
-    half in the air above the joint.
+    The weld joint is the vertical edge where the right panel meets the front
+    panel, and it runs the full height of the cabinet.
 
-    The side walls own the full length and the end walls butt between them, so no
-    two walls share the same volume at a corner.
+    Every panel spans the full outer dimension in the two axes it is not thin in,
+    so panels OVERLAP at every edge. Butting them to a shared plane leaves a
+    zero-width seam that the renderer draws as a crack through to the unlit
+    interior. Closing the box also removes the thin upward-facing rims of an open
+    tray, which the renderer draws black however the scene is lit.
     """
     root = UsdGeom.Xform.Define(stage, path)
     root.AddTranslateOp().Set(Gf.Vec3d(*PART_PARK))
@@ -228,11 +262,12 @@ def build_part(path: str, physics: bool):
 
     w, h, d, t = geo.PART_W, geo.PART_H, geo.PART_D, geo.PART_T
     panels = {
-        "base": ((w, h, t), (0, 0, t / 2)),
-        "side_left": ((t, h, d), (-(w / 2 - t / 2), 0, d / 2)),
-        "side_right": ((t, h, d), ((w / 2 - t / 2), 0, d / 2)),
-        "end_back": ((w - 2 * t, t, d), (0, (h / 2 - t / 2), d / 2)),
-        "end_front": ((w - 2 * t, t, d), (0, -(h / 2 - t / 2), d / 2)),
+        "bottom": ((w, h, t), (0, 0, t / 2)),
+        "top": ((w, h, t), (0, 0, d - t / 2)),
+        "front": ((w, t, d), (0, -(h / 2 - t / 2), d / 2)),
+        "back": ((w, t, d), (0, (h / 2 - t / 2), d / 2)),
+        "left": ((t, h, d), (-(w / 2 - t / 2), 0, d / 2)),
+        "right": ((t, h, d), ((w / 2 - t / 2), 0, d / 2)),
     }
     material = slide_material() if physics else None
     for name, (size, offset) in panels.items():
@@ -252,12 +287,12 @@ def build_part(path: str, physics: bool):
 
 
 def ellipsoid(path: str, radii, translate, color=(0.55, 0.57, 0.6)):
-    """A sphere scaled into an ellipsoid. The unit sphere's radius is left at its
-    default so its extent stays consistent with the scale, as for the cubes."""
+    """A sphere scaled into an ellipsoid, for weld ripples and pores."""
     prim = UsdGeom.Sphere.Define(stage, path)
     prim.AddTranslateOp().Set(Gf.Vec3d(*translate))
     prim.AddScaleOp().Set(Gf.Vec3f(*radii))
     prim.CreateDisplayColorAttr([Gf.Vec3f(*color)])
+    shade(prim, color)
     return prim
 
 
@@ -604,7 +639,7 @@ def main() -> int:
     # doing at capture time.
     part.set_world_pose(position=np.array(PART_PARK), orientation=np.array([1.0, 0, 0, 0]))
     build_part("/World/PartVis", physics=False)
-    build_bead("/World/PartVis/Bead", defect_lib.clean_bead(), tag_semantics=True)
+    build_bead("/World/PartVis/Bead", defect_lib.clean_bead(), tag_semantics=False)
 
     # The bead farm has to exist before the first frame is drawn. Geometry created
     # after the stage has composed never reaches the headless renderer, so beads
@@ -744,8 +779,8 @@ def main() -> int:
     frame = 0
     for row in trials:
         for view in row["views"]:
-            rep.orchestrator.step(rt_subframes=12)  # lag guard, discarded
-            rep.orchestrator.step(rt_subframes=12)  # the one that matches the pose
+            rep.orchestrator.step(rt_subframes=ARGS.subframes)  # lag guard, discarded
+            rep.orchestrator.step(rt_subframes=ARGS.subframes)  # matches the pose
             frame += 2
             stamp = frame - 1
             view["rgb"] = "scans/rgb_%04d.png" % stamp
