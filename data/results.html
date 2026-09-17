@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Weld Seam Accuracy</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface: #fcfcfb; --panel: #f4f3f0;
+    --ink: #0b0b0b; --ink-2: #52514e; --ink-3: #85837c;
+    --rule: #e3e2dd;
+    --before: #86b6ef; --after: #184f95;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --surface: #1a1a19; --panel: #232322;
+      --ink: #ffffff; --ink-2: #c3c2b7; --ink-3: #8f8e85;
+      --rule: #353532;
+      --before: #3987e5; --after: #9ec5f4;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface: #1a1a19; --panel: #232322;
+    --ink: #ffffff; --ink-2: #c3c2b7; --ink-3: #8f8e85;
+    --rule: #353532;
+    --before: #3987e5; --after: #9ec5f4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 16px 56px; background: var(--surface); color: var(--ink);
+    font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 21px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--ink-2); margin: 0 0 26px; font-size: 14px; }
+  .kpis { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 28px; }
+  .kpi { flex: 1 1 170px; background: var(--panel); border-radius: 10px; padding: 14px 16px; }
+  .kpi .label { font-size: 12px; color: var(--ink-2); text-transform: uppercase;
+                 letter-spacing: 0.05em; }
+  .kpi .value { font-size: 30px; font-weight: 600; letter-spacing: -0.02em;
+                 margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .kpi .value small { font-size: 15px; font-weight: 500; color: var(--ink-2); }
+  .kpi .note { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
+  .legend { display: flex; gap: 20px; margin: 0 0 14px; font-size: 13px; color: var(--ink-2); }
+  .axiscap { margin: 0 0 2px; font-size: 12px; color: var(--ink-3); }
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 50%;
+             margin-right: 7px; vertical-align: -1px; }
+  svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .grid { stroke: var(--rule); stroke-width: 1; }
+  .tick { fill: var(--ink-3); font-size: 11px; text-anchor: middle; }
+  .axis { fill: var(--ink-2); font-size: 12px; }
+  .link { stroke: var(--before); stroke-width: 2; opacity: 0.55; }
+  .before { fill: var(--before); stroke: var(--surface); stroke-width: 2; }
+  .after { fill: var(--after); stroke: var(--surface); stroke-width: 2; }
+  .hit { fill: transparent; }
+  .pair:hover .link { opacity: 1; }
+  .pair:hover .hit { fill: var(--rule); opacity: 0.4; }
+  .rowlabel { fill: var(--ink-3); font-size: 10px; text-anchor: end; }
+  details { margin-top: 26px; }
+  summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+  table { border-collapse: collapse; margin-top: 12px; font-size: 13px;
+           font-variant-numeric: tabular-nums; }
+  th, td { text-align: right; padding: 3px 14px 3px 0; border-bottom: 1px solid var(--rule); }
+  th { color: var(--ink-2); font-weight: 500; }
+  .foot { margin-top: 22px; color: var(--ink-3); font-size: 12px; max-width: 620px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Weld seam found to under a millimetre, on parts arriving centimetres out</h1>
+  <p class="sub">50 parts, 250 camera views, simulated end to end.
+     Error is distance from the seam the robot would weld to where the seam truly is.</p>
+
+  <div class="kpis">
+    <div class="kpi">
+      <div class="label">Taught program</div>
+      <div class="value">22.4<small> mm</small></div>
+      <div class="note">worst 50.2 mm &middot; 0 of 50 under 1 mm</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Depth + cloud guided</div>
+      <div class="value">0.89<small> mm</small></div>
+      <div class="note">worst 1.79 mm &middot; 27 of 50 under 1 mm</div>
+    </div>
+    <div class="kpi">
+      <div class="label">Error reduced by</div>
+      <div class="value">25&times;</div>
+      <div class="note">every part measured, none refused</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><span class="swatch" style="background:var(--before)"></span>No correction, taught path</span>
+    <span><span class="swatch" style="background:var(--after)"></span>Depth measured, cloud guided</span>
+  </div>
+
+  <p class="axiscap">error, millimetres &mdash; log scale, so the whole range fits</p>
+  <svg viewBox="0 0 666 643" role="img"
+       aria-label="Per-part seam error before and after correction">
+    <line x1="115.1" y1="14.0" x2="115.1" y2="597.0" class="grid"/><line x1="191.2" y1="14.0" x2="191.2" y2="597.0" class="grid"/><line x1="267.2" y1="14.0" x2="267.2" y2="597.0" class="grid"/><line x1="367.7" y1="14.0" x2="367.7" y2="597.0" class="grid"/><line x1="443.7" y1="14.0" x2="443.7" y2="597.0" class="grid"/><line x1="519.8" y1="14.0" x2="519.8" y2="597.0" class="grid"/><line x1="620.3" y1="14.0" x2="620.3" y2="597.0" class="grid"/>
+    <text x="115.1" y="8.0" class="tick">0.5</text><text x="191.2" y="8.0" class="tick">1</text><text x="267.2" y="8.0" class="tick">2</text><text x="367.7" y="8.0" class="tick">5</text><text x="443.7" y="8.0" class="tick">10</text><text x="519.8" y="8.0" class="tick">20</text><text x="620.3" y="8.0" class="tick">50</text>
+    <text x="66" y="30" class="rowlabel">worst arrival</text>
+    <text x="66" y="597" class="rowlabel">best arrival</text>
+    <g class="pair"><title>part 16  |  no correction 50.2 mm  |  guided 1.14 mm  |  1 look</title><rect x="76.0" y="22.0" width="560.0" height="11.5" class="hit"/><line x1="205.6" y1="27.8" x2="620.7" y2="27.8" class="link"/><circle cx="620.7" cy="27.8" r="4.2" class="before"/><circle cx="205.6" cy="27.8" r="4.2" class="after"/></g><g class="pair"><title>part 28  |  no correction 38.2 mm  |  guided 1.09 mm  |  1 look</title><rect x="76.0" y="33.5" width="560.0" height="11.5" class="hit"/><line x1="200.6" y1="39.2" x2="590.7" y2="39.2" class="link"/><circle cx="590.7" cy="39.2" r="4.2" class="before"/><circle cx="200.6" cy="39.2" r="4.2" class="after"/></g><g class="pair"><title>part 27  |  no correction 36.1 mm  |  guided 1.31 mm  |  1 look</title><rect x="76.0" y="45.0" width="560.0" height="11.5" class="hit"/><line x1="220.5" y1="50.8" x2="584.6" y2="50.8" class="link"/><circle cx="584.6" cy="50.8" r="4.2" class="before"/><circle cx="220.5" cy="50.8" r="4.2" class="after"/></g><g class="pair"><title>part 9  |  no correction 36.0 mm  |  guided 1.24 mm  |  4 looks</title><rect x="76.0" y="56.5" width="560.0" height="11.5" class="hit"/><line x1="215.0" y1="62.2" x2="584.1" y2="62.2" class="link"/><circle cx="584.1" cy="62.2" r="4.2" class="before"/><circle cx="215.0" cy="62.2" r="4.2" class="after"/></g><g class="pair"><title>part 29  |  no correction 33.8 mm  |  guided 1.10 mm  |  1 look</title><rect x="76.0" y="68.0" width="560.0" height="11.5" class="hit"/><line x1="201.9" y1="73.8" x2="577.3" y2="73.8" class="link"/><circle cx="577.3" cy="73.8" r="4.2" class="before"/><circle cx="201.9" cy="73.8" r="4.2" class="after"/></g><g class="pair"><title>part 3  |  no correction 33.2 mm  |  guided 1.45 mm  |  1 look</title><rect x="76.0" y="79.5" width="560.0" height="11.5" class="hit"/><line x1="231.8" y1="85.2" x2="575.5" y2="85.2" class="link"/><circle cx="575.5" cy="85.2" r="4.2" class="before"/><circle cx="231.8" cy="85.2" r="4.2" class="after"/></g><g class="pair"><title>part 6  |  no correction 32.7 mm  |  guided 1.03 mm  |  2 looks</title><rect x="76.0" y="91.0" width="560.0" height="11.5" class="hit"/><line x1="193.9" y1="96.8" x2="573.5" y2="96.8" class="link"/><circle cx="573.5" cy="96.8" r="4.2" class="before"/><circle cx="193.9" cy="96.8" r="4.2" class="after"/></g><g class="pair"><title>part 38  |  no correction 31.9 mm  |  guided 0.66 mm  |  4 looks</title><rect x="76.0" y="102.5" width="560.0" height="11.5" class="hit"/><line x1="145.2" y1="108.2" x2="571.0" y2="108.2" class="link"/><circle cx="571.0" cy="108.2" r="4.2" class="before"/><circle cx="145.2" cy="108.2" r="4.2" class="after"/></g><g class="pair"><title>part 1  |  no correction 31.8 mm  |  guided 0.87 mm  |  1 look</title><rect x="76.0" y="114.0" width="560.0" height="11.5" class="hit"/><line x1="175.9" y1="119.8" x2="570.6" y2="119.8" class="link"/><circle cx="570.6" cy="119.8" r="4.2" class="before"/><circle cx="175.9" cy="119.8" r="4.2" class="after"/></g><g class="pair"><title>part 17  |  no correction 31.3 mm  |  guided 0.89 mm  |  4 looks</title><rect x="76.0" y="125.5" width="560.0" height="11.5" class="hit"/><line x1="178.8" y1="131.2" x2="568.9" y2="131.2" class="link"/><circle cx="568.9" cy="131.2" r="4.2" class="before"/><circle cx="178.8" cy="131.2" r="4.2" class="after"/></g><g class="pair"><title>part 5  |  no correction 30.7 mm  |  guided 1.06 mm  |  1 look</title><rect x="76.0" y="137.0" width="560.0" height="11.5" class="hit"/><line x1="198.0" y1="142.8" x2="566.9" y2="142.8" class="link"/><circle cx="566.9" cy="142.8" r="4.2" class="before"/><circle cx="198.0" cy="142.8" r="4.2" class="after"/></g><g class="pair"><title>part 46  |  no correction 28.6 mm  |  guided 0.23 mm  |  2 looks</title><rect x="76.0" y="148.5" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="154.2" x2="559.2" y2="154.2" class="link"/><circle cx="559.2" cy="154.2" r="4.2" class="before"/><circle cx="76.0" cy="154.2" r="4.2" class="after"/></g><g class="pair"><title>part 37  |  no correction 28.6 mm  |  guided 1.50 mm  |  1 look</title><rect x="76.0" y="160.0" width="560.0" height="11.5" class="hit"/><line x1="235.7" y1="165.8" x2="558.9" y2="165.8" class="link"/><circle cx="558.9" cy="165.8" r="4.2" class="before"/><circle cx="235.7" cy="165.8" r="4.2" class="after"/></g><g class="pair"><title>part 20  |  no correction 27.9 mm  |  guided 1.02 mm  |  2 looks</title><rect x="76.0" y="171.5" width="560.0" height="11.5" class="hit"/><line x1="193.0" y1="177.2" x2="556.2" y2="177.2" class="link"/><circle cx="556.2" cy="177.2" r="4.2" class="before"/><circle cx="193.0" cy="177.2" r="4.2" class="after"/></g><g class="pair"><title>part 22  |  no correction 27.2 mm  |  guided 0.62 mm  |  1 look</title><rect x="76.0" y="183.0" width="560.0" height="11.5" class="hit"/><line x1="138.8" y1="188.8" x2="553.4" y2="188.8" class="link"/><circle cx="553.4" cy="188.8" r="4.2" class="before"/><circle cx="138.8" cy="188.8" r="4.2" class="after"/></g><g class="pair"><title>part 8  |  no correction 27.1 mm  |  guided 0.27 mm  |  2 looks</title><rect x="76.0" y="194.5" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="200.2" x2="553.3" y2="200.2" class="link"/><circle cx="553.3" cy="200.2" r="4.2" class="before"/><circle cx="76.0" cy="200.2" r="4.2" class="after"/></g><g class="pair"><title>part 39  |  no correction 26.3 mm  |  guided 1.07 mm  |  1 look</title><rect x="76.0" y="206.0" width="560.0" height="11.5" class="hit"/><line x1="198.7" y1="211.8" x2="550.0" y2="211.8" class="link"/><circle cx="550.0" cy="211.8" r="4.2" class="before"/><circle cx="198.7" cy="211.8" r="4.2" class="after"/></g><g class="pair"><title>part 14  |  no correction 25.8 mm  |  guided 0.58 mm  |  1 look</title><rect x="76.0" y="217.5" width="560.0" height="11.5" class="hit"/><line x1="130.6" y1="223.2" x2="547.9" y2="223.2" class="link"/><circle cx="547.9" cy="223.2" r="4.2" class="before"/><circle cx="130.6" cy="223.2" r="4.2" class="after"/></g><g class="pair"><title>part 35  |  no correction 25.7 mm  |  guided 0.29 mm  |  4 looks</title><rect x="76.0" y="229.0" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="234.8" x2="547.4" y2="234.8" class="link"/><circle cx="547.4" cy="234.8" r="4.2" class="before"/><circle cx="76.0" cy="234.8" r="4.2" class="after"/></g><g class="pair"><title>part 30  |  no correction 24.6 mm  |  guided 1.02 mm  |  4 looks</title><rect x="76.0" y="240.5" width="560.0" height="11.5" class="hit"/><line x1="192.9" y1="246.2" x2="542.6" y2="246.2" class="link"/><circle cx="542.6" cy="246.2" r="4.2" class="before"/><circle cx="192.9" cy="246.2" r="4.2" class="after"/></g><g class="pair"><title>part 26  |  no correction 24.4 mm  |  guided 1.43 mm  |  4 looks</title><rect x="76.0" y="252.0" width="560.0" height="11.5" class="hit"/><line x1="230.3" y1="257.8" x2="541.7" y2="257.8" class="link"/><circle cx="541.7" cy="257.8" r="4.2" class="before"/><circle cx="230.3" cy="257.8" r="4.2" class="after"/></g><g class="pair"><title>part 36  |  no correction 24.3 mm  |  guided 0.77 mm  |  1 look</title><rect x="76.0" y="263.5" width="560.0" height="11.5" class="hit"/><line x1="162.5" y1="269.2" x2="541.1" y2="269.2" class="link"/><circle cx="541.1" cy="269.2" r="4.2" class="before"/><circle cx="162.5" cy="269.2" r="4.2" class="after"/></g><g class="pair"><title>part 45  |  no correction 23.5 mm  |  guided 1.79 mm  |  1 look</title><rect x="76.0" y="275.0" width="560.0" height="11.5" class="hit"/><line x1="254.9" y1="280.8" x2="537.3" y2="280.8" class="link"/><circle cx="537.3" cy="280.8" r="4.2" class="before"/><circle cx="254.9" cy="280.8" r="4.2" class="after"/></g><g class="pair"><title>part 31  |  no correction 23.5 mm  |  guided 0.77 mm  |  1 look</title><rect x="76.0" y="286.5" width="560.0" height="11.5" class="hit"/><line x1="161.9" y1="292.2" x2="537.2" y2="292.2" class="link"/><circle cx="537.2" cy="292.2" r="4.2" class="before"/><circle cx="161.9" cy="292.2" r="4.2" class="after"/></g><g class="pair"><title>part 41  |  no correction 22.3 mm  |  guided 0.25 mm  |  1 look</title><rect x="76.0" y="298.0" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="303.8" x2="531.6" y2="303.8" class="link"/><circle cx="531.6" cy="303.8" r="4.2" class="before"/><circle cx="76.0" cy="303.8" r="4.2" class="after"/></g><g class="pair"><title>part 4  |  no correction 21.6 mm  |  guided 1.32 mm  |  1 look</title><rect x="76.0" y="309.5" width="560.0" height="11.5" class="hit"/><line x1="221.5" y1="315.2" x2="528.2" y2="315.2" class="link"/><circle cx="528.2" cy="315.2" r="4.2" class="before"/><circle cx="221.5" cy="315.2" r="4.2" class="after"/></g><g class="pair"><title>part 19  |  no correction 20.3 mm  |  guided 0.54 mm  |  4 looks</title><rect x="76.0" y="321.0" width="560.0" height="11.5" class="hit"/><line x1="124.5" y1="326.8" x2="521.6" y2="326.8" class="link"/><circle cx="521.6" cy="326.8" r="4.2" class="before"/><circle cx="124.5" cy="326.8" r="4.2" class="after"/></g><g class="pair"><title>part 2  |  no correction 20.2 mm  |  guided 0.81 mm  |  1 look</title><rect x="76.0" y="332.5" width="560.0" height="11.5" class="hit"/><line x1="167.9" y1="338.2" x2="520.7" y2="338.2" class="link"/><circle cx="520.7" cy="338.2" r="4.2" class="before"/><circle cx="167.9" cy="338.2" r="4.2" class="after"/></g><g class="pair"><title>part 32  |  no correction 20.1 mm  |  guided 0.65 mm  |  1 look</title><rect x="76.0" y="344.0" width="560.0" height="11.5" class="hit"/><line x1="144.5" y1="349.8" x2="520.1" y2="349.8" class="link"/><circle cx="520.1" cy="349.8" r="4.2" class="before"/><circle cx="144.5" cy="349.8" r="4.2" class="after"/></g><g class="pair"><title>part 12  |  no correction 19.2 mm  |  guided 0.71 mm  |  1 look</title><rect x="76.0" y="355.5" width="560.0" height="11.5" class="hit"/><line x1="153.6" y1="361.2" x2="515.4" y2="361.2" class="link"/><circle cx="515.4" cy="361.2" r="4.2" class="before"/><circle cx="153.6" cy="361.2" r="4.2" class="after"/></g><g class="pair"><title>part 25  |  no correction 18.2 mm  |  guided 1.39 mm  |  4 looks</title><rect x="76.0" y="367.0" width="560.0" height="11.5" class="hit"/><line x1="227.0" y1="372.8" x2="509.1" y2="372.8" class="link"/><circle cx="509.1" cy="372.8" r="4.2" class="before"/><circle cx="227.0" cy="372.8" r="4.2" class="after"/></g><g class="pair"><title>part 11  |  no correction 18.1 mm  |  guided 1.72 mm  |  1 look</title><rect x="76.0" y="378.5" width="560.0" height="11.5" class="hit"/><line x1="250.4" y1="384.2" x2="508.6" y2="384.2" class="link"/><circle cx="508.6" cy="384.2" r="4.2" class="before"/><circle cx="250.4" cy="384.2" r="4.2" class="after"/></g><g class="pair"><title>part 23  |  no correction 18.0 mm  |  guided 0.53 mm  |  4 looks</title><rect x="76.0" y="390.0" width="560.0" height="11.5" class="hit"/><line x1="121.3" y1="395.8" x2="508.3" y2="395.8" class="link"/><circle cx="508.3" cy="395.8" r="4.2" class="before"/><circle cx="121.3" cy="395.8" r="4.2" class="after"/></g><g class="pair"><title>part 24  |  no correction 18.0 mm  |  guided 1.17 mm  |  1 look</title><rect x="76.0" y="401.5" width="560.0" height="11.5" class="hit"/><line x1="207.9" y1="407.2" x2="508.1" y2="407.2" class="link"/><circle cx="508.1" cy="407.2" r="4.2" class="before"/><circle cx="207.9" cy="407.2" r="4.2" class="after"/></g><g class="pair"><title>part 7  |  no correction 17.6 mm  |  guided 0.97 mm  |  4 looks</title><rect x="76.0" y="413.0" width="560.0" height="11.5" class="hit"/><line x1="188.0" y1="418.8" x2="505.7" y2="418.8" class="link"/><circle cx="505.7" cy="418.8" r="4.2" class="before"/><circle cx="188.0" cy="418.8" r="4.2" class="after"/></g><g class="pair"><title>part 10  |  no correction 17.0 mm  |  guided 0.19 mm  |  1 look</title><rect x="76.0" y="424.5" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="430.2" x2="501.9" y2="430.2" class="link"/><circle cx="501.9" cy="430.2" r="4.2" class="before"/><circle cx="76.0" cy="430.2" r="4.2" class="after"/></g><g class="pair"><title>part 48  |  no correction 16.8 mm  |  guided 0.84 mm  |  2 looks</title><rect x="76.0" y="436.0" width="560.0" height="11.5" class="hit"/><line x1="172.1" y1="441.8" x2="500.4" y2="441.8" class="link"/><circle cx="500.4" cy="441.8" r="4.2" class="before"/><circle cx="172.1" cy="441.8" r="4.2" class="after"/></g><g class="pair"><title>part 34  |  no correction 16.2 mm  |  guided 0.47 mm  |  4 looks</title><rect x="76.0" y="447.5" width="560.0" height="11.5" class="hit"/><line x1="109.0" y1="453.2" x2="496.9" y2="453.2" class="link"/><circle cx="496.9" cy="453.2" r="4.2" class="before"/><circle cx="109.0" cy="453.2" r="4.2" class="after"/></g><g class="pair"><title>part 43  |  no correction 15.7 mm  |  guided 1.02 mm  |  1 look</title><rect x="76.0" y="459.0" width="560.0" height="11.5" class="hit"/><line x1="193.4" y1="464.8" x2="493.1" y2="464.8" class="link"/><circle cx="493.1" cy="464.8" r="4.2" class="before"/><circle cx="193.4" cy="464.8" r="4.2" class="after"/></g><g class="pair"><title>part 18  |  no correction 14.9 mm  |  guided 0.41 mm  |  1 look</title><rect x="76.0" y="470.5" width="560.0" height="11.5" class="hit"/><line x1="93.7" y1="476.2" x2="487.6" y2="476.2" class="link"/><circle cx="487.6" cy="476.2" r="4.2" class="before"/><circle cx="93.7" cy="476.2" r="4.2" class="after"/></g><g class="pair"><title>part 49  |  no correction 13.7 mm  |  guided 0.94 mm  |  1 look</title><rect x="76.0" y="482.0" width="560.0" height="11.5" class="hit"/><line x1="184.6" y1="487.8" x2="478.4" y2="487.8" class="link"/><circle cx="478.4" cy="487.8" r="4.2" class="before"/><circle cx="184.6" cy="487.8" r="4.2" class="after"/></g><g class="pair"><title>part 47  |  no correction 12.8 mm  |  guided 1.31 mm  |  1 look</title><rect x="76.0" y="493.5" width="560.0" height="11.5" class="hit"/><line x1="221.1" y1="499.2" x2="471.1" y2="499.2" class="link"/><circle cx="471.1" cy="499.2" r="4.2" class="before"/><circle cx="221.1" cy="499.2" r="4.2" class="after"/></g><g class="pair"><title>part 42  |  no correction 11.8 mm  |  guided 1.61 mm  |  1 look</title><rect x="76.0" y="505.0" width="560.0" height="11.5" class="hit"/><line x1="243.3" y1="510.8" x2="462.0" y2="510.8" class="link"/><circle cx="462.0" cy="510.8" r="4.2" class="before"/><circle cx="243.3" cy="510.8" r="4.2" class="after"/></g><g class="pair"><title>part 21  |  no correction 10.1 mm  |  guided 0.47 mm  |  1 look</title><rect x="76.0" y="516.5" width="560.0" height="11.5" class="hit"/><line x1="108.8" y1="522.2" x2="445.3" y2="522.2" class="link"/><circle cx="445.3" cy="522.2" r="4.2" class="before"/><circle cx="108.8" cy="522.2" r="4.2" class="after"/></g><g class="pair"><title>part 0  |  no correction 9.5 mm  |  guided 1.19 mm  |  1 look</title><rect x="76.0" y="528.0" width="560.0" height="11.5" class="hit"/><line x1="210.4" y1="533.8" x2="438.3" y2="533.8" class="link"/><circle cx="438.3" cy="533.8" r="4.2" class="before"/><circle cx="210.4" cy="533.8" r="4.2" class="after"/></g><g class="pair"><title>part 44  |  no correction 9.2 mm  |  guided 0.32 mm  |  1 look</title><rect x="76.0" y="539.5" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="545.2" x2="434.3" y2="545.2" class="link"/><circle cx="434.3" cy="545.2" r="4.2" class="before"/><circle cx="76.0" cy="545.2" r="4.2" class="after"/></g><g class="pair"><title>part 40  |  no correction 9.1 mm  |  guided 0.45 mm  |  1 look</title><rect x="76.0" y="551.0" width="560.0" height="11.5" class="hit"/><line x1="103.3" y1="556.8" x2="433.8" y2="556.8" class="link"/><circle cx="433.8" cy="556.8" r="4.2" class="before"/><circle cx="103.3" cy="556.8" r="4.2" class="after"/></g><g class="pair"><title>part 13  |  no correction 9.1 mm  |  guided 1.03 mm  |  1 look</title><rect x="76.0" y="562.5" width="560.0" height="11.5" class="hit"/><line x1="194.8" y1="568.2" x2="433.2" y2="568.2" class="link"/><circle cx="433.2" cy="568.2" r="4.2" class="before"/><circle cx="194.8" cy="568.2" r="4.2" class="after"/></g><g class="pair"><title>part 33  |  no correction 9.0 mm  |  guided 0.50 mm  |  1 look</title><rect x="76.0" y="574.0" width="560.0" height="11.5" class="hit"/><line x1="114.6" y1="579.8" x2="432.2" y2="579.8" class="link"/><circle cx="432.2" cy="579.8" r="4.2" class="before"/><circle cx="114.6" cy="579.8" r="4.2" class="after"/></g><g class="pair"><title>part 15  |  no correction 8.4 mm  |  guided 0.30 mm  |  2 looks</title><rect x="76.0" y="585.5" width="560.0" height="11.5" class="hit"/><line x1="76.0" y1="591.2" x2="424.4" y2="591.2" class="link"/><circle cx="424.4" cy="591.2" r="4.2" class="before"/><circle cx="76.0" cy="591.2" r="4.2" class="after"/></g>
+  </svg>
+
+  <details>
+    <summary>Show the numbers</summary>
+    <table>
+      <thead><tr><th>Part</th><th>No correction (mm)</th><th>Guided (mm)</th><th>Looks</th></tr></thead>
+      <tbody><tr><td>16</td><td>50.2</td><td>1.14</td><td>1</td></tr>
+<tr><td>28</td><td>38.2</td><td>1.09</td><td>1</td></tr>
+<tr><td>27</td><td>36.1</td><td>1.31</td><td>1</td></tr>
+<tr><td>9</td><td>36.0</td><td>1.24</td><td>4</td></tr>
+<tr><td>29</td><td>33.8</td><td>1.10</td><td>1</td></tr>
+<tr><td>3</td><td>33.2</td><td>1.45</td><td>1</td></tr>
+<tr><td>6</td><td>32.7</td><td>1.03</td><td>2</td></tr>
+<tr><td>38</td><td>31.9</td><td>0.66</td><td>4</td></tr>
+<tr><td>1</td><td>31.8</td><td>0.87</td><td>1</td></tr>
+<tr><td>17</td><td>31.3</td><td>0.89</td><td>4</td></tr>
+<tr><td>5</td><td>30.7</td><td>1.06</td><td>1</td></tr>
+<tr><td>46</td><td>28.6</td><td>0.23</td><td>2</td></tr>
+<tr><td>37</td><td>28.6</td><td>1.50</td><td>1</td></tr>
+<tr><td>20</td><td>27.9</td><td>1.02</td><td>2</td></tr>
+<tr><td>22</td><td>27.2</td><td>0.62</td><td>1</td></tr>
+<tr><td>8</td><td>27.1</td><td>0.27</td><td>2</td></tr>
+<tr><td>39</td><td>26.3</td><td>1.07</td><td>1</td></tr>
+<tr><td>14</td><td>25.8</td><td>0.58</td><td>1</td></tr>
+<tr><td>35</td><td>25.7</td><td>0.29</td><td>4</td></tr>
+<tr><td>30</td><td>24.6</td><td>1.02</td><td>4</td></tr>
+<tr><td>26</td><td>24.4</td><td>1.43</td><td>4</td></tr>
+<tr><td>36</td><td>24.3</td><td>0.77</td><td>1</td></tr>
+<tr><td>45</td><td>23.5</td><td>1.79</td><td>1</td></tr>
+<tr><td>31</td><td>23.5</td><td>0.77</td><td>1</td></tr>
+<tr><td>41</td><td>22.3</td><td>0.25</td><td>1</td></tr>
+<tr><td>4</td><td>21.6</td><td>1.32</td><td>1</td></tr>
+<tr><td>19</td><td>20.3</td><td>0.54</td><td>4</td></tr>
+<tr><td>2</td><td>20.2</td><td>0.81</td><td>1</td></tr>
+<tr><td>32</td><td>20.1</td><td>0.65</td><td>1</td></tr>
+<tr><td>12</td><td>19.2</td><td>0.71</td><td>1</td></tr>
+<tr><td>25</td><td>18.2</td><td>1.39</td><td>4</td></tr>
+<tr><td>11</td><td>18.1</td><td>1.72</td><td>1</td></tr>
+<tr><td>23</td><td>18.0</td><td>0.53</td><td>4</td></tr>
+<tr><td>24</td><td>18.0</td><td>1.17</td><td>1</td></tr>
+<tr><td>7</td><td>17.6</td><td>0.97</td><td>4</td></tr>
+<tr><td>10</td><td>17.0</td><td>0.19</td><td>1</td></tr>
+<tr><td>48</td><td>16.8</td><td>0.84</td><td>2</td></tr>
+<tr><td>34</td><td>16.2</td><td>0.47</td><td>4</td></tr>
+<tr><td>43</td><td>15.7</td><td>1.02</td><td>1</td></tr>
+<tr><td>18</td><td>14.9</td><td>0.41</td><td>1</td></tr>
+<tr><td>49</td><td>13.7</td><td>0.94</td><td>1</td></tr>
+<tr><td>47</td><td>12.8</td><td>1.31</td><td>1</td></tr>
+<tr><td>42</td><td>11.8</td><td>1.61</td><td>1</td></tr>
+<tr><td>21</td><td>10.1</td><td>0.47</td><td>1</td></tr>
+<tr><td>0</td><td>9.5</td><td>1.19</td><td>1</td></tr>
+<tr><td>44</td><td>9.2</td><td>0.32</td><td>1</td></tr>
+<tr><td>40</td><td>9.1</td><td>0.45</td><td>1</td></tr>
+<tr><td>13</td><td>9.1</td><td>1.03</td><td>1</td></tr>
+<tr><td>33</td><td>9.0</td><td>0.50</td><td>1</td></tr>
+<tr><td>15</td><td>8.4</td><td>0.30</td><td>2</td></tr></tbody>
+    </table>
+  </details>
+
+  <p class="foot">Each row is one part, sorted by how far off it arrived. The pale dot is
+  where a fixed taught program would have welded; the dark dot is where the cell
+  actually put the seam after measuring it. Parts arrive under physics with
+  randomised offset, and the press leaves residual springback and camber on every
+  folded side.</p>
+</div>
+</body>
+</html>
