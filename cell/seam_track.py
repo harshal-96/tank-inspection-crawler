@@ -380,3 +380,85 @@ def track_seam(
             )
         )
     return track
+
+
+# How far off the taught path a part can turn up and still be the right part.
+#
+# Sized from what the fixture actually delivers, not from what it ought to: over
+# fifty arrivals the median part lands 23 mm off the taught path, the worst 51 mm.
+# A 45 mm window was tried first and lost four parts outright, all of them the
+# ones that arrived furthest out, which is precisely the population the tracking
+# exists for. Anything past this is something else in shot.
+#
+# Opening the window costs nothing in accuracy because it is only used to find
+# the part. The second pass closes back down to CAPTURE_RANGE_M and tracks from
+# where the first pass landed, so a wide search never loosens the measurement.
+LOCATE_RANGE_M = 0.075
+
+
+def find_and_track(
+    points_world: np.ndarray,
+    taught_start: np.ndarray,
+    taught_end: np.ndarray,
+    stations: int = 24,
+    half_width_m: float = 0.045,
+    slice_thickness_m: float = SLICE_THICKNESS_M,
+    locate_range_m: float = LOCATE_RANGE_M,
+    capture_range_m: float = CAPTURE_RANGE_M,
+) -> SeamTrack:
+    """Locate this part's seam first, then track along it.
+
+    The taught path says where the part was supposed to be. A part that arrived a
+    centimetre out is still the right part, and a capture window tight enough to
+    keep a tracker honest is far too tight to find it in the first place. So this
+    is done in two passes, the way a cell does it: open the window wide enough to
+    take in anything the fixture can deliver and ask only where this part's corner
+    is, then close the window back down and track from there.
+
+    Without the second pass the window has to be left open, and an open window is
+    how a tracker ends up following a rim, an edge of the fixture, or the part next
+    to it.
+    """
+    # The first pass has to reach the part wherever it arrived, so its window is
+    # the tracking window PLUS however far out the part can be. Widening only the
+    # capture range is not enough and was the subtler half of this bug: capture
+    # range decides whether a fit is believed, while half width decides which
+    # points are gathered in the first place. A part 51 mm off the taught line
+    # with a 45 mm gathering window puts just one of its two faces inside the
+    # window, and one face is not a corner, so every station is refused with the
+    # part sitting in plain view.
+    coarse = track_seam(
+        points_world,
+        taught_start,
+        taught_end,
+        stations=stations,
+        half_width_m=half_width_m + locate_range_m,
+        slice_thickness_m=slice_thickness_m,
+        capture_range_m=locate_range_m,
+    )
+    if len(coarse.measured) < 3:
+        return coarse
+
+    # Straight line through what the first pass found: this part's corner, shifted
+    # and turned as the part arrived. Straight on purpose, because it is only a
+    # place to look from. The bend in the seam is what the second pass measures.
+    along = np.array([station.along_m for station in coarse.measured])
+    found = np.array([station.position for station in coarse.measured])
+    design = np.vstack([along, np.ones_like(along)]).T
+    fit, *_ = np.linalg.lstsq(design, found, rcond=None)
+
+    start = np.asarray(taught_start, dtype=float)
+    end = np.asarray(taught_end, dtype=float)
+    length = float(np.linalg.norm(end - start))
+    located_start = fit[1]
+    located_end = fit[0] * length + fit[1]
+
+    return track_seam(
+        points_world,
+        located_start,
+        located_end,
+        stations=stations,
+        half_width_m=half_width_m,
+        slice_thickness_m=slice_thickness_m,
+        capture_range_m=capture_range_m,
+    )
