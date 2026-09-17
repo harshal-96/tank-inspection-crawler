@@ -11,142 +11,321 @@ Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 ## The problem
 
 A robot welds where it was taught to weld. A part does not always arrive where it was
-taught to be. Sheet metal carries camber, springback and fit-up variation, so the real
-joint (the line where two panels meet) sits a few millimetres away from the taught path,
-and the weld lands off target. The usual answers are tighter tolerances upstream or a
-skilled operator watching the line. Both are expensive, and neither scales.
+taught to be. Sheet metal is cut flat and its sides are folded up, and the press leaves
+residual springback and camber on every fold, so the real seam (the line where two
+folded edges meet) sits away from the taught path and the weld lands off target. Over
+fifty parts measured here the taught path misses by 23 mm on average and 51 mm at worst.
+
+Worse, the seam is not merely displaced, it is bent. It bows off the straight line
+between its own ends, so a program that locates the part perfectly and then drives a
+straight path still walks off the joint. The usual answers are tighter tolerances
+upstream or a skilled operator watching the line. Both are expensive, and neither
+scales, and neither straightens a seam that the press has curved.
 
 This project takes the other route: assume the part will move, and measure it.
 
 ## What it does
 
-**1. Measure the joint, geometrically.** A depth camera looks at the clamped part. A
-fillet joint is the line where two panel faces meet, so the cell fits a plane to each
-face and intersects them. That gives the weld path in millimetres directly, with no
-pixel-to-millimetre calibration to fit, no labelled images, and nothing to retrain when
-the part changes, because every fillet joint is still two planes meeting. This is the
-principle a laser seam tracker works on.
+**1. Track the seam, geometrically.** A depth camera looks at the part. The joint is
+the line where two folded edges meet, so the cell fits a line to each face and
+intersects them, and then walks that measurement up the joint station by station. That
+gives the weld path in millimetres directly, with no pixel-to-millimetre calibration to
+fit, no labelled images, and nothing to retrain when the part changes, because two
+folded edges meeting is still two folded edges meeting.
+
+Tracking the whole length rather than locating a point is the part that matters. The
+seam is not merely displaced, it is bent: the press leaves it bowed off the straight
+line between its own ends by 0.39 mm on average and 0.94 mm at worst. A program that
+locates the part perfectly and then drives a straight path still walks off the joint.
 
 **2. Decide whether to believe it, in the cloud.** One look is not evidence. The
 measurement comes with signals a real cell has: the angle between the fitted faces, how
 evenly the two faces were seen, the fit residual on each, how much of the joint was
-covered. An NVIDIA Nemotron model reads those and decides whether the measurement can be
-trusted or whether the part should be presented differently and measured again. The robot
-re-presents, the cell measures again, and the accepted views are fused.
+covered. An NVIDIA Nemotron model reads those and decides whether the measurement can
+be trusted or whether the part should be presented differently and measured again.
 
-This is the part that matters. A single view can look perfectly healthy and still be
-twenty millimetres out, and nothing inside that view will say so. Two views disagreeing
-say so at once.
+What this catches, measured: across fifty parts the worst individual views came back
+seventy millimetres out, and every one of them was the part turned forty five degrees,
+where the second face goes nearly edge-on and the fitter locks onto a locating pad
+instead. Those views do not hide it. They arrive carrying an inlier balance of 0.10 and
+a forty five degree included angle where a square corner should read ninety, and the
+model reads exactly those signals. Of eighty nine views taken, sixteen were badly wrong
+or refused outright, and all sixteen were kept out of the fused answer.
 
-**3. Inspect the weld, in the cloud.** After welding, a second camera photographs the
+**3. Send each decision to the model that is actually right about it.** Four Nemotron
+sizes are served on Token Factory, and they are not interchangeable. Which one a
+decision goes to is worked out from signals already in hand, so the routing costs
+arithmetic rather than another model call. What the routing should do turned out to be
+the opposite of the obvious answer, and the numbers are under Validation.
+
+**4. Choose the weld to suit the joint that is there.** Tracking says where to go; it
+does not say how to weld. The gap between the two folded edges is not constant along
+the seam, and a schedule that lays a sound weld on a tight fit blows through a gap
+twice as wide. The adjustment is counterintuitive: current and voltage come DOWN as the
+joint opens, because arc force pushes a puddle through an open root, and the metal
+needed to fill the gap is bought by slowing the torch. Past what one pass can bridge
+the cell refuses and says the press fit-up needs correcting, rather than laying metal
+into a hole and calling it a weld.
+
+**5. Keep looking while it welds.** Everything measured before the arc strikes describes
+a cold part. Weld metal contracts as it cools and rotates both sides about their fold
+lines, so welding the bottom of a seam moves the top of it long before the torch gets
+there. Calibrated against published distortion figures, the corner walks 1.8 mm over one
+weld. The sensor leads the arc by 170 mm, and measuring once at that lead costs 0.75 mm,
+which is as large as the entire tracking accuracy. That is the arithmetic that says the
+cell has to keep looking rather than measure once.
+
+**6. Inspect the weld, in the cloud.** After welding, a second camera photographs the
 bead and a vision model returns a verdict with its reasoning: pass, or a named defect.
 Defects are deliberately injected in simulation, so every verdict is scored against a
 known answer rather than admired.
 
-**4. Supervise.** A Nemotron reasoning model runs as a cell supervisor with tools over
-the production database. It reads the per-part stream, spots drift that no single part
-would reveal, decides accept, rework or recalibrate, writes shift reports, and answers
-the operator in plain language. It records recommendations; it does not move the cell.
+**7. Supervise, and diagnose which machine to go and touch.** A Nemotron model runs as a
+cell supervisor with tools over the production database. Spotting that something is
+drifting is the easy half; the half worth money is saying whether it is the press or the
+fixture, because they are fixed at opposite ends of the shop. They look alike in a
+summary number and quite different in the stream: a fixture moves the whole seam
+together, while a press moves the top of the joint and leaves the bottom where it was,
+because a bend angle is applied at a fold and multiplied by height. That discriminator
+is free to a cell that tracks the whole seam and invisible to one that locates a point.
+
+The supervisor can also search outside the cell. It measures this part; it does not know
+what a code permits or what a filler is rated for, and a model's recollection of a
+standard is the least trustworthy thing in the building. Those questions are searched
+and answered with sources attached, so an operator can check them.
 
 The division is deliberate. Geometry does what geometry is good at, which is turning
 surfaces into millimetres. The models do what geometry cannot: judge whether a
-measurement deserves trust, judge whether a weld is sound, and explain either to the
-person responsible for the line.
+measurement deserves trust, judge whether a weld is sound, diagnose a machine from a
+run of parts, and explain any of it to the person responsible for the line.
 
 ## How Nebius and NVIDIA are used
 
-| Layer | Platform | Model |
+| Layer | Platform | Model | Runs today |
+| --- | --- | --- | --- |
+| View planning, inside the control loop | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
+| Shift-level diagnosis, press vs fixture | Nebius Token Factory | Nemotron 3 Super 120B-A12B | yes |
+| Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
+| Post-weld inspection | Nebius Token Factory | google/gemma-3-27b-it | yes |
+| Looking up standards the cell cannot measure | Tavily | search with sources | yes |
+
+Four NVIDIA Nemotron sizes are served on Token Factory and this project uses three of
+them, for different jobs, because measuring them showed they are not interchangeable.
+Nothing in this table is aspirational.
+
+The inspection model is not an NVIDIA one, and that is a constraint rather than a
+preference. Token Factory serves 24 models; four are Nemotron and all four are
+text-only. Exactly one is vision-capable, so the post-weld verdict has one option.
+Reasoning about the measurement, which is text, runs on Nemotron; reasoning about the
+photograph runs on the only model that can see.
+
+Cosmos is not served on Token Factory at all. Reaching Cosmos Reason or Cosmos Transfer
+means self-hosting on Nebius AI Cloud, which is a different platform and a larger piece
+of work. It is the obvious next step and no result from it is claimed here.
+
+### One model size does not fit one cell
+
+The obvious architecture is a ladder: a cheap model on routine calls, a large one when
+the evidence conflicts. That is what was built, and measuring it took it apart.
+
+Scored against ground truth rather than against the largest model's opinion, on 39
+decision points where the simulation knows the answer:
+
+| Model | Correct | Robot moves wasted |
 | --- | --- | --- |
-| Cell supervisor agent | Nebius Token Factory | NVIDIA Nemotron, with tool calling |
-| Post-weld inspection | Nebius Serverless Endpoints | NVIDIA Cosmos Reason, self-hosted |
-| Synthetic data hardening | Nebius Serverless Jobs | NVIDIA Cosmos Transfer |
-| Detector training | Nebius Serverless Jobs | Detector trained on hardened synthetic data |
-| Detector serving | Nebius Serverless Endpoints | The trained detector behind HTTPS |
+| Nemotron 3 Nano 30B | **34 of 39** | 5 |
+| Nemotron 3.5 Lightning | 1 of 39 | 38 |
+| Nemotron 3 Super 120B | 0 of 39 | 39 |
+| Nemotron 3 Ultra 550B | 21 of 39 | 18 |
 
-### Closing the gap between simulation and reality
+The smallest model in the family is the most correct one for this decision. The larger
+ones are not more careful; they are wrong in a direction that costs robot moves, and a
+look is a robot move rather than a line in a bill. Two things make that true, and both
+are properties of the cell rather than of the models: accepted views are fused with a
+median, so one bad view is outvoted before any model is consulted, and there was nothing
+for extra caution to find.
 
-A detector trained on rendered images is good at rendered images. That is the
-standing weakness of synthetic training data, and the reason most simulation work
-never reaches a real machine.
+The first version of this evaluation compared each tier against the largest model and
+reported that the small one agreed with it zero percent of the time. That was a broken
+measurement. On a clean single view the small model says accept and the largest says
+look again, and against ground truth accepting is right. Treating the big model as the
+reference measured conformity, not quality.
 
-The simulation emits more than a photograph. Every frame also carries a depth map,
-a segmentation mask and surface normals, computed from the same render. Those are
-exactly the control inputs a world foundation model needs, so each rendered weld
-becomes the seed for a set of photorealistic variants that keep the geometry but
-change the appearance.
+Where the sizes DO separate is the other job. Asked to read thirty parts of measurements
+and say whether a press or a fixture is drifting, the small models answer "press" every
+time regardless of the data, and do not improve when the signal is made clearer. The
+large ones read it:
 
-The detector is then trained on the hardened set, and both detectors, the one
-trained on raw renders and the one trained on hardened renders, are measured on
-photographs of a real part taken with a real camera. The difference between those
-two numbers is the result this project is built to produce.
+| Model | Marginal drift | Clearer drift |
+| --- | --- | --- |
+| Nano, Lightning | 4 of 12, answered "press" 12 of 12 | 4 of 12, unchanged |
+| Super, Ultra | 8 of 12 | 10 of 12 |
+
+So the routing that survives is by task, not by evidence difficulty. A fast judgement
+over a handful of numbers goes to the smallest model at about 1.4 seconds. Trend
+reasoning across a run of parts goes to a large one. Sending the second job to the small
+model produces a confident answer that is the same every time.
+
+### Why there is no detector to harden
+
+The usual sim-to-real problem is that a detector trained on rendered images is good
+at rendered images and little else. This project does not have that problem, because
+it does not have a trained detector. Finding the seam is geometry: two faces fitted
+from the depth buffer and intersected, walked along the joint. There is nothing to
+label, nothing to train, and nothing to retrain when the part changes, because two
+folded edges meeting is still two folded edges meeting.
+
+What that buys is a shorter path to a real machine. The input is a depth map, and a
+depth map from a real sensor and a depth map from a render differ far less than two
+photographs do. The appearance gap that defeats trained detectors is largely not on
+this path.
+
+What it costs is that the geometry has to be right, and getting it right was most of
+the work. Three faults in the capture each produced confident, wrong millimetres
+before they were found: a camera near plane clipping the corner out of every depth
+image, an end stop standing exactly on the seam, and a sheet thickness no press could
+fold. None of them looked like a bug. All of them looked like data.
+
+The simulation does emit depth, segmentation and surface normals alongside each
+render, which are the control inputs a world foundation model wants. That is the seed
+for photorealistic variants through Cosmos Transfer, and it is the obvious next step.
+It has not been run, so no result from it is claimed.
 
 ## Validation
 
 The cell runs in a physics simulation, which means ground truth exists for every part.
-Where the detector says the joint is can be compared against where the joint actually is,
-and a defect that was deliberately injected into a weld bead can be compared against the
-verdict the vision model returned. Both are scored over full campaigns rather than
-demonstrated once.
+Where the cell says the seam is can be compared against where the seam actually is.
+Scored over full campaigns rather than demonstrated once.
 
-Joint position error against the true joint, over 12 parts arriving under physics
-with randomised offset. Both arms read the same renders of the same parts.
+Fifty parts arrive under physics with randomised offset, and the press leaves residual
+springback and camber on every folded side. Every arm reads the same renders of the
+same parts.
 
-| | Mean | p95 | Max | Sub-millimetre |
+### Following the seam
+
+The measurement that matters: not where the corner is as a point, but where the seam
+runs along its length, taken at twenty stations up each part. A thousand measurements
+over fifty parts.
+
+| | Mean | p95 | Worst | Sub-millimetre |
 | --- | --- | --- | --- | --- |
-| No correction | 23.17 mm | 40.72 | 40.72 | 0 of 12 |
-| One fixed view, camera well placed | 2.25 mm | 19.92 | 19.92 | 11 of 12 |
-| One fixed view, camera poorly placed | measurement failed on 11 of 12 | | 64.73 | 0 of 12 |
-| Look, judge, look again | **0.64 mm** | 0.67 | **0.67** | **12 of 12** |
+| Taught path, no correction | 22.80 mm | 36.37 | 50.91 | 0 of 50 |
+| Tracked from depth | **0.67 mm** | 0.83 | **0.89** | **50 of 50** |
 
-The honest reading is that the loop does not make a good measurement better. The
-median barely moves. What it removes is the tail: one part in twelve presented a
-face nearly edge-on to the fixed camera and came back 19.9 mm out, with nothing in
-that single view to say so. Two views disagreeing by 20 mm says so immediately. On
-a line, the tail is what scraps parts.
+Every part tracked, every station, none refused. The worst single station across all
+thousand reads 1.05 mm.
 
-It also removes the dependence on getting the camera placement right. Moved to an
-angle that suits this part family badly, the fixed view stops working altogether
-while the loop still lands every part inside 0.7 mm.
+A straight path cannot reach this by being aimed better, because the seam itself is not
+straight: it bows off the line between its own ends by 0.39 mm on average
+and 0.94 mm at worst.
 
-Joint finding is geometric: two planes fitted to the panel faces and intersected.
-There is no trained model in that path, nothing to label and nothing to retrain
-when the part changes, because every fillet joint is still two planes meeting.
+### Locating the corner, and what the routing costs
 
-A second station runs the same detector on a real camera and a real metal part, so the
-perception path is shown working outside simulation as well.
+The narrower question, and where the model sits in the loop.
+
+| | Mean | p95 | Worst | Sub-millimetre |
+| --- | --- | --- | --- | --- |
+| No correction | 22.41 mm | 36.11 | 50.17 | 0 of 50 |
+| One fixed view | 0.91 mm | 1.61 | 1.79 | 26 of 50 |
+| Loop on one fixed model | 0.89 mm | 1.61 | 1.79 | 27 of 50 |
+| Loop, routed by task | **0.91 mm** | 1.61 | 1.79 | 26 of 50 |
+
+Routing costs 1.00 looks per part against 1.78, which is
+44 percent fewer robot moves, and 74 seconds of
+model time against 206, for 0.021 mm of accuracy.
+
+The honest reading on the loop itself is that it is not currently earning its cost on
+this measure. An earlier run showed a large gap, and that gap closed when three faults
+were fixed in the capture: a camera near plane clipping the corner out of every depth
+image, an end stop standing on the seam, and a sheet thickness no press could fold.
+Those fixes made the single fixed view good. What the loop demonstrably still does is
+refuse bad evidence, and what routing does is stop paying a large model to be cautious
+about parts that were never in doubt.
+
+### What the arc does to the joint
+
+Calibrated against published distortion figures rather than fitted to look good: about
+0.25 degrees of angular distortion and 0.94 mm of transverse shrinkage for a weld this
+size, angular distortion rising with heat input and falling with the square of the
+thickness.
+
+| | |
+| --- | --- |
+| Corner walks over one weld | 1.84 mm |
+| Residual springback the press leaves | 0.11 deg typical |
+| Angular distortion the arc adds | 0.25 deg |
+| Cost of measuring once at a 170 mm lead | 0.75 mm |
+
+The arc moves the joint by more than the press did, and it does it after the
+measurement was taken. The last row is why the sensor cannot look once.
+
+### Diagnosing which machine to touch
+
+Three scenarios where the answer is known: a press drifting, a fixture drifting, and
+nothing wrong at all. The control matters, because a diagnostician that always finds
+something is not diagnosing, and a control run has to be checked for flatness before it
+can be used, since ordinary scatter produces trends by chance.
+
+Results are in the routing section above. The short version: this task needs a large
+model, and the small ones answer "press" every time.
+
+### Reproducing all of it
+
+```bash
+python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
+python scripts/run_campaign.py --manifest data/cap50/manifest.json --no-post --routed
+python scripts/eval_router_truth.py --campaign data/campaign50.jsonl
+python scripts/eval_drift.py --parts 30 --runs 4
+python scripts/draw_result_chart.py --campaign data/seam_campaign.jsonl
+```
+
+Seam finding is geometric: two faces fitted from depth and intersected, walked along
+the joint. There is no trained model in that path, nothing to label and nothing to
+retrain when the part changes.
 
 ## Architecture
 
 ```
-  TRAINING (Nebius Serverless Jobs)
-  ---------------------------------
-  simulation render + depth + segmentation
+  IN THE CELL                             CLOUD (Nebius Token Factory)
+  -----------                             ----------------------------
+  part arrives, settles under physics
         |
-        v  Cosmos Transfer            photorealistic variants
-        |
-        v  training job               hardened detector
-        |
-        v  Serverless Endpoint        served over HTTPS
-        |
-  ======|=====================================================
         v
-  EDGE (in the cell)                    CLOUD (Nebius)
-  ------------------                    --------------
-  depth -> plane fit -> weld path  --->   Nemotron: trust this view,
-     ^                    |                         or look again?
-     |                    |                              |
-     +-- robot re-presents the part <--------------------+
+  depth camera, one fixed pose
+        |
+        v
+  locate the part, then track the    --->   Nemotron Nano: is this view worth
+  seam station by station up the             believing, or present the part
+  joint: two faces fitted from                and look again?
+  depth and intersected                                |
+     ^                    |                            |
+     |                    |                            |
+     +-- part re-presented about the joint axis <------+
                           |
-                    fuse, then weld
+                    fuse accepted views
                           |
                           v
-  post-weld capture  -------------->      Cosmos Reason -> inspection verdict
-                                          Nemotron      -> supervisor decisions
-     |
-     v
-  FastAPI service + database  <->  operator dashboard
+     gap at every station --> weld schedule per station
+                          |   arc down, travel slowed, or refuse the fit-up
+                          v
+                    weld the measured path
+                          |
+     the arc rotates both sides as it goes, so the joint keeps moving:
+     the sensor leads the arc and keeps measuring rather than trusting
+     the cold reading
+                          |
+                          v
+  post-weld capture  -------------->      vision model -> pass, or a named
+                          |                               defect, with reasoning
+                          v
+  FastAPI service + SQLite  <---------->  Nemotron Super: across a run of parts,
+        |                                  is the PRESS drifting or the FIXTURE?
+        |                                  a press tilts the seam, a fixture
+        +--> operator dashboard            shifts it
+        +--> Nemotron supervisor, reading the same rows through tools,
+             and searching outside the cell for anything it cannot measure
 
-  Both detectors are scored on photographs of a real part from a real camera.
+  Ground truth exists for every part, so every number above is scored, not shown.
 ```
 
 Every measurement, verdict and decision lands in one database. The dashboard and the
@@ -156,14 +335,28 @@ cannot drift apart.
 ## Repository layout
 
 ```
-cell/       edge perception: geometry, calibration, detector, simulation, bench station
-brain/      Nebius clients, the inspection prompt, the supervisor agent and its tools
+cell/       cell geometry, press forming and drift, weld thermal distortion,
+            adaptive weld parameters, depth seam tracking, Isaac simulation
+brain/      Nebius client, model router, view planner, inspection prompt,
+            supervisor agent and its tools, outside lookup
 service/    FastAPI service, database schema, API
 dashboard/  operator web UI
-scripts/    setup, campaign runners, report generation
+scripts/    campaign runners, evaluations, figures, cell visualisation
 docs/       platform notes and measured results
 tests/      unit tests
 ```
+
+The pieces that carry the argument:
+
+| File | What it settles |
+| --- | --- |
+| `cell/seam_track.py` | follows the seam along its length instead of fitting it straight |
+| `cell/forming.py` | what a press in spec still leaves on a folded side, and what a drifting one leaves |
+| `cell/thermal.py` | what the arc does to the joint while it is welding it |
+| `cell/weld_params.py` | choosing the weld to suit the gap that is actually there |
+| `brain/router.py` | which Nemotron each decision goes to, and why that is not the obvious answer |
+| `scripts/eval_router_truth.py` | scores every model size against ground truth rather than against each other |
+| `scripts/eval_drift.py` | press or fixture, with a control |
 
 ## Setup
 
@@ -205,9 +398,13 @@ The joint-finding and correction concept was validated by the author in an earli
 project, published at
 [vision-corrected-welding](https://github.com/harshal-96/vision-corrected-welding).
 Everything in this repository was built during the hackathon submission period: the
-post-weld inspection station and defect injection, the cloud inspection model, the
-supervisor agent and its tool interface, the production database and service, the
-dashboard, and the bench station. The earlier work is the starting point, not the
+press forming and drift model, seam tracking along the length of the joint, the weld
+thermal distortion model, adaptive weld parameters from the measured gap, the view
+planner that puts a reasoning model inside the control loop, the task-based model
+router and the evaluations that overturned its first design, the press-versus-fixture
+diagnosis, the post-weld inspection station and defect injection, the cloud inspection
+model, the supervisor agent with its tools and outside lookup, the database and
+service, and the dashboard. The earlier work is the starting point, not the
 submission.
 
 ## License
