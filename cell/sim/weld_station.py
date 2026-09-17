@@ -63,6 +63,12 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--no-guides", action="store_true", help="Debug: omit guide geometry")
     parser.add_argument("--no-bead", action="store_true", help="Debug: omit bead geometry")
     parser.add_argument(
+        "--xray",
+        action="store_true",
+        help="Debug: label every prim with its own name so the segmentation mask "
+        "identifies whatever owns a given pixel.",
+    )
+    parser.add_argument(
         "--bounds",
         action="store_true",
         help="Print world bounding boxes of the scene and exit. Never trust a "
@@ -114,12 +120,17 @@ stage = omni.usd.get_context().get_stage()
 # --------------------------------------------------------------------------- scene
 
 
-def box(path: str, size, translate, color=(0.55, 0.57, 0.6)) -> "UsdGeom.Cube":
+def box(path: str, size, translate, color=(0.55, 0.57, 0.6)):
+    """An axis-aligned box.
+
+    Built as a scaled cube. An explicit mesh was tried, to rule out normals going
+    wrong under the sixty-to-one scales these panels use; it changed the shading
+    not at all and cost the collisions, because a mesh cannot be a dynamic
+    collider and PhysX silently filled the hollow part in with a convex hull.
+    """
     prim = UsdGeom.Cube.Define(stage, path)
-    # Leave size at its default of 2 and scale by half the wanted dimension. A
-    # cube's extent attribute is authored for the default size, so setting size
-    # without rewriting extent leaves the two disagreeing, and the renderer
-    # believes the extent.
+    # Leave size at its default of 2 and scale by half the wanted dimension, so
+    # the cube's authored extent and its scale stay consistent.
     prim.AddTranslateOp().Set(Gf.Vec3d(*translate))
     prim.AddScaleOp().Set(Gf.Vec3f(size[0] / 2.0, size[1] / 2.0, size[2] / 2.0))
     prim.CreateDisplayColorAttr([Gf.Vec3f(*color)])
@@ -223,67 +234,159 @@ def build_part(path: str, physics: bool):
     return root
 
 
-def build_bead(path: str, plan, tag_semantics: bool = False) -> None:
+def ellipsoid(path: str, radii, translate, color=(0.55, 0.57, 0.6)):
+    """A sphere scaled into an ellipsoid. The unit sphere's radius is left at its
+    default so its extent stays consistent with the scale, as for the cubes."""
+    prim = UsdGeom.Sphere.Define(stage, path)
+    prim.AddTranslateOp().Set(Gf.Vec3d(*translate))
+    prim.AddScaleOp().Set(Gf.Vec3f(*radii))
+    prim.CreateDisplayColorAttr([Gf.Vec3f(*color)])
+    return prim
+
+
+def build_bead(
+    path: str,
+    plan,
+    tag_semantics: bool = False,
+    detailed: bool = False,
+    seed: int = 0,
+) -> None:
     """Weld bead for one part, built from its plan so the defect is real geometry.
 
-    The bead stands proud of both panel faces. A bead flush with the corner is
-    enclosed by the panels and photographs as nothing at all.
+    Two levels of detail, because the two cameras want different things. The wide
+    scan sees the bead a metre away, where a ripple is smaller than a pixel, so it
+    gets a smooth run of weld metal. The inspection close-up gets the real thing: a
+    row of overlapping pools, which is what gives a weld its stack-of-dimes ripple
+    and what a defect actually disturbs.
+
+    The bead lies on the OUTSIDE of the corner, where a fillet weld sits. Centred on
+    the joint it would be swallowed by the panels and photograph as a dark crevice.
     """
     UsdGeom.Xform.Define(stage, path)
     if ARGS.no_bead:
         return
-    # Outward along the corner diagonal, so the bead lies on the outside of the
-    # joint where a fillet weld actually sits.
+
+    rng = random.Random(seed)
     local_x = geo.JOINT_LOCAL[0] + geo.BEAD_PROUD
     local_y = geo.JOINT_LOCAL[1] - geo.BEAD_PROUD
-    bw, bd, full_len = geo.BEAD_SIZE
+    bead_w, bead_d, full_len = geo.BEAD_SIZE
+    base_z = geo.BEAD_Z - full_len / 2
 
-    for index, (start, end) in enumerate(plan.segments):
-        length = (end - start) * full_len
-        if length <= 1e-4:
-            continue
-        centre_z = geo.BEAD_Z - full_len / 2 + (start + end) / 2 * full_len
-        segment = box(
-            f"{path}/bead_{index}",
-            (bw, bd, length),
-            (local_x, local_y, centre_z),
-            color=(0.78, 0.68, 0.48),
-        )
-        if tag_semantics:
-            UsdSemantics.LabelsAPI.Apply(segment.GetPrim(), "class").GetLabelsAttr().Set(
+    def along(fraction: float) -> float:
+        return base_z + fraction * full_len
+
+    tagged = []
+
+    if not detailed:
+        for index, (start, end) in enumerate(plan.segments):
+            length = (end - start) * full_len
+            if length <= 1e-4:
+                continue
+            centre = (start + end) / 2
+            tagged.append(
+                box(
+                    f"{path}/bead_{index}",
+                    (bead_w, bead_d, length),
+                    (local_x, local_y, along(centre)),
+                    color=(0.78, 0.68, 0.48),
+                )
+            )
+    else:
+        leg = geo.FILLET_LEG
+        pitch = geo.RIPPLE_PITCH
+        count = 0
+        for start, end in plan.segments:
+            span = (end - start) * full_len
+            ripples = max(1, int(span / pitch))
+            for i in range(ripples):
+                fraction = start + (i + 0.5) * pitch / full_len
+                if fraction > end:
+                    break
+                # Real weld pools vary. Perfectly uniform ripples read as a machined
+                # part rather than a weld.
+                swell = rng.uniform(0.86, 1.14)
+                wander = rng.uniform(-0.0004, 0.0004)
+                shade = rng.uniform(-0.05, 0.05)
+                tagged.append(
+                    ellipsoid(
+                        f"{path}/ripple_{count}",
+                        (leg / 2 * swell, leg / 2 * swell, pitch * 0.62),
+                        (local_x + wander, local_y - wander, along(fraction)),
+                        color=(0.72 + shade, 0.63 + shade, 0.45 + shade),
+                    )
+                )
+                count += 1
+
+        # Heat tint: the parent metal discolours in bands either side of the weld,
+        # straw closest and blue-grey further out.
+        for offset, tint in ((0.010, (0.68, 0.55, 0.30)), (0.019, (0.42, 0.44, 0.52))):
+            box(
+                f"{path}/tint_side_{int(offset * 1000)}",
+                (0.0012, 0.008, full_len),
+                (local_x + offset, local_y - 0.004, geo.BEAD_Z),
+                color=tint,
+            )
+            box(
+                f"{path}/tint_front_{int(offset * 1000)}",
+                (0.008, 0.0012, full_len),
+                (local_x - 0.004, local_y - offset, geo.BEAD_Z),
+                color=tint,
+            )
+
+    if tag_semantics:
+        for prim in tagged:
+            UsdSemantics.LabelsAPI.Apply(prim.GetPrim(), "class").GetLabelsAttr().Set(
                 ["joint_target"]
             )
 
+    # ---------------------------------------------------------------- defects
+
     for index, blob in enumerate(plan.blobs):
-        sphere = UsdGeom.Sphere.Define(stage, f"{path}/blob_{index}")
-        sphere.GetRadiusAttr().Set(blob.radius)
-        z = geo.BEAD_Z - full_len / 2 + blob.along * full_len
-        # Pores sit in the bead face; spatter lands outboard on the parent metal.
-        sphere.AddTranslateOp().Set(Gf.Vec3d(local_x + blob.offset, local_y + blob.offset, z))
-        dark = (0.10, 0.09, 0.08) if blob.kind == defect_lib.POROSITY else (0.72, 0.66, 0.52)
-        sphere.GetDisplayColorAttr().Set([Gf.Vec3f(*dark)])
+        if blob.kind == defect_lib.POROSITY:
+            # A pore is a cavity in the bead face, so it sits just inside the crown.
+            centre = (
+                local_x + blob.offset - 0.001,
+                local_y - blob.offset + 0.001,
+                along(blob.along),
+            )
+            colour = (0.06, 0.055, 0.05)
+            radii = (blob.radius, blob.radius, blob.radius)
+        else:
+            # Spatter lands outboard, on the parent metal beside the weld.
+            centre = (
+                local_x + abs(blob.offset),
+                local_y - abs(blob.offset) * 0.3,
+                along(blob.along),
+            )
+            colour = (0.66, 0.60, 0.46)
+            radii = (blob.radius, blob.radius, blob.radius * 0.7)
+        ellipsoid(f"{path}/blob_{index}", radii, centre, color=colour)
 
     if plan.groove is not None:
         start, end, depth = plan.groove
-        length = (end - start) * full_len
-        centre_z = geo.BEAD_Z - full_len / 2 + (start + end) / 2 * full_len
-        groove = box(
+        # Undercut is a groove melted into the parent metal along the bead toe,
+        # so it runs beside the weld, not through it.
+        box(
             f"{path}/undercut",
-            (0.006, depth * 4, length),
-            (local_x - bw / 2 - 0.003, local_y, centre_z),
-            color=(0.12, 0.11, 0.10),
+            (0.0025, depth * 3, (end - start) * full_len),
+            (
+                local_x + geo.FILLET_LEG / 2 + 0.001,
+                local_y - 0.002,
+                along((start + end) / 2),
+            ),
+            color=(0.10, 0.095, 0.09),
         )
-        UsdGeom.Imageable(groove).CreatePurposeAttr().Set("default")
 
     if plan.hole is not None:
-        along, radius = plan.hole
-        hole = UsdGeom.Sphere.Define(stage, f"{path}/burn_through")
-        hole.GetRadiusAttr().Set(radius)
-        hole.AddTranslateOp().Set(
-            Gf.Vec3d(local_x, local_y, geo.BEAD_Z - full_len / 2 + along * full_len)
+        at, radius = plan.hole
+        # Burn-through is a hole melted clean through, so the weld metal is absent
+        # and what shows is the dark cavity behind it.
+        ellipsoid(
+            f"{path}/burn_through",
+            (radius, radius, radius),
+            (local_x - 0.002, local_y + 0.002, along(at)),
+            color=(0.03, 0.03, 0.035),
         )
-        hole.GetDisplayColorAttr().Set([Gf.Vec3f(0.05, 0.05, 0.05)])
-
 
 def build_lighting() -> None:
     """Even, diffuse light.
@@ -480,7 +583,12 @@ def main() -> int:
         holder.AddTranslateOp().Set(
             Gf.Vec3d(BEAD_FARM_X, index * BEAD_FARM_PITCH, geo.TABLE_TOP)
         )
-        build_bead(f"/World/BeadFarm/part_{index}/bead", plan)
+        build_bead(
+            f"/World/BeadFarm/part_{index}/bead",
+            plan,
+            detailed=True,
+            seed=ARGS.seed * 1000 + index,
+        )
         # Two panels meeting at the joint, in the same orientation as the corner on
         # the real part. Without them the bead photographs as a stick floating in
         # space, and no inspector, human or otherwise, could call it a weld.
@@ -517,6 +625,15 @@ def main() -> int:
         part_rotations += [(0.0, 0.0, yaw_deg)] * 2
         # Bring bead `index` to where bead 0 was built.
         farm_positions += [(0.0, -index * BEAD_FARM_PITCH, 0.0)] * 2
+
+    if ARGS.xray:
+        painted = 0
+        for prim in stage.Traverse():
+            if prim.IsA(UsdGeom.Gprim):
+                name = str(prim.GetPath()).replace("/World/", "").replace("/", ".")
+                UsdSemantics.LabelsAPI.Apply(prim, "class").GetLabelsAttr().Set([name])
+                painted += 1
+        print(f"[station] x-ray: labelled {painted} prims", flush=True)
 
     twin_group = rep.get.prims(path_pattern="^/World/PartVis$")
     farm_group = rep.get.prims(path_pattern="^/World/BeadFarm$")
@@ -559,7 +676,12 @@ def main() -> int:
     scan_writer.attach([scan_product])
 
     bead_writer = rep.WriterRegistry.get("BasicWriter")
-    bead_writer.initialize(output_dir=str(OUT_DIR / "beads").replace("\\", "/"), rgb=True)
+    bead_writer.initialize(
+        output_dir=str(OUT_DIR / "beads").replace("\\", "/"),
+        rgb=True,
+        semantic_segmentation=ARGS.xray,
+        colorize_semantic_segmentation=False,
+    )
     bead_writer.attach([bead_product])
 
     print("[station] capturing scans and beads", flush=True)

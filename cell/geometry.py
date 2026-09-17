@@ -35,6 +35,12 @@ BEAD_SIZE = (0.024, 0.024, PART_D + 0.006)
 BEAD_Z = PART_D / 2 + 0.003
 BEAD_PROUD = 0.008
 
+# A weld bead is a row of overlapping solidified pools, which is what gives it the
+# stack-of-dimes ripple. Pitch is the spacing between ripple crests; the fillet leg
+# is how far the weld metal runs up each panel face.
+RIPPLE_PITCH = 0.0035
+FILLET_LEG = 0.008
+
 # Torch stand-off from the joint along the outward diagonal.
 STICKOUT_M = 0.012
 
