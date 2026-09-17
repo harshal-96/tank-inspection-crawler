@@ -245,33 +245,50 @@ def slide_material():
 
 
 def build_part(path: str, physics: bool):
-    """A closed sheet-metal cabinet: six panels enclosing a box.
+    """A sheet-metal enclosure: four slotted walls on a base, with a lid.
 
-    The weld joint is the vertical edge where the right panel meets the front
-    panel, and it runs the full height of the cabinet.
+    The weld joint is the vertical corner where the right wall meets the front
+    wall, and it runs the full height.
 
-    Every panel spans the full outer dimension in the two axes it is not thin in,
-    so panels OVERLAP at every edge. Butting them to a shared plane leaves a
-    zero-width seam that the renderer draws as a crack through to the unlit
-    interior. Closing the box also removes the thin upward-facing rims of an open
-    tray, which the renderer draws black however the scene is lit.
+    The ventilation slots are real gaps between solid pieces, not dark paint, so
+    they appear in the depth image as well as the picture. That matters: the cell
+    has to tell a slot from a defect, and only geometry separates them.
+
+    The origin sits at the base, which is the convention every other height in the
+    cell is written against.
     """
     root = UsdGeom.Xform.Define(stage, path)
     root.AddTranslateOp().Set(Gf.Vec3d(*PART_PARK))
     root.AddRotateXYZOp().Set(Gf.Vec3f(0, 0, 0))
 
     w, h, d, t = geo.PART_W, geo.PART_H, geo.PART_D, geo.PART_T
-    panels = {
-        "bottom": ((w, h, t), (0, 0, t / 2)),
-        "top": ((w, h, t), (0, 0, d - t / 2)),
-        "front": ((w, t, d), (0, -(h / 2 - t / 2), d / 2)),
-        "back": ((w, t, d), (0, (h / 2 - t / 2), d / 2)),
-        "left": ((t, h, d), (-(w / 2 - t / 2), 0, d / 2)),
-        "right": ((t, h, d), ((w / 2 - t / 2), 0, d / 2)),
-    }
+    skin = (0.66, 0.68, 0.71)
     material = slide_material() if physics else None
-    for name, (size, offset) in panels.items():
-        panel = box(f"{path}/{name}", size, offset, color=(0.62, 0.64, 0.68))
+    parts = []
+
+    # Base and lid, full footprint so they overlap the walls at every edge.
+    parts.append(("base", (w, h, t), (0, 0, t / 2)))
+    parts.append(("lid", (w, h, t), (0, 0, d - t / 2)))
+
+    # Four walls, each broken into the solid pieces around its slot row.
+    walls = (
+        ("front", 0, (0.0, -(h / 2 - t / 2), 0.0), w),
+        ("back", 0, (0.0, (h / 2 - t / 2), 0.0), w),
+        ("left", 1, (-(w / 2 - t / 2), 0.0, 0.0), h),
+        ("right", 1, ((w / 2 - t / 2), 0.0, 0.0), h),
+    )
+    for wall, axis, origin, length in walls:
+        for name, size, offset in geo.slotted_face(length, d, t, along_axis=axis):
+            parts.append(
+                (
+                    f"{wall}_{name}",
+                    size,
+                    (origin[0] + offset[0], origin[1] + offset[1], offset[2]),
+                )
+            )
+
+    for name, size, offset in parts:
+        panel = box(f"{path}/{name}", size, offset, color=skin)
         if physics:
             UsdPhysics.CollisionAPI.Apply(panel.GetPrim())
             UsdShade.MaterialBindingAPI.Apply(panel.GetPrim()).Bind(

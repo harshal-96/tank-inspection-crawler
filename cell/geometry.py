@@ -41,6 +41,14 @@ BEAD_SIZE = (0.024, 0.024, PART_D + 0.006)
 BEAD_Z = PART_D / 2 + 0.003
 BEAD_PROUD = 0.008
 
+# Ventilation slots. Real cut-outs, so they are gaps in the geometry and appear in
+# depth as well as in the picture, exactly as they would on the part.
+SLOT_WIDTH = 0.012
+SLOT_HEIGHT = 0.185
+SLOT_PITCH = 0.048
+SLOT_CENTRE_Z = 0.245
+SLOT_MARGIN = 0.075
+
 # A weld bead is a row of overlapping solidified pools, which is what gives it the
 # stack-of-dimes ripple. Pitch is the spacing between ripple crests; the fillet leg
 # is how far the weld metal runs up each panel face.
@@ -138,3 +146,65 @@ def orbit_about_joint(
         joint_y + offset_x * sin_t + offset_y * cos_t,
         part_yaw + theta,
     )
+
+
+def slotted_face(
+    length: float,
+    height: float,
+    thickness: float,
+    along_axis: int,
+) -> list[tuple[str, tuple[float, float, float], tuple[float, float, float]]]:
+    """Break one face of the enclosure into the solid pieces around its slots.
+
+    A row of vertical slots leaves a band below them, a band above them, a margin
+    at each end and a pillar between each pair. Returned as box specs in the
+    face's own frame, with the face lying along `along_axis` (0 for x, 1 for y)
+    and its thickness on the other, height on z.
+
+    Real cut-outs rather than dark paint: a slot is then a gap in the depth image
+    too, which is what it would be on the part.
+    """
+    if along_axis not in (0, 1):
+        raise ValueError("along_axis must be 0 (x) or 1 (y)")
+
+    half = length / 2.0
+    usable = length - 2.0 * SLOT_MARGIN
+    count = max(0, int(usable // SLOT_PITCH))
+    slot_bottom = SLOT_CENTRE_Z - SLOT_HEIGHT / 2.0
+    slot_top = SLOT_CENTRE_Z + SLOT_HEIGHT / 2.0
+
+    def spec(name, span, centre, z_span, z_centre):
+        size = [0.0, 0.0, z_span]
+        offset = [0.0, 0.0, z_centre]
+        size[along_axis] = span
+        size[1 - along_axis] = thickness
+        offset[along_axis] = centre
+        return (name, tuple(size), tuple(offset))
+
+    pieces = [
+        spec("sill", length, 0.0, slot_bottom, slot_bottom / 2.0),
+        spec("header", length, 0.0, height - slot_top, (height + slot_top) / 2.0),
+    ]
+    if count == 0:
+        pieces.append(spec("web", length, 0.0, SLOT_HEIGHT, SLOT_CENTRE_Z))
+        return pieces
+
+    # Slots centred on the face, with a pillar between each pair and a wider
+    # margin at both ends.
+    run = count * SLOT_PITCH
+    first = -run / 2.0 + SLOT_PITCH / 2.0
+    edges = [first + i * SLOT_PITCH for i in range(count)]
+
+    left_margin = (edges[0] - SLOT_WIDTH / 2.0) - (-half)
+    pieces.append(
+        spec("end_a", left_margin, -half + left_margin / 2.0, SLOT_HEIGHT, SLOT_CENTRE_Z)
+    )
+    right_margin = half - (edges[-1] + SLOT_WIDTH / 2.0)
+    pieces.append(
+        spec("end_b", right_margin, half - right_margin / 2.0, SLOT_HEIGHT, SLOT_CENTRE_Z)
+    )
+    for index in range(count - 1):
+        gap = edges[index + 1] - edges[index] - SLOT_WIDTH
+        centre = (edges[index] + edges[index + 1]) / 2.0
+        pieces.append(spec(f"pillar_{index}", gap, centre, SLOT_HEIGHT, SLOT_CENTRE_Z))
+    return pieces
