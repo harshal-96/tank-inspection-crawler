@@ -185,3 +185,54 @@ def test_inspection_verdict_enum_matches_tool_filter(client, session):
         },
     )
     assert len(tools.list_defects(session)["defects"]) == 1
+
+
+# ----------------------------------------------------------------------- drift
+
+
+def _log_lateral(client, values_mm):
+    for value in values_mm:
+        serial = client.post("/api/parts", json={}).json()["serial"]
+        client.post("/api/measurements", json={
+            "part_serial": serial, "detected_x": 0.0, "detected_y": value / 1000.0,
+            "confidence": 0.9,
+        })
+
+
+def test_scatter_alone_is_not_called_a_trend(client, session):
+    """Parts arrive across a wide band. Two windows of that differ by millimetres
+    on chance alone, and calling that drift makes the alarm useless."""
+    import random
+    rng = random.Random(0)
+    _log_lateral(client, [rng.gauss(0, 23.0) for _ in range(60)])
+
+    drift = tools.get_drift(session)
+    assert drift["available"] is True
+    assert drift["part_to_part_spread_mm"] > 10
+    assert drift["trending"] is False, (
+        f"random scatter reported as a trend: {drift['shift_mm']} mm "
+        f"at {drift['sigma']} sigma"
+    )
+
+
+def test_a_real_shift_is_caught(client, session):
+    """A genuine step in arrival position, small next to the scatter, must show."""
+    import random
+    rng = random.Random(1)
+    _log_lateral(client, [rng.gauss(0, 5.0) for _ in range(30)])
+    _log_lateral(client, [rng.gauss(14.0, 5.0) for _ in range(30)])
+
+    drift = tools.get_drift(session)
+    assert drift["trending"] is True
+    assert drift["sigma"] > 2.0
+
+
+def test_drift_reports_the_noise_it_judged_against(client, session):
+    import random
+    rng = random.Random(2)
+    _log_lateral(client, [rng.gauss(0, 8.0) for _ in range(50)])
+    drift = tools.get_drift(session)
+    assert drift["noise_on_the_shift_mm"] > 0
+    assert drift["sigma"] == pytest.approx(
+        abs(drift["shift_mm"]) / drift["noise_on_the_shift_mm"], rel=0.02
+    )

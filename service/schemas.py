@@ -97,12 +97,26 @@ class InspectionStats(BaseModel):
 
 
 class DriftSignal(BaseModel):
-    """Rolling lateral trend. The thing a single part cannot show you."""
+    """Rolling lateral trend. The thing a single part cannot show you.
+
+    Parts genuinely arrive anywhere across a wide band, so a shift between two
+    windows is only meaningful against the noise on that shift. Judging it by
+    magnitude alone makes the alarm fire on ordinary scatter.
+    """
 
     window: int
     recent_mean_y_mm: Optional[float] = None
     baseline_mean_y_mm: Optional[float] = None
     shift_mm: Optional[float] = None
+    spread_mm: Optional[float] = Field(
+        default=None, description="Part-to-part spread in arrival position"
+    )
+    noise_mm: Optional[float] = Field(
+        default=None, description="Expected shift between two windows from scatter alone"
+    )
+    sigma: Optional[float] = Field(
+        default=None, description="Shift divided by its own noise. Under 2 means nothing."
+    )
     trending: bool = False
 
 

@@ -77,8 +77,10 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "description": (
                 "Lateral drift detail: the recent window mean against the earlier "
                 "baseline, in millimetres. Positive means the joint is being found "
-                "further in +y than before. Sustained drift suggests a mechanical "
-                "cause such as locator wear or a fixture settling."
+                "further in +y than before. Judge it by sigma, not millimetres: "
+                "parts arrive across a wide band, so a shift under 2 sigma is "
+                "ordinary scatter and means nothing. Sustained drift above that "
+                "suggests a mechanical cause such as locator wear."
             ),
             "parameters": {
                 "type": "object",
@@ -182,6 +184,8 @@ def get_cell_status(session: Session, window: int = 20) -> dict[str, Any]:
         },
         "drift": {
             "shift_mm": _round(stats.drift.shift_mm),
+            "noise_mm": _round(stats.drift.noise_mm),
+            "sigma": _round(stats.drift.sigma),
             "trending": stats.drift.trending,
             "window": stats.drift.window,
         },
@@ -227,6 +231,9 @@ def get_drift(session: Session, window: int = 20) -> dict[str, Any]:
         "recent_mean_y_mm": _round(signal.recent_mean_y_mm),
         "baseline_mean_y_mm": _round(signal.baseline_mean_y_mm),
         "shift_mm": _round(signal.shift_mm),
+        "part_to_part_spread_mm": _round(signal.spread_mm),
+        "noise_on_the_shift_mm": _round(signal.noise_mm),
+        "sigma": _round(signal.sigma),
         "trending": signal.trending,
     }
 

@@ -22,8 +22,12 @@ from service.models import (
 )
 from service.schemas import CellStats, DriftSignal, ErrorStats, InspectionStats
 
-# A lateral shift beyond this, sustained across a window, is worth a human looking.
-DRIFT_THRESHOLD_MM = 1.0
+# How many standard errors a window-to-window shift must clear before it is called
+# a trend. Two sigma is the usual bar for "this is not scatter". Judging drift by
+# millimetres alone fires constantly, because parts arrive across a band tens of
+# millimetres wide and two twenty-part windows differ by several millimetres on
+# chance alone.
+DRIFT_SIGMA_THRESHOLD = 2.0
 
 # Correction error above this on a single part is an action, not a trend.
 ERROR_ACTION_THRESHOLD_MM = 3.0
@@ -107,12 +111,22 @@ def drift_signal(session: Session, window: int = 20, limit: int = 100) -> DriftS
     if len(lateral) < window * 2:
         return signal
 
-    recent = statistics.fmean(lateral[:window]) * 1000.0
-    baseline = statistics.fmean(lateral[window:]) * 1000.0
+    recent_values = [v * 1000.0 for v in lateral[:window]]
+    baseline_values = [v * 1000.0 for v in lateral[window:]]
+    recent = statistics.fmean(recent_values)
+    baseline = statistics.fmean(baseline_values)
+    shift = recent - baseline
+
+    spread = statistics.pstdev([v * 1000.0 for v in lateral])
+    noise = spread * (1.0 / len(recent_values) + 1.0 / len(baseline_values)) ** 0.5
+
     signal.recent_mean_y_mm = recent
     signal.baseline_mean_y_mm = baseline
-    signal.shift_mm = recent - baseline
-    signal.trending = abs(recent - baseline) > DRIFT_THRESHOLD_MM
+    signal.shift_mm = shift
+    signal.spread_mm = spread
+    signal.noise_mm = noise
+    signal.sigma = abs(shift) / noise if noise > 1e-9 else 0.0
+    signal.trending = signal.sigma > DRIFT_SIGMA_THRESHOLD
     return signal
 
 
