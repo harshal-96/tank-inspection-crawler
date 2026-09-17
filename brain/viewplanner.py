@@ -156,7 +156,7 @@ def plan_next_view(
         ],
     )
     latency_ms = (time.perf_counter() - started) * 1000
-    raw = nebius.strip_reasoning(response.choices[0].message.content)
+    raw = nebius.reply_text(response.choices[0].message)
     usage = response.usage
 
     common = {

@@ -117,7 +117,7 @@ def check_text() -> bool:
     calls = msg.tool_calls or []
     if not calls:
         print(f"{BAD} model answered without calling the tool ({dt:.0f} ms)")
-        print(f"       said: {nebius.strip_reasoning(msg.content)[:160]}")
+        print(f"       said: {nebius.reply_text(msg)[:160]}")
         return False
 
     call = calls[0]
@@ -143,7 +143,7 @@ def check_text() -> bool:
         print(f"{BAD} tool-result round trip failed: {type(exc).__name__}: {exc}")
         return False
 
-    reply = nebius.strip_reasoning(second.choices[0].message.content)
+    reply = nebius.reply_text(second.choices[0].message)
     print(f"{OK} answered: {reply[:200]}")
     if second.usage:
         usage = second.usage

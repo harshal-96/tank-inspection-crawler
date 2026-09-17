@@ -99,16 +99,35 @@ def image_part(path: str | Path, detail: str = "auto") -> dict[str, Any]:
 
 
 def strip_reasoning(content: Optional[str]) -> str:
-    """Drop a leading <think>...</think> block if the model emits one inline.
-
-    Nemotron 3 returns reasoning via reasoning_content when streaming, but the
-    non-streaming response schema carries only content, so guard against it
-    appearing there.
-    """
+    """Drop a leading <think>...</think> block if the model emits one inline."""
     text = (content or "").strip()
     if text.startswith("<think>") and "</think>" in text:
         text = text.split("</think>", 1)[1].strip()
     return text
+
+
+def reply_text(message: Any) -> str:
+    """The model's answer, from wherever that model decided to put it.
+
+    The Nemotron sizes do not agree on this, and the disagreement is silent.
+    Lightning fills `content` and leaves `reasoning` empty. Nano does the exact
+    reverse: `content` comes back None and the answer, JSON and all, arrives in
+    `reasoning`.
+
+    Reading only `content` therefore does not raise or warn on Nano, it returns
+    an empty string, and any caller with a sensible fallback for an unparseable
+    reply quietly applies that fallback to every single call. An evaluation built
+    on that measures the fallback and reports it as the model's judgement, which
+    is exactly what happened here before this function existed: Nano appeared to
+    score perfectly on a decision it was never asked.
+
+    So the answer is taken from either field, and the caller does not need to know
+    which model it is talking to.
+    """
+    text = strip_reasoning(getattr(message, "content", None))
+    if text:
+        return text
+    return strip_reasoning(getattr(message, "reasoning", None))
 
 
 def available_models() -> list[str]:

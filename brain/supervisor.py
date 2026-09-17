@@ -177,7 +177,7 @@ def _run(
         calls = message.tool_calls or []
 
         if not calls:
-            reply.reply = plain_text(nebius.strip_reasoning(message.content))
+            reply.reply = plain_text(nebius.reply_text(message))
             break
 
         messages.append(message.model_dump(exclude_none=True))
