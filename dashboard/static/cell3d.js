@@ -205,6 +205,66 @@ export class Cell3D {
     this.scene.add(sight);
   }
 
+  #cyl(a, b, radius, colour, opts = {}) {
+    const dir = new THREE.Vector3().subVectors(b, a);
+    const len = Math.max(1e-4, dir.length());
+    const mesh = new THREE.Mesh(
+      new THREE.CylinderGeometry(radius, radius, len, 16),
+      new THREE.MeshStandardMaterial({
+        color: colour,
+        metalness: opts.metalness ?? 0.6,
+        roughness: opts.roughness ?? 0.4,
+        emissive: opts.emissive ?? 0x000000,
+        emissiveIntensity: opts.emissiveIntensity ?? 0,
+      })
+    );
+    mesh.position.copy(a).addScaledVector(dir, 0.5);
+    mesh.quaternion.setFromUnitVectors(
+      new THREE.Vector3(0, 1, 0), dir.clone().normalize()
+    );
+    this.scene.add(mesh);
+    return mesh;
+  }
+
+  /** The torch, hung off the flange so it belongs to the arm rather than
+   *  floating beside it.
+   *
+   *  Only the wire crosses the last few millimetres to the work. A nozzle taken
+   *  all the way down to the joint would be sitting in the weld, which is what
+   *  the first version of the Blender cell did before it was measured.
+   */
+  #torch(g, link6) {
+    const seam = g.seam;
+    const mid = (seam.bottom_z_m + seam.top_z_m) / 2;
+    const out = new THREE.Vector3(seam.x_m - g.fixture.x_m, seam.y_m, 0).normalize();
+    const stickout = (g.torch && g.torch.stickout_m) || 0.008;
+
+    const wireTip = new THREE.Vector3(seam.x_m, seam.y_m, mid).addScaledVector(out, stickout);
+    const nozzleFace = wireTip.clone().addScaledVector(out, 0.016);
+    nozzleFace.z += 0.006;
+
+    const flange = new THREE.Vector3();
+    link6.getWorldPosition(flange);
+    const axis = new THREE.Vector3().subVectors(nozzleFace, flange).normalize();
+
+    const mount = flange.clone().addScaledVector(axis, 0.05);
+    const neck = flange.clone().addScaledVector(axis, 0.16);
+    const cupBack = nozzleFace.clone().addScaledVector(axis, -0.045);
+
+    const parts = [
+      this.#cyl(flange, mount, 0.034, 0x14161a, { metalness: 0.5, roughness: 0.45 }),
+      this.#cyl(mount, neck, 0.026, 0x1b1e23, { metalness: 0.4, roughness: 0.4 }),
+      this.#cyl(neck, cupBack, 0.019, 0x1b1e23, { metalness: 0.4, roughness: 0.4 }),
+      this.#cyl(cupBack, nozzleFace, 0.013, 0xb06a2c, { metalness: 0.9, roughness: 0.3 }),
+      this.#cyl(nozzleFace, wireTip, 0.0012, 0xffcf8a, {
+        metalness: 0.2, roughness: 0.5, emissive: 0xffcf8a, emissiveIntensity: 1.2,
+      }),
+    ];
+    // Reparent onto the flange, keeping the world placement just computed, so the
+    // torch travels with the arm instead of staying where it was drawn.
+    for (const part of parts) link6.attach(part);
+  }
+
   #robot(g) {
     const base = { x: 3.84, y: -2.22 };
     const seam = g.seam;
@@ -257,6 +317,10 @@ export class Cell3D {
       });
       this.scene.add(pivot);
       this.robot = pivot;
+
+      let link6 = null;
+      root.traverse((n) => { if (n.name === "link_6") link6 = n; });
+      if (link6) this.#torch(g, link6);
     }, undefined, () => {
       // No model is not a broken dashboard. Stand a marker where it would be.
       this.#box(0.3, 0.3, 0.9, base.x, base.y, 0.53, 0xdc6b20,

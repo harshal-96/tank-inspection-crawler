@@ -474,6 +474,7 @@ def cell_geometry() -> dict[str, Any]:
             "top_z_m": geo.TABLE_TOP + geo.PART_T + geo.PART_D,
         },
         "camera": {"eye_m": list(geo.CAMERA_EYE), "aim_m": list(geo.CAMERA_AIM)},
+        "torch": {"stickout_m": geo.STICKOUT_M},
     }
 
 
