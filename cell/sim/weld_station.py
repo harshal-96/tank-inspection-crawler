@@ -105,7 +105,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 # well clear of the fixture, and the camera visits each in turn.
 BEAD_FARM_X = -6.0
 BEAD_FARM_PITCH = 4.0
-PART_PARK = (-20.0, 0.0, geo.PART_D / 2 + 0.005)
+PART_PARK = (-20.0, 0.0, 0.005)
 
 world = World(stage_units_in_meters=1.0)
 stage = omni.usd.get_context().get_stage()
@@ -116,10 +116,13 @@ stage = omni.usd.get_context().get_stage()
 
 def box(path: str, size, translate, color=(0.55, 0.57, 0.6)) -> "UsdGeom.Cube":
     prim = UsdGeom.Cube.Define(stage, path)
-    prim.GetSizeAttr().Set(1.0)
+    # Leave size at its default of 2 and scale by half the wanted dimension. A
+    # cube's extent attribute is authored for the default size, so setting size
+    # without rewriting extent leaves the two disagreeing, and the renderer
+    # believes the extent.
     prim.AddTranslateOp().Set(Gf.Vec3d(*translate))
-    prim.AddScaleOp().Set(Gf.Vec3f(*size))
-    prim.GetDisplayColorAttr().Set([Gf.Vec3f(*color)])
+    prim.AddScaleOp().Set(Gf.Vec3f(size[0] / 2.0, size[1] / 2.0, size[2] / 2.0))
+    prim.CreateDisplayColorAttr([Gf.Vec3f(*color)])
     return prim
 
 
@@ -145,6 +148,8 @@ def build_fixture() -> None:
     # metre and tumbles in. Its top sits half a millimetre proud of the table so
     # the trailing edge steps DOWN at the joint between them; flush or below and
     # the edge catches on the seam and the part stalls short of the stop.
+    static_box("/World/Ground", (40.0, 40.0, 0.02), (0.0, 0.0, -0.01), color=(0.22, 0.22, 0.24))
+
     slide_top = geo.TABLE_TOP + 0.0005
     if ARGS.no_guides:
         return
@@ -162,8 +167,6 @@ def build_fixture() -> None:
             (0.8, side * 0.66, geo.TABLE_TOP + 0.05),
             guide=True,
         )
-    # Ground.
-    static_box("/World/Ground", (40.0, 40.0, 0.02), (0.0, 0.0, -0.01), color=(0.22, 0.22, 0.24))
 
 
 def slide_material():
@@ -181,18 +184,27 @@ def slide_material():
 
 
 def build_part(path: str, physics: bool):
-    """The sheet-metal part: four walls, so the joint corner is a real corner."""
+    """The sheet-metal part: a base panel with four walls standing on it.
+
+    The origin sits at the base, not the centre, so the walls run from z 0 up to
+    the part depth. Every other height in the cell is written against that
+    convention, the bead included: a part centred on its own origin puts the bead
+    half in the air above the joint.
+
+    The side walls own the full length and the end walls butt between them, so no
+    two walls share the same volume at a corner.
+    """
     root = UsdGeom.Xform.Define(stage, path)
     root.AddTranslateOp().Set(Gf.Vec3d(*PART_PARK))
     root.AddRotateXYZOp().Set(Gf.Vec3f(0, 0, 0))
 
     w, h, d, t = geo.PART_W, geo.PART_H, geo.PART_D, geo.PART_T
     panels = {
-        "front": ((w, t, d), (0, -(h / 2 - t / 2), 0)),
-        "back": ((w, t, d), (0, (h / 2 - t / 2), 0)),
-        "left": ((t, h - 2 * t, d), (-(w / 2 - t / 2), 0, 0)),
-        "right": ((t, h - 2 * t, d), ((w / 2 - t / 2), 0, 0)),
-        "bottom": ((w, h, t), (0, 0, -(d / 2 - t / 2))),
+        "base": ((w, h, t), (0, 0, t / 2)),
+        "side_left": ((t, h, d), (-(w / 2 - t / 2), 0, d / 2)),
+        "side_right": ((t, h, d), ((w / 2 - t / 2), 0, d / 2)),
+        "end_back": ((w - 2 * t, t, d), (0, (h / 2 - t / 2), d / 2)),
+        "end_front": ((w - 2 * t, t, d), (0, -(h / 2 - t / 2), d / 2)),
     }
     material = slide_material() if physics else None
     for name, (size, offset) in panels.items():
@@ -325,7 +337,7 @@ def settle_part(part: SingleRigidPrim, spawn_y: float, spawn_yaw_deg: float) -> 
     yaw = math.radians(spawn_yaw_deg)
     quaternion = np.array([math.cos(yaw / 2), 0.0, 0.0, math.sin(yaw / 2)])
     part.set_world_pose(
-        position=np.array([1.2, spawn_y, geo.TABLE_TOP + geo.PART_D / 2 + 0.002]),
+        position=np.array([1.2, spawn_y, geo.TABLE_TOP + 0.002]),
         orientation=quaternion,
     )
     part.set_linear_velocity(np.zeros(3))
@@ -477,13 +489,13 @@ def main() -> int:
         box(
             f"/World/BeadFarm/part_{index}/panel_side",
             (geo.PART_T, run, geo.PART_D),
-            (local_x, local_y + run / 2, geo.BEAD_Z),
+            (local_x, local_y + run / 2, geo.PART_D / 2),
             color=(0.58, 0.60, 0.64),
         )
         box(
             f"/World/BeadFarm/part_{index}/panel_front",
             (run, geo.PART_T, geo.PART_D),
-            (local_x - run / 2, local_y, geo.BEAD_Z),
+            (local_x - run / 2, local_y, geo.PART_D / 2),
             color=(0.58, 0.60, 0.64),
         )
 
