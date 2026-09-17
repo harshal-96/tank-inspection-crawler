@@ -44,41 +44,27 @@
       "spawn_dy_mm": 7.374101693382117,
       "spawn_yaw_deg": 0.9671479570429176,
       "settled": [
-        3.959947347640991,
-        0.006955076474696398,
-        4.5266150902005474e-05
+        3.949577808380127,
+        0.014333845116198063,
+        1.001874016411042
       ],
       "true_joint": [
-        4.409947821666875,
-        -0.5930445680055985
+        4.410000079608559,
+        -0.5777061300179585
       ],
-      "blind_error_mm": 12.138253175176459,
+      "blind_error_mm": 24.43395651452467,
       "injected_defect": "none",
       "defect_severity": 0.0,
       "views": [
         {
-          "orbit_deg": -45.0,
+          "orbit_deg": 0.0,
           "rgb": "scans/rgb_0001.png",
           "mask": "scans/semantic_segmentation_0001.png",
           "depth": "scans/distance_to_image_plane_0001.npy",
           "normals": "scans/normals_0001.png"
-        },
-        {
-          "orbit_deg": 0.0,
-          "rgb": "scans/rgb_0003.png",
-          "mask": "scans/semantic_segmentation_0003.png",
-          "depth": "scans/distance_to_image_plane_0003.npy",
-          "normals": "scans/normals_0003.png"
-        },
-        {
-          "orbit_deg": 45.0,
-          "rgb": "scans/rgb_0005.png",
-          "mask": "scans/semantic_segmentation_0005.png",
-          "depth": "scans/distance_to_image_plane_0005.npy",
-          "normals": "scans/normals_0005.png"
         }
       ],
-      "bead_image": "beads/rgb_0005.png"
+      "bead_image": "beads/rgb_0001.png"
     }
   ]
 }
