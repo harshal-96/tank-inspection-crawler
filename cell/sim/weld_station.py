@@ -48,6 +48,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--trials", type=int, default=20)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--defect-rate", type=float, default=0.35)
+    parser.add_argument(
+        "--forming-scale",
+        type=float,
+        default=1.0,
+        help="Multiplier on the springback and camber the press leaves behind. "
+        "1.0 is a line that is set up properly and still misses.",
+    )
     parser.add_argument("--out", default="data/captures")
     parser.add_argument(
         "--no-render",
@@ -115,6 +122,7 @@ from pxr import (  # noqa: E402
 )
 
 from cell import defects as defect_lib  # noqa: E402
+from cell import forming as forming_lib  # noqa: E402
 from cell import geometry as geo  # noqa: E402
 from cell.client import CellClient  # noqa: E402
 
@@ -198,12 +206,22 @@ def static_box(path, size, translate, color=(0.55, 0.57, 0.6), guide=False):
 def build_fixture() -> None:
     """Table, end stop, locators and the guide rails that square the part up."""
     static_box("/World/Fix/Table", (1.6, 1.7, 0.08), (geo.FIXTURE_X, 0, geo.TABLE_TOP - 0.04))
-    static_box(
-        "/World/Fix/Stop",
-        (0.05, 1.3, 0.12),
-        (geo.FIXTURE_X + 0.485, 0, geo.TABLE_TOP + 0.06),
-        color=(0.5, 0.2, 0.1),
-    )
+    # The end stop, as two short locating pads rather than one plank across the
+    # whole face. A plank stops the part perfectly well and then sits in the weld:
+    # its inner face is at the same x as the leading face of the part, which is the
+    # face the welded corner is on, so it covers the bottom of the seam and stands
+    # between the camera and the joint. Pads set well inboard of the corner locate
+    # the part just as positively and leave the corner clear to be seen and welded.
+    #
+    # Two of them, placed symmetrically, so the part does not take a yaw kick off a
+    # single off-centre contact on the way in.
+    for index, side in ((0, -1), (1, 1)):
+        static_box(
+            "/World/Fix/Stop_%d" % index,
+            (0.05, 0.28, 0.12),
+            (geo.FIXTURE_X + 0.485, side * 0.34, geo.TABLE_TOP + 0.06),
+            color=(0.5, 0.2, 0.1),
+        )
     # The approach slide, carrying the part from the conveyor hand-off to the
     # fixture. Without it the part spawns in mid air, falls the better part of a
     # metre and tumbles in. Its top sits half a millimetre proud of the table so
@@ -244,18 +262,170 @@ def slide_material():
     return material
 
 
-def build_part(path: str, physics: bool):
-    """A sheet-metal enclosure: four slotted walls on a base, with a lid.
+def bent_side(
+    path: str,
+    axis: int,
+    inner: float,
+    outer: float,
+    span_lo: float,
+    span_hi: float,
+    z_lo: float,
+    z_hi: float,
+    fold_z: float,
+    height: float,
+    panel,
+    outward: float,
+    color=(0.66, 0.68, 0.71),
+    segments: int = 28,
+):
+    """One folded side of the tray, built as sheet that leans and bows.
 
-    The weld joint is the vertical corner where the right wall meets the front
-    wall, and it runs the full height.
+    A cube cannot lean half a degree or bow a millimetre, and those are precisely
+    the errors this cell exists to find, so the side is lofted from a stack of
+    cross sections instead. Each section sits where the forming error puts it at
+    that height: zero at the fold, where the base holds the sheet, and growing up
+    towards the free edge.
 
-    The ventilation slots are real gaps between solid pieces, not dark paint, so
-    they appear in the depth image as well as the picture. That matters: the cell
-    has to tell a slot from a defect, and only geometry separates them.
+    axis 0 puts the thickness along x and the length along y, axis 1 the other way
+    round. outward is which way a positive lean tips the side.
+    """
+    if axis not in (0, 1):
+        raise ValueError("axis must be 0 (thickness along x) or 1 (along y)")
 
-    The origin sits at the base, which is the convention every other height in the
-    cell is written against.
+    def ring(z: float):
+        off = outward * panel.offset_m(max(z - fold_z, 0.0), height)
+        p_in, p_out = inner + off, outer + off
+        if axis == 0:
+            corners = [(p_in, span_lo), (p_out, span_lo), (p_out, span_hi), (p_in, span_hi)]
+        else:
+            corners = [(span_lo, p_in), (span_lo, p_out), (span_hi, p_out), (span_hi, p_in)]
+        # Keep every ring wound the same way round, so the lofted faces all end up
+        # with their normals pointing out of the sheet rather than into it.
+        area = sum(
+            corners[i][0] * corners[(i + 1) % 4][1] - corners[(i + 1) % 4][0] * corners[i][1]
+            for i in range(4)
+        )
+        if area < 0:
+            corners.reverse()
+        return [(c[0], c[1], z) for c in corners]
+
+    rings = [ring(z_lo + (z_hi - z_lo) * i / segments) for i in range(segments + 1)]
+    points = [pt for r in rings for pt in r]
+
+    counts, indices = [], []
+    for i in range(segments):
+        base, nxt = i * 4, (i + 1) * 4
+        for k in range(4):
+            k2 = (k + 1) % 4
+            counts.append(4)
+            indices += [base + k, base + k2, nxt + k2, nxt + k]
+    counts.append(4)
+    indices += [3, 2, 1, 0]                       # the bottom, facing down
+    top = segments * 4
+    counts.append(4)
+    indices += [top + 0, top + 1, top + 2, top + 3]
+
+    mesh = UsdGeom.Mesh.Define(stage, path)
+    mesh.CreatePointsAttr([Gf.Vec3f(*pt) for pt in points])
+    mesh.CreateFaceVertexCountsAttr(counts)
+    mesh.CreateFaceVertexIndicesAttr(indices)
+    mesh.CreateSubdivisionSchemeAttr().Set("none")
+    lo = [min(pt[i] for pt in points) for i in range(3)]
+    hi = [max(pt[i] for pt in points) for i in range(3)]
+    mesh.CreateExtentAttr([Gf.Vec3f(*lo), Gf.Vec3f(*hi)])
+    mesh.CreateDisplayColorAttr([Gf.Vec3f(*color)])
+    shade(mesh, color)
+    return mesh
+
+
+def build_part(path: str, physics: bool, forming=None):
+    """An open-topped tray, folded from one flat blank.
+
+    The blank is cut flat and a square notch is taken out of each corner, so the
+    four sides can be folded up without fouling each other. Each side stands on
+    its fold line and leans outward by the sheet thickness, which keeps the inside
+    of the tray at the base dimensions.
+
+    Where two folded sides come together they meet edge to edge along a vertical
+    line at the corner. That line is the seam the robot welds.
+
+    forming is the error the press left on the sides: springback opening the bend
+    angle, camber bowing the free edge. Given one, the sides are lofted sheet that
+    actually leans and bows, so the seam is where the forming error puts it and
+    the camera has something real to find. The physics proxy stays plain boxes,
+    because PhysX cannot use a mesh as a dynamic collider and a sub-degree lean
+    changes nothing about how the part settles.
+    """
+    root = UsdGeom.Xform.Define(stage, path)
+    root.AddTranslateOp().Set(Gf.Vec3d(*PART_PARK))
+    root.AddRotateXYZOp().Set(Gf.Vec3f(0, 0, 0))
+
+    w, h, d, t = geo.PART_W, geo.PART_H, geo.PART_D, geo.PART_T
+    wall = t + d  # the side runs from the underside of the base to the rim
+    skin = (0.66, 0.68, 0.71)
+
+    material = slide_material() if physics else None
+
+    def solid(name, size, offset):
+        panel = box(f"{path}/{name}", size, offset, color=skin)
+        if physics:
+            UsdPhysics.CollisionAPI.Apply(panel.GetPrim())
+            UsdShade.MaterialBindingAPI.Apply(panel.GetPrim()).Bind(
+                material, UsdShade.Tokens.weakerThanDescendants, "physics"
+            )
+        return panel
+
+    solid("base", (w, h, t), (0, 0, t / 2))
+
+    # Each side spans exactly the base it was folded from. The corner notch is the
+    # gap left between the end of one side and the face of the next.
+    sides = (
+        ("side_right", 0, w / 2, w / 2 + t, -h / 2, h / 2, +1.0, "right"),
+        ("side_left", 0, -w / 2, -(w / 2 + t), -h / 2, h / 2, -1.0, "left"),
+        ("end_back", 1, h / 2, h / 2 + t, -w / 2, w / 2, +1.0, "back"),
+        ("end_front", 1, -h / 2, -(h / 2 + t), -w / 2, w / 2, -1.0, "front"),
+    )
+    for name, axis, inner, outer, span_lo, span_hi, outward, which in sides:
+        if forming is None or physics:
+            size = [0.0, 0.0, wall]
+            offset = [0.0, 0.0, wall / 2]
+            size[axis] = t
+            size[1 - axis] = span_hi - span_lo
+            offset[axis] = (inner + outer) / 2.0
+            offset[1 - axis] = (span_lo + span_hi) / 2.0
+            solid(name, tuple(size), tuple(offset))
+        else:
+            bent_side(
+                f"{path}/{name}",
+                axis=axis,
+                inner=inner,
+                outer=outer,
+                span_lo=span_lo,
+                span_hi=span_hi,
+                z_lo=0.0,
+                z_hi=wall,
+                fold_z=t,
+                height=d,
+                panel=getattr(forming, which),
+                outward=outward,
+                color=skin,
+            )
+
+    if physics:
+        UsdPhysics.RigidBodyAPI.Apply(root.GetPrim())
+        UsdPhysics.MassAPI.Apply(root.GetPrim()).CreateMassAttr().Set(38.0)
+        PhysxSchema.PhysxRigidBodyAPI.Apply(root.GetPrim()).CreateAngularDampingAttr(1.5)
+    return root
+
+
+def build_blank(path: str, physics: bool = False):
+    """The flat blank the tray is folded from, as its own model.
+
+    A rectangle the size of the base with a side-height flange running off each
+    edge, and a square notch taken out of each corner so the flanges clear one
+    another when they come up. This is the part as it leaves the laser and enters
+    the press; the tray is what leaves the press. Kept separate so the two stages
+    can be shown and measured independently.
     """
     root = UsdGeom.Xform.Define(stage, path)
     root.AddTranslateOp().Set(Gf.Vec3d(*PART_PARK))
@@ -263,31 +433,17 @@ def build_part(path: str, physics: bool):
 
     w, h, d, t = geo.PART_W, geo.PART_H, geo.PART_D, geo.PART_T
     skin = (0.66, 0.68, 0.71)
+
+    panels = {
+        "base": ((w, h, t), (0, 0, t / 2)),
+        "flange_left": ((d, h, t), (-(w / 2 + d / 2), 0, t / 2)),
+        "flange_right": ((d, h, t), ((w / 2 + d / 2), 0, t / 2)),
+        "flange_front": ((w, d, t), (0, -(h / 2 + d / 2), t / 2)),
+        "flange_back": ((w, d, t), (0, (h / 2 + d / 2), t / 2)),
+    }
+
     material = slide_material() if physics else None
-    parts = []
-
-    # Base and lid, full footprint so they overlap the walls at every edge.
-    parts.append(("base", (w, h, t), (0, 0, t / 2)))
-    parts.append(("lid", (w, h, t), (0, 0, d - t / 2)))
-
-    # Four walls, each broken into the solid pieces around its slot row.
-    walls = (
-        ("front", 0, (0.0, -(h / 2 - t / 2), 0.0), w),
-        ("back", 0, (0.0, (h / 2 - t / 2), 0.0), w),
-        ("left", 1, (-(w / 2 - t / 2), 0.0, 0.0), h),
-        ("right", 1, ((w / 2 - t / 2), 0.0, 0.0), h),
-    )
-    for wall, axis, origin, length in walls:
-        for name, size, offset in geo.slotted_face(length, d, t, along_axis=axis):
-            parts.append(
-                (
-                    f"{wall}_{name}",
-                    size,
-                    (origin[0] + offset[0], origin[1] + offset[1], offset[2]),
-                )
-            )
-
-    for name, size, offset in parts:
+    for name, (size, offset) in panels.items():
         panel = box(f"{path}/{name}", size, offset, color=skin)
         if physics:
             UsdPhysics.CollisionAPI.Apply(panel.GetPrim())
@@ -298,8 +454,6 @@ def build_part(path: str, physics: bool):
     if physics:
         UsdPhysics.RigidBodyAPI.Apply(root.GetPrim())
         UsdPhysics.MassAPI.Apply(root.GetPrim()).CreateMassAttr().Set(38.0)
-        # Without this the push torques the part and it arrives spinning.
-        PhysxSchema.PhysxRigidBodyAPI.Apply(root.GetPrim()).CreateAngularDampingAttr(1.5)
     return root
 
 
@@ -510,6 +664,13 @@ def make_camera(path: str, eye, aim, focal_length: float = 24.0):
     # centred ends up outside the frame.
     camera.CreateHorizontalApertureAttr().Set(APERTURE_MM)
     camera.CreateVerticalApertureAttr().Set(APERTURE_MM)
+    # The near plane defaults to one metre. The camera stands 0.95 m off the seam,
+    # so on the default every surface nearer than a metre is clipped away, and the
+    # nearest surface of all is the corner being measured. That is what put a hole
+    # in the depth image exactly where the weld goes, and it widened towards the
+    # top of the part because the camera looks down at it. Two centimetres is well
+    # inside anything this cell photographs.
+    camera.CreateClippingRangeAttr().Set(Gf.Vec2f(0.02, 100.0))
     xform = UsdGeom.Xformable(camera)
     op = xform.AddTransformOp()
     view = Gf.Matrix4d().SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*aim), Gf.Vec3d(0, 0, 1))
@@ -590,6 +751,9 @@ def report_bounds(paths: list[str]) -> None:
 def main() -> int:
     rng = random.Random(ARGS.seed)
     plans = defect_lib.plan_campaign(ARGS.trials, seed=ARGS.seed, defect_rate=ARGS.defect_rate)
+    formings = forming_lib.plan_trays(
+        ARGS.trials, seed=ARGS.seed + 977, scale=ARGS.forming_scale
+    )
 
     build_fixture()
     build_lighting()
@@ -609,7 +773,7 @@ def main() -> int:
               ))
         report_bounds([
             "/World/Fix/Table",
-            "/World/Fix/Stop",
+            "/World/Fix/Stop_0",
             "/World/Fix/Slide",
             "/World/Guide_0",
             "/World/Guide_1",
@@ -636,12 +800,27 @@ def main() -> int:
                 "blind_error_mm": geo.blind_error_mm(x, y, yaw),
                 "injected_defect": plans[index].defect,
                 "defect_severity": plans[index].severity,
+                "forming": {
+                    "right_lean_deg": formings[index].right.lean_deg,
+                    "right_bow_mm": formings[index].right.bow_mm,
+                    "front_lean_deg": formings[index].front.lean_deg,
+                    "front_bow_mm": formings[index].front.bow_mm,
+                },
+                "seam_wander_mm": formings[index].welded_corner().seam_wander_mm(geo.PART_D),
+                "taught_miss_mm": geo.taught_miss_mm(
+                    x, y, yaw, formings[index].welded_corner()
+                ),
+                "true_seam": [
+                    list(point)
+                    for point in geo.true_seam(x, y, yaw, formings[index].welded_corner())
+                ],
             }
         )
         print(
             f"  trial {index:3d}  settled x={x:.4f} y={y:+.4f} yaw={math.degrees(yaw):+.2f}deg"
             f"  blind miss {trials[-1]['blind_error_mm']:.1f} mm"
-            f"  bead: {plans[index].describe()}",
+            f"  press: {formings[index].describe()}"
+            f"  taught path misses the seam by {trials[-1]['taught_miss_mm']:.1f} mm",
             flush=True,
         )
 
@@ -655,8 +834,17 @@ def main() -> int:
     # on camera is exactly the settled pose rather than whatever physics is
     # doing at capture time.
     part.set_world_pose(position=np.array(PART_PARK), orientation=np.array([1.0, 0, 0, 0]))
-    build_part("/World/PartVis", physics=False)
-    build_bead("/World/PartVis/Bead", defect_lib.clean_bead(), tag_semantics=False)
+
+    # One twin per part, not one twin reused. The press error is baked into the
+    # sheet itself, and geometry built after the stage has composed never reaches
+    # the headless renderer, so every part's own bent panels have to exist now.
+    # All of them are parked off camera and each is driven into shot on its own
+    # frames, the same way the bead farm works.
+    UsdGeom.Scope.Define(stage, "/World/PartVis")
+    for index, tray_forming in enumerate(formings):
+        twin = f"/World/PartVis/part_{index}"
+        build_part(twin, physics=False, forming=tray_forming)
+        build_bead(f"{twin}/Bead", defect_lib.clean_bead(), tag_semantics=False)
 
     # The bead farm has to exist before the first frame is drawn. Geometry created
     # after the stage has composed never reaches the headless renderer, so beads
@@ -716,7 +904,11 @@ def main() -> int:
         orbit_angles = [round(-ARGS.orbit_range + i * step, 3) for i in range(ARGS.views)]
     print(f"[station] candidate views (degrees): {orbit_angles}", flush=True)
 
-    part_positions, part_rotations = [], []
+    # Every twin needs a pose for every frame, because they are all in the scene at
+    # once. A twin gets its settled pose on the frames that photograph it and sits
+    # parked far off camera on all the others.
+    twin_positions = [[] for _ in trials]
+    twin_rotations = [[] for _ in trials]
     farm_positions = []
     for index, row in enumerate(trials):
         x, y, yaw_deg = row["settled"]
@@ -726,9 +918,15 @@ def main() -> int:
             px, py, pyaw = geo.orbit_about_joint(
                 x, y, math.radians(yaw_deg), joint_x, joint_y, math.radians(angle)
             )
-            # Two frames per capture: the writer trails the scene by one.
-            part_positions += [(px, py, geo.TABLE_TOP + 0.003)] * 2
-            part_rotations += [(0.0, 0.0, math.degrees(pyaw))] * 2
+            for other in range(len(trials)):
+                on_camera = other == index
+                # Two frames per capture: the writer trails the scene by one.
+                twin_positions[other] += [
+                    (px, py, geo.TABLE_TOP + 0.003) if on_camera else PART_PARK
+                ] * 2
+                twin_rotations[other] += [
+                    (0.0, 0.0, math.degrees(pyaw)) if on_camera else (0.0, 0.0, 0.0)
+                ] * 2
             # The bead does not change with the view, so the farm holds station.
             farm_positions += [(0.0, -index * BEAD_FARM_PITCH, 0.0)] * 2
             row["views"].append({"orbit_deg": angle})
@@ -742,14 +940,18 @@ def main() -> int:
                 painted += 1
         print(f"[station] x-ray: labelled {painted} prims", flush=True)
 
-    twin_group = rep.get.prims(path_pattern="^/World/PartVis$")
+    twin_groups = [
+        rep.get.prims(path_pattern=f"^/World/PartVis/part_{index}$")
+        for index in range(len(trials))
+    ]
     farm_group = rep.get.prims(path_pattern="^/World/BeadFarm$")
     with rep.trigger.on_frame():
-        with twin_group:
-            rep.modify.pose(
-                position=rep.distribution.sequence(part_positions),
-                rotation=rep.distribution.sequence(part_rotations),
-            )
+        for index, group in enumerate(twin_groups):
+            with group:
+                rep.modify.pose(
+                    position=rep.distribution.sequence(twin_positions[index]),
+                    rotation=rep.distribution.sequence(twin_rotations[index]),
+                )
         with farm_group:
             rep.modify.pose(position=rep.distribution.sequence(farm_positions))
 
