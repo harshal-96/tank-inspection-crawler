@@ -60,6 +60,12 @@ def parse_args() -> argparse.Namespace:
         help="Do not register parts with the service. Useful when testing offline.",
     )
     parser.add_argument("--api", default=None, help="Service base URL")
+    parser.add_argument(
+        "--bounds",
+        action="store_true",
+        help="Print world bounding boxes of the scene and exit. Never trust a "
+        "transform you have not measured.",
+    )
     return parser.parse_args()
 
 
@@ -75,7 +81,16 @@ import omni.replicator.core as rep  # noqa: E402
 import omni.usd  # noqa: E402
 from isaacsim.core.api import World  # noqa: E402
 from isaacsim.core.prims import SingleRigidPrim  # noqa: E402
-from pxr import Gf, UsdGeom, UsdLux, UsdPhysics, UsdSemantics  # noqa: E402
+from pxr import (  # noqa: E402
+    Gf,
+    PhysxSchema,
+    Usd,
+    UsdGeom,
+    UsdLux,
+    UsdPhysics,
+    UsdSemantics,
+    UsdShade,
+)
 
 from cell import defects as defect_lib  # noqa: E402
 from cell import geometry as geo  # noqa: E402
@@ -88,7 +103,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 # well clear of the fixture, and the camera visits each in turn.
 BEAD_FARM_X = -6.0
 BEAD_FARM_PITCH = 1.0
-PART_PARK = (-20.0, 0.0, 0.2)
+PART_PARK = (-20.0, 0.0, geo.PART_D / 2 + 0.005)
 
 world = World(stage_units_in_meters=1.0)
 stage = omni.usd.get_context().get_stage()
@@ -123,6 +138,18 @@ def build_fixture() -> None:
         (geo.FIXTURE_X + 0.485, 0, geo.TABLE_TOP + 0.06),
         color=(0.5, 0.2, 0.1),
     )
+    # The approach slide, carrying the part from the conveyor hand-off to the
+    # fixture. Without it the part spawns in mid air, falls the better part of a
+    # metre and tumbles in. Its top sits half a millimetre proud of the table so
+    # the trailing edge steps DOWN at the joint between them; flush or below and
+    # the edge catches on the seam and the part stalls short of the stop.
+    slide_top = geo.TABLE_TOP + 0.0005
+    static_box(
+        "/World/Fix/Slide",
+        (3.20, 1.70, 0.08),
+        (1.58, 0, slide_top - 0.04),
+        guide=True,
+    )
     # Rails constrain the part on the way in without appearing on camera.
     for index, side in ((0, -1), (1, 1)):
         static_box(
@@ -133,6 +160,20 @@ def build_fixture() -> None:
         )
     # Ground.
     static_box("/World/Ground", (40.0, 40.0, 0.02), (0.0, 0.0, -0.01), color=(0.22, 0.22, 0.24))
+
+
+def slide_material():
+    """A low-friction contact so the part glides to the stop instead of gripping.
+
+    A conveyor hand-off is nearly frictionless compared with steel on a dry table.
+    With default friction the part digs in, the push torques it about its centre,
+    and it arrives rotated by tens of degrees, which no fixtured cell would allow.
+    """
+    material = UsdShade.Material.Define(stage, "/World/Physics/SlideMat")
+    physics_material = UsdPhysics.MaterialAPI.Apply(material.GetPrim())
+    physics_material.CreateStaticFrictionAttr(0.06)
+    physics_material.CreateDynamicFrictionAttr(0.05)
+    return material
 
 
 def build_part(path: str, physics: bool):
@@ -149,15 +190,20 @@ def build_part(path: str, physics: bool):
         "right": ((t, h - 2 * t, d), ((w / 2 - t / 2), 0, 0)),
         "bottom": ((w, h, t), (0, 0, -(d / 2 - t / 2))),
     }
+    material = slide_material() if physics else None
     for name, (size, offset) in panels.items():
         panel = box(f"{path}/{name}", size, offset, color=(0.62, 0.64, 0.68))
         if physics:
             UsdPhysics.CollisionAPI.Apply(panel.GetPrim())
+            UsdShade.MaterialBindingAPI.Apply(panel.GetPrim()).Bind(
+                material, UsdShade.Tokens.weakerThanDescendants, "physics"
+            )
 
     if physics:
         UsdPhysics.RigidBodyAPI.Apply(root.GetPrim())
-        mass = UsdPhysics.MassAPI.Apply(root.GetPrim())
-        mass.CreateMassAttr().Set(18.0)
+        UsdPhysics.MassAPI.Apply(root.GetPrim()).CreateMassAttr().Set(38.0)
+        # Without this the push torques the part and it arrives spinning.
+        PhysxSchema.PhysxRigidBodyAPI.Apply(root.GetPrim()).CreateAngularDampingAttr(1.5)
     return root
 
 
@@ -287,6 +333,31 @@ def settle_part(part: SingleRigidPrim, spawn_y: float, spawn_yaw_deg: float) -> 
 # ------------------------------------------------------------------------- main
 
 
+def report_bounds(paths: list[str]) -> None:
+    """Print measured world extents. Authored numbers and rendered geometry disagree
+    often enough that every layout claim should be checked against a bbox."""
+    purposes = [UsdGeom.Tokens.default_, UsdGeom.Tokens.guide]
+    cache = UsdGeom.BBoxCache(Usd.TimeCode.Default(), purposes)
+    print(f"{'prim':34} {'x range':>20} {'y range':>20} {'z range':>20}")
+    print("-" * 98)
+    for path in paths:
+        prim = stage.GetPrimAtPath(path)
+        if not prim or not prim.IsValid():
+            print(f"{path:34} MISSING")
+            continue
+        box_range = cache.ComputeWorldBound(prim).ComputeAlignedRange()
+        if box_range.IsEmpty():
+            print(f"{path:34} EMPTY BOUND")
+            continue
+        lo, hi = box_range.GetMin(), box_range.GetMax()
+        print(
+            f"{path:34} "
+            f"{lo[0]:8.3f}..{hi[0]:<8.3f} "
+            f"{lo[1]:8.3f}..{hi[1]:<8.3f} "
+            f"{lo[2]:8.3f}..{hi[2]:<8.3f}"
+        )
+
+
 def main() -> int:
     rng = random.Random(ARGS.seed)
     plans = defect_lib.plan_campaign(ARGS.trials, seed=ARGS.seed, defect_rate=ARGS.defect_rate)
@@ -299,6 +370,25 @@ def main() -> int:
     world.reset()
     part = SingleRigidPrim("/World/Part")
     part.initialize()
+
+    if ARGS.bounds:
+        print("\nExpected: part half-width %.3f, stop inner face %.3f, so a seated "
+              "part centres at %.3f\n" % (
+                  geo.PART_W / 2,
+                  geo.FIXTURE_X + 0.485 - 0.025,
+                  geo.FIXTURE_X + 0.485 - 0.025 - geo.PART_W / 2,
+              ))
+        report_bounds([
+            "/World/Fix/Table",
+            "/World/Fix/Stop",
+            "/World/Fix/Slide",
+            "/World/Guide_0",
+            "/World/Guide_1",
+            "/World/Part",
+            "/World/Part/front",
+            "/World/Part/left",
+        ])
+        return 0
 
     # --- phase 1: arrivals under physics, no rendering ----------------------
     print(f"[station] settling {ARGS.trials} arrivals", flush=True)
