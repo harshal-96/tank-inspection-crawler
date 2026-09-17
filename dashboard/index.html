@@ -16,6 +16,8 @@
     --warn: #e3a008;
     --bad: #e5534b;
     --good: #3fb950;
+    --tracked: #58a6ff;
+    --taught: #6e7681;
     --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
     --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   }
@@ -191,6 +193,27 @@
   .composer button:disabled { opacity: .5; cursor: default; }
 
   .empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 8px 0; }
+
+  .seam { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .seam svg { width: 100%; height: 260px; display: block; }
+  .axis-title { color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 10px;
+            color: var(--muted); font-size: 12px; }
+  .legend .sw { display: inline-block; width: 18px; height: 3px; margin-right: 6px;
+                vertical-align: middle; border-radius: 2px; }
+  .legend .sw.taught { background: var(--taught); }
+  .legend .sw.tracked { background: var(--tracked); }
+  .legend .sw.flagged { background: var(--warn); }
+  .seam-meta { margin-top: 10px; color: var(--muted); font-size: 12px;
+               font-family: var(--mono); line-height: 1.7; }
+  .seam-meta b { color: var(--text); font-weight: 600; }
+  .hint { color: var(--muted); font-size: 12px; font-weight: 400; }
+  .tier { font-family: var(--mono); font-size: 11px; padding: 1px 6px;
+          border-radius: 4px; border: 1px solid var(--line); }
+  .tier.nano { color: var(--good); border-color: #1f4d2a; }
+  .tier.lightning { color: var(--accent); }
+  .tier.super, .tier.ultra { color: var(--warn); border-color: #4d3c12; }
+  #sched { width: 100%; height: 130px; }
 </style>
 </head>
 <body>
@@ -212,12 +235,17 @@
         <div class="sub" id="k-parts-sub">&nbsp;</div>
       </div>
       <div class="kpi">
-        <div class="label">Correction error</div>
+        <div class="label">Seam error</div>
         <div class="value" id="k-err">&ndash;</div>
         <div class="sub" id="k-err-sub">&nbsp;</div>
       </div>
       <div class="kpi">
-        <div class="label">Inspection accuracy</div>
+        <div class="label">Taught path would miss</div>
+        <div class="value" id="k-taught">&ndash;</div>
+        <div class="sub" id="k-taught-sub">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Defect caught</div>
         <div class="value" id="k-insp">&ndash;</div>
         <div class="sub" id="k-insp-sub">&nbsp;</div>
       </div>
@@ -226,6 +254,32 @@
         <div class="value" id="k-drift">&ndash;</div>
         <div class="sub" id="k-drift-sub">&nbsp;</div>
       </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Seam <span class="hint" id="seam-part"></span></h2>
+      <div class="seam">
+        <div>
+          <div class="axis-title">where the joint runs, mm across</div>
+          <svg id="seam-path" viewBox="0 0 300 260" preserveAspectRatio="none"></svg>
+        </div>
+        <div>
+          <div class="axis-title">how open it is, mm</div>
+          <svg id="seam-gap" viewBox="0 0 300 260" preserveAspectRatio="none"></svg>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="sw taught"></i>taught path, straight by construction</span>
+        <span><i class="sw tracked"></i>tracked from depth, station by station</span>
+        <span><i class="sw flagged"></i>station needing attention</span>
+      </div>
+      <div class="seam-meta" id="seam-meta"></div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Weld schedule <span class="hint">chosen from the gap at each station</span></h2>
+      <svg id="sched" viewBox="0 0 620 130" preserveAspectRatio="none"></svg>
+      <div class="seam-meta" id="sched-meta"></div>
     </div>
 
     <div class="panel" style="margin-bottom:16px">
@@ -245,6 +299,17 @@
         <tbody id="rows"></tbody>
       </table>
       <div class="empty" id="rows-empty">No parts yet. Start a cell run to populate this.</div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Look and judge <span class="hint">which model size answered, and why</span></h2>
+      <table>
+        <thead>
+          <tr><th>Part</th><th>Look</th><th>Model</th><th>Verdict</th><th>Latency</th><th>Reason</th></tr>
+        </thead>
+        <tbody id="dec-rows"></tbody>
+      </table>
+      <div class="empty" id="dec-empty">No decisions yet.</div>
     </div>
 
     <div class="panel">
@@ -310,13 +375,143 @@ function drawChart(errors) {
   });
 }
 
+
+// How far each station sits off the straight line between the seam's own ends.
+// This is the whole claim: a taught program drives that straight line, and the
+// seam does not follow it, because the press bowed it.
+function deviations(path) {
+  if (path.length < 2) return path.map(() => 0);
+  const a = path[0], b = path[path.length - 1];
+  const dx = b.x_mm - a.x_mm, dy = b.y_mm - a.y_mm;
+  const len = Math.hypot(dx, dy);
+  if (len < 1e-6) return path.map(() => 0);
+  const ux = dx / len, uy = dy / len;
+  return path.map(pt => {
+    const rx = pt.x_mm - a.x_mm, ry = pt.y_mm - a.y_mm;
+    const along = rx * ux + ry * uy;
+    return (rx - along * ux) * uy - (ry - along * uy) * ux;  // signed, mm
+  });
+}
+
+function drawSeam(track, schedule) {
+  const path = (track && track.path) || [];
+  $("seam-part").textContent = track ? `part #${track.part_id}, ${path.length} stations` : "";
+  const svgPath = $("seam-path"), svgGap = $("seam-gap");
+  svgPath.innerHTML = ""; svgGap.innerHTML = "";
+  if (!path.length) return;
+
+  const W = 300, H = 260, padX = 34, padY = 16;
+  const alongs = path.map(p => p.along_mm);
+  const loA = Math.min(...alongs), hiA = Math.max(...alongs);
+  const yOf = a => H - padY - ((a - loA) / Math.max(1e-6, hiA - loA)) * (H - padY * 2);
+
+  // ---- left: the path against the straight line ----
+  const dev = deviations(path);
+  const span = Math.max(1.0, Math.max(...dev.map(Math.abs)) * 1.6);
+  const xOf = d => padX + ((d + span) / (2 * span)) * (W - padX - 12);
+
+  let out = "";
+  for (let mm = -Math.floor(span); mm <= Math.floor(span); mm++) {
+    const x = xOf(mm);
+    out += `<line x1="${x}" y1="${padY}" x2="${x}" y2="${H - padY}" stroke="var(--line)" stroke-width="1" opacity=".5"/>`;
+    out += `<text x="${x}" y="${H - 3}" fill="var(--muted)" font-size="9" text-anchor="middle" font-family="var(--mono)">${mm}</text>`;
+  }
+  out += `<line x1="${xOf(0)}" y1="${padY}" x2="${xOf(0)}" y2="${H - padY}" stroke="var(--taught)" stroke-width="2"/>`;
+  const pts = path.map((pt, i) => `${xOf(dev[i])},${yOf(pt.along_mm)}`).join(" ");
+  out += `<polyline points="${pts}" fill="none" stroke="var(--tracked)" stroke-width="2"/>`;
+  path.forEach((pt, i) => {
+    out += `<circle cx="${xOf(dev[i])}" cy="${yOf(pt.along_mm)}" r="3" fill="var(--tracked)" stroke="var(--panel)" stroke-width="1">
+      <title>${pt.along_mm.toFixed(0)} mm up: ${dev[i].toFixed(2)} mm off the straight line</title></circle>`;
+  });
+  svgPath.innerHTML = out;
+
+  // ---- right: how open the joint is, and where that needs attention ----
+  const stations = (schedule && schedule.stations) || [];
+  out = "";
+  if (stations.length) {
+    const gaps = stations.map(st => st.gap_mm);
+    const hiG = Math.max(1.0, Math.max(...gaps) * 1.25);
+    const xG = g => padX + (g / hiG) * (W - padX - 12);
+    for (let mm = 0; mm <= Math.ceil(hiG); mm++) {
+      const x = xG(mm);
+      out += `<line x1="${x}" y1="${padY}" x2="${x}" y2="${H - padY}" stroke="var(--line)" stroke-width="1" opacity=".5"/>`;
+      out += `<text x="${x}" y="${H - 3}" fill="var(--muted)" font-size="9" text-anchor="middle" font-family="var(--mono)">${mm}</text>`;
+    }
+    const line = stations.map(st => `${xG(st.gap_mm)},${yOf(st.along_mm)}`).join(" ");
+    out += `<polyline points="${line}" fill="none" stroke="var(--tracked)" stroke-width="2" opacity=".7"/>`;
+    stations.forEach(st => {
+      const colour = !st.weldable ? "var(--bad)" : st.needs_attention ? "var(--warn)" : "var(--good)";
+      out += `<circle cx="${xG(st.gap_mm)}" cy="${yOf(st.along_mm)}" r="3.4" fill="${colour}" stroke="var(--panel)" stroke-width="1">
+        <title>${st.along_mm.toFixed(0)} mm up: gap ${st.gap_mm.toFixed(2)} mm, ${st.travel_mm_s.toFixed(1)} mm/s, ${st.current_a.toFixed(0)} A</title></circle>`;
+    });
+  }
+  svgGap.innerHTML = out;
+
+  const bits = [];
+  if (track.error_mm !== null) bits.push(`tracked to <b>${track.error_mm.toFixed(2)} mm</b> of the true seam`);
+  if (track.taught_miss_mm !== null) bits.push(`a taught path would have missed by <b>${track.taught_miss_mm.toFixed(1)} mm</b>`);
+  if (track.wander_mm !== null) bits.push(`the seam wanders <b>${track.wander_mm.toFixed(2)} mm</b> off its own straight line`);
+  $("seam-meta").innerHTML = bits.join(" &middot; ");
+}
+
+function drawSchedule(schedule) {
+  const svg = $("sched");
+  svg.innerHTML = "";
+  const stations = (schedule && schedule.stations) || [];
+  if (!stations.length) { $("sched-meta").textContent = "No schedule yet."; return; }
+
+  const W = 620, H = 130, pad = 18;
+  const bw = (W - pad * 2) / stations.length;
+  const hiHeat = Math.max(...stations.map(s => s.heat_j_per_mm), 1);
+  let out = "";
+  stations.forEach((st, i) => {
+    const h = Math.max(2, (st.heat_j_per_mm / hiHeat) * (H - pad * 2));
+    const x = pad + i * bw, y = H - pad - h;
+    const colour = !st.weldable ? "var(--bad)" : st.needs_attention ? "var(--warn)" : "var(--accent)";
+    out += `<rect x="${x + bw * 0.12}" y="${y}" width="${bw * 0.76}" height="${h}" fill="${colour}" opacity=".85">
+      <title>${st.along_mm.toFixed(0)} mm up: ${st.heat_j_per_mm.toFixed(0)} J/mm, ${st.travel_mm_s.toFixed(1)} mm/s, gap ${st.gap_mm.toFixed(2)} mm
+${st.reason || ""}</title></rect>`;
+  });
+  out += `<text x="${pad}" y="12" fill="var(--muted)" font-size="10" font-family="var(--mono)">heat input per station, bottom of the seam to the top</text>`;
+  svg.innerHTML = out;
+
+  const drift = schedule.predicted_drift_mm;
+  $("sched-meta").innerHTML =
+    `<b>${schedule.weldable_stations}</b> weldable &middot; ` +
+    `<b>${schedule.flagged_stations}</b> flagged &middot; ` +
+    `<b>${schedule.refused_stations}</b> refused &middot; ` +
+    `travel ${schedule.travel_mm_s_min.toFixed(1)}&ndash;${schedule.travel_mm_s_max.toFixed(1)} mm/s &middot; ` +
+    `hottest ${schedule.heat_j_per_mm_max.toFixed(0)} J/mm` +
+    (drift ? ` &middot; the arc is expected to walk the corner <b>${drift.toFixed(2)} mm</b> while welding` : "");
+}
+
+function drawDecisions(decisions) {
+  $("dec-empty").style.display = decisions.length ? "none" : "block";
+  $("dec-rows").innerHTML = decisions.map(d => {
+    const tier = (d.tier || "fixed").toLowerCase();
+    const name = (d.model || "").split("/").pop() || "–";
+    return `<tr>
+      <td>#${d.part_id}</td>
+      <td>${d.after_looks}</td>
+      <td><span class="tier ${tier}" title="${name}">${tier}</span></td>
+      <td>${d.accept ? "accept" : "look again"}</td>
+      <td>${d.latency_ms ? Math.round(d.latency_ms) + " ms" : "–"}</td>
+      <td class="reason">${(d.reason || "").slice(0, 90)}</td>
+    </tr>`;
+  }).join("");
+}
+
 async function refresh() {
   try {
-    const [stats, measurements, inspections] = await Promise.all([
-      fetch("/api/stats").then(r => r.json()),
-      fetch("/api/measurements?limit=20").then(r => r.json()),
-      fetch("/api/inspections?limit=8").then(r => r.json()),
-    ]);
+    const [stats, measurements, inspections, seams, schedules, decisions] =
+      await Promise.all([
+        fetch("/api/stats").then(r => r.json()),
+        fetch("/api/measurements?limit=20").then(r => r.json()),
+        fetch("/api/inspections?limit=60").then(r => r.json()),
+        fetch("/api/seam-tracks?limit=60").then(r => r.json()),
+        fetch("/api/weld-schedules?limit=60").then(r => r.json()),
+        fetch("/api/view-decisions?limit=12").then(r => r.json()),
+      ]);
 
     setConn(true, "live");
 
@@ -332,12 +527,21 @@ async function refresh() {
       ? `p95 ${fmt(c.p95_mm)} / max ${fmt(c.max_mm)} / n=${c.n}`
       : "awaiting ground-truth runs";
 
+    // Two different accuracies, and the weaker one is the more informative.
+    // The service scores whether a part was called defective at all; naming WHICH
+    // defect is a harder question and the model is worse at it. Showing only the
+    // first would read as the stronger claim.
     const ins = stats.inspection;
     $("k-insp").textContent =
       ins.accuracy === null ? "–" : (ins.accuracy * 100).toFixed(0) + "%";
     classify($("k-insp"), ins.accuracy === null ? null : 1 - ins.accuracy, 0.1, 0.25);
+    const named = inspections.filter(i => i.injected_defect !== null);
+    const rightName = named.filter(i => i.defect_type === i.injected_defect).length;
     $("k-insp-sub").textContent = ins.n_scored
-      ? `${ins.false_pass} missed / ${ins.false_defect} false alarm / n=${ins.n_scored}`
+      ? `${ins.false_pass} missed / ${ins.false_defect} false alarm` +
+        (named.length
+          ? ` / named it right ${Math.round(100 * rightName / named.length)}%`
+          : "")
       : "awaiting scored inspections";
 
     const d = stats.drift;
@@ -346,6 +550,37 @@ async function refresh() {
     $("k-drift-sub").textContent = d.shift_mm === null
       ? `needs ${d.window * 2} parts`
       : (d.trending ? "trending, supervisor watching" : "within band");
+
+    // The seam, which is the measurement this cell is actually for. Latest part
+    // that has one, with its schedule matched by part.
+    const latestSeam = seams[0] || null;
+    const matching = latestSeam
+      ? schedules.find(s => s.part_id === latestSeam.part_id) || null
+      : null;
+    drawSeam(latestSeam, matching);
+    drawSchedule(matching);
+    drawDecisions(decisions);
+
+    if (seams.length) {
+      const scored = seams.filter(s => s.error_mm !== null);
+      if (scored.length) {
+        const mean = scored.reduce((a, s) => a + s.error_mm, 0) / scored.length;
+        const sub = scored.filter(s => s.error_mm < 1).length;
+        $("k-err").textContent = mean.toFixed(2) + " mm";
+        classify($("k-err"), mean, 1, 3);
+        $("k-err-sub").textContent =
+          `${sub} of ${scored.length} parts under 1 mm, every station`;
+      }
+      const missed = seams.filter(s => s.taught_miss_mm !== null);
+      if (missed.length) {
+        const worst = Math.max(...missed.map(s => s.taught_miss_mm));
+        const avg = missed.reduce((a, s) => a + s.taught_miss_mm, 0) / missed.length;
+        $("k-taught").textContent = avg.toFixed(1) + " mm";
+        classify($("k-taught"), null);
+        $("k-taught").classList.add("bad");
+        $("k-taught-sub").textContent = `worst ${worst.toFixed(1)} mm, with no correction`;
+      }
+    }
 
     // Measurement table, oldest first so the chart reads left to right
     const ordered = [...measurements].reverse();

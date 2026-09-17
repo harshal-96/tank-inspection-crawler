@@ -24,9 +24,12 @@ from service.models import (
     Measurement,
     Part,
     PartStatus,
+    SeamTrack,
     ShiftReport,
     Station,
     Verdict,
+    ViewDecisionLog,
+    WeldSchedule,
 )
 from service.schemas import (
     CellStats,
@@ -36,6 +39,9 @@ from service.schemas import (
     InspectionCreate,
     MeasurementCreate,
     PartCreate,
+    SeamTrackCreate,
+    ViewDecisionCreate,
+    WeldScheduleCreate,
 )
 from service.stats import compute_stats, error_mm
 
@@ -155,6 +161,108 @@ def list_measurements(
     limit: int = 50, session: Session = Depends(get_session)
 ) -> list[Measurement]:
     query = select(Measurement).order_by(Measurement.id.desc()).limit(min(limit, 500))
+    return list(session.exec(query))
+
+
+# ------------------------------------------------------------------- seam tracks
+
+
+@app.post("/api/seam-tracks", response_model=SeamTrack, status_code=201)
+def create_seam_track(
+    payload: SeamTrackCreate, session: Session = Depends(get_session)
+) -> SeamTrack:
+    """Record where the seam runs, along its whole length.
+
+    Separate from a measurement on purpose. A measurement locates the corner; this
+    says where the joint goes, and the difference between the two is the bow the
+    press left in it.
+    """
+    part = _part_by_serial(session, payload.part_serial)
+    track = SeamTrack(
+        part_id=part.id,
+        station=payload.station,
+        path=[station.model_dump() for station in payload.path],
+        stations_measured=payload.stations_measured or len(payload.path),
+        stations_asked=payload.stations_asked or len(payload.path),
+        wander_mm=payload.wander_mm,
+        taught_miss_mm=payload.taught_miss_mm,
+        gap_mm_mean=payload.gap_mm_mean,
+        gap_mm_max=payload.gap_mm_max,
+        seam_bow_mm=payload.seam_bow_mm,
+        error_mm=payload.error_mm,
+        worst_station_mm=payload.worst_station_mm,
+        latency_ms=payload.latency_ms,
+    )
+    part.status = PartStatus.MEASURED
+    session.add_all([track, part])
+    session.commit()
+    session.refresh(track)
+    return track
+
+
+@app.get("/api/seam-tracks", response_model=list[SeamTrack])
+def list_seam_tracks(limit: int = 50, session: Session = Depends(get_session)) -> list[SeamTrack]:
+    query = select(SeamTrack).order_by(SeamTrack.id.desc()).limit(min(limit, 500))
+    return list(session.exec(query))
+
+
+# --------------------------------------------------------------- weld schedules
+
+
+@app.post("/api/weld-schedules", response_model=WeldSchedule, status_code=201)
+def create_weld_schedule(
+    payload: WeldScheduleCreate, session: Session = Depends(get_session)
+) -> WeldSchedule:
+    """Record what the torch was told to do at each station, refusals included."""
+    part = _part_by_serial(session, payload.part_serial)
+    stations = [s.model_dump() for s in payload.stations]
+    weldable = [s for s in stations if s.get("weldable")]
+    schedule = WeldSchedule(
+        part_id=part.id,
+        stations=stations,
+        weldable_stations=len(weldable),
+        refused_stations=len(stations) - len(weldable),
+        flagged_stations=sum(1 for s in weldable if s.get("needs_attention")),
+        travel_mm_s_min=min((s["travel_mm_s"] for s in weldable), default=None),
+        travel_mm_s_max=max((s["travel_mm_s"] for s in weldable), default=None),
+        heat_j_per_mm_max=max((s["heat_j_per_mm"] for s in weldable), default=None),
+        predicted_drift_mm=payload.predicted_drift_mm,
+    )
+    session.add(schedule)
+    session.commit()
+    session.refresh(schedule)
+    return schedule
+
+
+@app.get("/api/weld-schedules", response_model=list[WeldSchedule])
+def list_weld_schedules(
+    limit: int = 50, session: Session = Depends(get_session)
+) -> list[WeldSchedule]:
+    query = select(WeldSchedule).order_by(WeldSchedule.id.desc()).limit(min(limit, 500))
+    return list(session.exec(query))
+
+
+# -------------------------------------------------------------- view decisions
+
+
+@app.post("/api/view-decisions", response_model=ViewDecisionLog, status_code=201)
+def create_view_decision(
+    payload: ViewDecisionCreate, session: Session = Depends(get_session)
+) -> ViewDecisionLog:
+    """Record one look-and-judge decision, and which model size made it."""
+    part = _part_by_serial(session, payload.part_serial)
+    decision = ViewDecisionLog(part_id=part.id, **payload.model_dump(exclude={"part_serial"}))
+    session.add(decision)
+    session.commit()
+    session.refresh(decision)
+    return decision
+
+
+@app.get("/api/view-decisions", response_model=list[ViewDecisionLog])
+def list_view_decisions(
+    limit: int = 100, session: Session = Depends(get_session)
+) -> list[ViewDecisionLog]:
+    query = select(ViewDecisionLog).order_by(ViewDecisionLog.id.desc()).limit(min(limit, 500))
     return list(session.exec(query))
 
 

@@ -32,8 +32,15 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.client import CellClient  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, transform_points  # noqa: E402
 from cell.seam_track import find_and_track  # noqa: E402
+from cell.thermal import ThermalDistortion, WeldPass  # noqa: E402
+from cell.weld_params import (  # noqa: E402
+    ProcessLimits,
+    excess_gap_mm,
+    schedule_along_seam,
+)
 
 
 def straight_line_miss(truth: np.ndarray) -> float:
@@ -76,6 +83,9 @@ def main() -> int:
                         help="Which candidate view to track from.")
     parser.add_argument("--stations", type=int, default=20)
     parser.add_argument("--out", default="data/seam_campaign.jsonl")
+    parser.add_argument("--no-post", action="store_true",
+                        help="Do not send results to the service.")
+    parser.add_argument("--api", default=None, help="Service base URL")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest)
@@ -96,6 +106,14 @@ def main() -> int:
     floor = geo.TABLE_TOP + geo.PART_T
     taught_start = np.array([nominal[0], nominal[1], floor + 0.04])
     taught_end = np.array([nominal[0], nominal[1], floor + geo.PART_D - 0.02])
+
+    client = None
+    if not args.no_post:
+        client = CellClient(base_url=args.api)
+        if not client.healthy():
+            print("[seam] service not reachable, results will be queued to disk")
+
+    limits = ProcessLimits(thickness_mm=geo.PART_T * 1000.0)
 
     started = time.time()
     records = []
@@ -123,6 +141,74 @@ def main() -> int:
         if track.measured:
             record.update(score_path(track.measured, truth))
             record["measured_wander_mm"] = float(track.wander_mm())
+        # What the torch should do about the gap it just measured, station by
+        # station, because the gap is not the same all the way up.
+        # Referenced against what a touching joint of this geometry reads, which
+        # is a sensor calibration rather than a fudge. See cell/weld_params.py for
+        # the measurement it comes from and the uncertainty it leaves.
+        gaps = [excess_gap_mm(s.gap_mm) for s in track.measured]
+        schedules = schedule_along_seam(gaps, limits) if gaps else []
+        record["refused_stations"] = sum(1 for s in schedules if not s.weldable)
+
+        if client is not None and track.measured:
+            serial = f"P-{row['trial']:06d}"
+            client.create_part(
+                serial=serial,
+                spawn_dy_mm=row.get("spawn_dy_mm"),
+                spawn_yaw_deg=row.get("spawn_yaw_deg"),
+            )
+            client.post_seam_track(
+                part_serial=serial,
+                path=[
+                    {
+                        "along_mm": station.along_m * 1000.0,
+                        "x_mm": float(station.position[0]) * 1000.0,
+                        "y_mm": float(station.position[1]) * 1000.0,
+                        "gap_mm": station.gap_mm,
+                        "touching": station.touching,
+                    }
+                    for station in track.measured
+                ],
+                stations_asked=args.stations,
+                wander_mm=record.get("measured_wander_mm"),
+                taught_miss_mm=row["taught_miss_mm"],
+                gap_mm_mean=statistics.mean(gaps) if gaps else None,
+                gap_mm_max=max(gaps) if gaps else None,
+                seam_bow_mm=record["seam_bow_mm"],
+                error_mm=record.get("mean_mm"),
+                worst_station_mm=record.get("max_mm"),
+            )
+            # A seam can come back with every station refused, and asking for the
+            # hottest of nothing raises rather than reporting the refusal.
+            weldable = [s for s in schedules if s.weldable]
+            if weldable:
+                hottest = max(s.heat_input_j_per_mm for s in weldable)
+                slowest = min(s.travel_mm_s for s in weldable)
+                drift = ThermalDistortion(
+                    weld=WeldPass(travel_mm_s=slowest),
+                    thickness_mm=limits.thickness_mm,
+                    seam_length_mm=geo.PART_D * 1000.0,
+                ).drift_at_finish_mm()
+                client.post_weld_schedule(
+                    part_serial=serial,
+                    stations=[
+                        {
+                            "along_mm": station.along_m * 1000.0,
+                            "gap_mm": plan.gap_mm,
+                            "current_a": plan.current_a,
+                            "voltage_v": plan.voltage_v,
+                            "travel_mm_s": plan.travel_mm_s,
+                            "heat_j_per_mm": plan.heat_input_j_per_mm,
+                            "weldable": plan.weldable,
+                            "needs_attention": plan.needs_attention,
+                            "reason": plan.reason,
+                        }
+                        for station, plan in zip(track.measured, schedules, strict=True)
+                    ],
+                    predicted_drift_mm=drift,
+                )
+                record["hottest_j_per_mm"] = hottest
+
         records.append(record)
 
         print(f"{row['trial']:>5} {row['taught_miss_mm']:>7.1f} mm "

@@ -298,6 +298,7 @@ def main() -> int:
         if client is not None and fused is not None:
             serial = client.create_part(
                 station="sim",
+                serial=f"P-{row['trial']:06d}",
                 spawn_dy_mm=row["spawn_dy_mm"],
                 spawn_yaw_deg=row["spawn_yaw_deg"],
             )
@@ -310,6 +311,23 @@ def main() -> int:
                     n_scans=len(used),
                     spread_mm=spread,
                 )
+                # Which model answered is part of the answer. The sizes disagree
+                # with each other, and an operator asking why a part took four
+                # looks deserves to see the ladder rather than one opaque verdict.
+                for decision in decisions:
+                    client.post_view_decision(
+                        serial,
+                        after_looks=decision["after_looks"],
+                        accept=decision["accept"],
+                        next_view_deg=decision.get("next_view_deg"),
+                        reason=decision.get("reason"),
+                        model=decision.get("model"),
+                        tier=decision.get("tier"),
+                        route_why=decision.get("route_why"),
+                        latency_ms=decision.get("latency_ms"),
+                        prompt_tokens=decision.get("prompt_tokens"),
+                        completion_tokens=decision.get("completion_tokens"),
+                    )
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)
     with Path(args.out).open("w", encoding="utf-8") as handle:

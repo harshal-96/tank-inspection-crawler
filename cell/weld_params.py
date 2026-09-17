@@ -55,6 +55,40 @@ HEAT_CEILING_PER_MM_THICKNESS = 140.0
 # point a softer arc stops helping and starts failing to fuse.
 CURRENT_BACKOFF = 0.18
 
+# CALIBRATING THE GAP READING, and what it is not yet good enough for.
+#
+# The tracker reports how far short of the fitted corner each edge's material
+# stops. On this joint that is never zero even when the edges are touching,
+# because the corner notch leaves an opening of about one sheet thickness on each
+# side by construction. So a raw reading has to be referenced against what a
+# known-good joint reads, which is an ordinary sensor calibration.
+#
+# Measured over fifty parts, none of which had any gap fault injected, the reading
+# came back with a median of 10.5 mm. That IS what a touching joint reads on this
+# geometry, so it is the reference, and the excess is what a fault would add on top
+# of it. Subtracting the nominal notch as well was wrong and took it off twice.
+#
+# The offset is systematic and can be subtracted. The part-to-part spread cannot:
+# it is 1.1 mm, and it is the honest uncertainty on this measurement.
+#
+# That uncertainty is larger than the margin between a gap this joint takes without
+# comment and one it cannot bridge at all. So the schedule below is ADVISORY on
+# this evidence: it will tell an operator the joint is opening up, and it must not
+# be the thing that scraps a part until the reading is tightened. Saying otherwise
+# would be dressing a 1 mm uncertainty up as a 0.1 mm decision.
+GAP_READING_OFFSET_MM = 10.5
+GAP_READING_UNCERTAINTY_MM = 1.1
+
+
+def excess_gap_mm(measured_gap_mm: float) -> float:
+    """Gap beyond what a touching joint of this geometry reads.
+
+    Never negative: a reading under the reference means the joint is closed, not
+    that it has negative width.
+    """
+    return max(0.0, measured_gap_mm - GAP_READING_OFFSET_MM)
+
+
 # A fillet on sheet is laid with a leg about the thickness of the material. The
 # cross-section the torch has to fill is that leg plus whatever the gap adds, and
 # it is the fill area, not the gap, that sets how fast the torch can move.

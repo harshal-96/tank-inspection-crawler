@@ -36,6 +36,70 @@ class MeasurementCreate(BaseModel):
     true_y: Optional[float] = None
 
 
+class SeamStationIn(BaseModel):
+    """One station up the seam: where the joint is, and how open it is there."""
+
+    along_mm: float
+    x_mm: float
+    y_mm: float
+    gap_mm: Optional[float] = None
+    touching: Optional[bool] = None
+
+
+class SeamTrackCreate(BaseModel):
+    """A whole tracked seam, not a located point."""
+
+    part_serial: str
+    path: list[SeamStationIn] = Field(default_factory=list)
+    stations_measured: int = 0
+    stations_asked: int = 0
+    wander_mm: Optional[float] = None
+    taught_miss_mm: Optional[float] = None
+    gap_mm_mean: Optional[float] = None
+    gap_mm_max: Optional[float] = None
+    seam_bow_mm: Optional[float] = None
+    error_mm: Optional[float] = None
+    worst_station_mm: Optional[float] = None
+    latency_ms: Optional[float] = None
+    station: Station = Station.SIM
+
+
+class WeldStationIn(BaseModel):
+    """What the torch was told to do at one station, and why."""
+
+    along_mm: float
+    gap_mm: float
+    current_a: float
+    voltage_v: float
+    travel_mm_s: float
+    heat_j_per_mm: float
+    weldable: bool = True
+    needs_attention: bool = False
+    reason: Optional[str] = None
+
+
+class WeldScheduleCreate(BaseModel):
+    part_serial: str
+    stations: list[WeldStationIn] = Field(default_factory=list)
+    predicted_drift_mm: Optional[float] = None
+
+
+class ViewDecisionCreate(BaseModel):
+    """One decision from the look-and-judge loop, with the model that made it."""
+
+    part_serial: str
+    after_looks: int = 1
+    accept: bool = True
+    next_view_deg: Optional[float] = None
+    reason: Optional[str] = None
+    model: Optional[str] = None
+    tier: Optional[str] = None
+    route_why: Optional[str] = None
+    latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+
+
 class InspectionCreate(BaseModel):
     part_serial: str
     image_path: str

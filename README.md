@@ -383,14 +383,33 @@ Verify cloud access before anything else:
 python scripts/hello_nemotron.py
 ```
 
-Run the service and open the dashboard:
+Run the service and open the dashboard at http://127.0.0.1:8000:
 
 ```bash
 uvicorn service.app:app --reload
 ```
 
+It starts empty. Fill it from a capture, which takes a few minutes and needs no GPU
+because the depth buffers are already on disk:
+
+```bash
+python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
+python scripts/run_campaign.py --manifest data/cap50/manifest.json --routed
+python scripts/run_inspection.py --manifest data/cap50/manifest.json
+```
+
+The first posts a tracked seam and a weld schedule per part, the second the
+look-and-judge decisions with the model size that made each one, the third the
+post-weld verdicts scored against the defects that were injected.
+
+The dashboard then shows the seam itself: the tracked path against the straight line
+a taught program drives, the gap at every station, the heat the torch is putting in,
+and which Nemotron answered each decision and why.
+
 The simulation half requires Isaac Sim 6.0 and is run with its bundled interpreter. See
-`docs/simulation.md`.
+`docs/simulation.md`. Capture in batches of ten rather than one run of fifty; the
+Replicator graph grows as parts times frames and a single large capture stalls in
+graph construction. `scripts/merge_manifests.py` stitches the batches.
 
 ## Prior work
 

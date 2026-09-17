@@ -105,7 +105,16 @@ class CellClient:
         }
         if serial:
             body["serial"] = serial
-        result = self._post("/api/parts", body)
+        try:
+            result = self._post("/api/parts", body)
+        except CellServiceError as exc:
+            # Re-running a campaign over the same parts is an ordinary thing to
+            # do, and a serial that already exists is not a failure: it is the
+            # part being registered a second time. Anything else still raises.
+            if serial and "already exists" in str(exc):
+                self._log(f"part {serial} already registered, reusing it")
+                return serial
+            raise
         return result["serial"] if result else None
 
     def post_measurement(
@@ -132,6 +141,70 @@ class CellClient:
         if truth is not None:
             body["true_x"], body["true_y"] = truth
         return self._post("/api/measurements", body)
+
+    def post_seam_track(
+        self,
+        part_serial: str,
+        path: list[dict[str, Any]],
+        stations_asked: int,
+        wander_mm: Optional[float] = None,
+        taught_miss_mm: Optional[float] = None,
+        gap_mm_mean: Optional[float] = None,
+        gap_mm_max: Optional[float] = None,
+        seam_bow_mm: Optional[float] = None,
+        error_mm: Optional[float] = None,
+        worst_station_mm: Optional[float] = None,
+        latency_ms: Optional[float] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Send a whole tracked seam, not a located point.
+
+        The path is the claim. Summary numbers are carried alongside it so the
+        dashboard does not have to recompute them on every poll, but the stations
+        are what an operator looks at when a part is argued about.
+        """
+        return self._post(
+            "/api/seam-tracks",
+            {
+                "part_serial": part_serial,
+                "path": path,
+                "stations_measured": len(path),
+                "stations_asked": stations_asked,
+                "wander_mm": wander_mm,
+                "taught_miss_mm": taught_miss_mm,
+                "gap_mm_mean": gap_mm_mean,
+                "gap_mm_max": gap_mm_max,
+                "seam_bow_mm": seam_bow_mm,
+                "error_mm": error_mm,
+                "worst_station_mm": worst_station_mm,
+                "latency_ms": latency_ms,
+            },
+        )
+
+    def post_weld_schedule(
+        self,
+        part_serial: str,
+        stations: list[dict[str, Any]],
+        predicted_drift_mm: Optional[float] = None,
+    ) -> Optional[dict[str, Any]]:
+        """Send what the torch was told to do at each station, refusals included."""
+        return self._post(
+            "/api/weld-schedules",
+            {
+                "part_serial": part_serial,
+                "stations": stations,
+                "predicted_drift_mm": predicted_drift_mm,
+            },
+        )
+
+    def post_view_decision(
+        self, part_serial: str, **fields: Any
+    ) -> Optional[dict[str, Any]]:
+        """Send one look-and-judge decision, and which model size made it.
+
+        Which model answered is part of the answer: the sizes disagree, and an
+        operator asking why a part took four looks deserves to see the ladder.
+        """
+        return self._post("/api/view-decisions", {"part_serial": part_serial, **fields})
 
     def post_inspection(
         self,

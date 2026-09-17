@@ -102,6 +102,116 @@ class Measurement(SQLModel, table=True):
     error_mm: Optional[float] = Field(default=None, index=True)
 
 
+class SeamTrack(SQLModel, table=True):
+    """Where the seam runs, measured along its whole length.
+
+    A Measurement says where the corner is. This says where the joint GOES, which
+    is a different and larger claim: the seam is bowed by the press, so a path
+    that is straight by construction walks off it however well the corner was
+    located. One row per part, carrying the stations as JSON because the number of
+    them is a property of the scan rather than of the schema.
+    """
+
+    __tablename__ = "seam_tracks"
+    __table_args__ = (Index("ix_seam_tracks_part_ts", "part_id", "ts"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    part_id: int = Field(foreign_key="parts.id", index=True)
+    ts: datetime = Field(default_factory=utcnow, index=True)
+    station: Station = Field(default=Station.SIM)
+
+    stations_measured: int = 0
+    stations_asked: int = 0
+
+    # The measured path and the gap at each station, both in the part's own frame.
+    # [{"along_mm": .., "x_mm": .., "y_mm": .., "gap_mm": .., "touching": bool}, ..]
+    path: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+
+    # How far the measured path strays from the straight line a taught program
+    # drives. This is the number that a point measurement cannot produce.
+    wander_mm: Optional[float] = None
+    taught_miss_mm: Optional[float] = Field(
+        default=None, description="Worst distance from the taught path to the true seam"
+    )
+
+    gap_mm_mean: Optional[float] = None
+    gap_mm_max: Optional[float] = None
+
+    # Ground truth, simulation only.
+    seam_bow_mm: Optional[float] = Field(
+        default=None, description="How far the true seam bows off its own straight line"
+    )
+    error_mm: Optional[float] = Field(
+        default=None, index=True, description="Mean distance from the tracked path to the true seam"
+    )
+    worst_station_mm: Optional[float] = None
+
+    latency_ms: Optional[float] = None
+
+
+class WeldSchedule(SQLModel, table=True):
+    """What the torch was told to do, station by station, and why.
+
+    The gap is not constant along a seam, so neither are the settings. Stored per
+    part rather than per station for the same reason as the path above, and it
+    carries the refusals: a cell that never refuses a fit-up is not measuring it.
+    """
+
+    __tablename__ = "weld_schedules"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    part_id: int = Field(foreign_key="parts.id", index=True)
+    ts: datetime = Field(default_factory=utcnow, index=True)
+
+    # [{"along_mm": .., "gap_mm": .., "current_a": .., "voltage_v": ..,
+    #   "travel_mm_s": .., "heat_j_per_mm": .., "weldable": bool, "reason": ".."}, ..]
+    stations: list[dict[str, Any]] = Field(default_factory=list, sa_column=Column(JSON))
+
+    weldable_stations: int = 0
+    refused_stations: int = 0
+    flagged_stations: int = 0
+
+    travel_mm_s_min: Optional[float] = None
+    travel_mm_s_max: Optional[float] = None
+    heat_j_per_mm_max: Optional[float] = None
+
+    # What the heat put into the part is expected to do to the joint while welding.
+    predicted_drift_mm: Optional[float] = Field(
+        default=None, description="How far the corner walks over the run, from the thermal model"
+    )
+
+
+class ViewDecisionLog(SQLModel, table=True):
+    """One decision from the look-and-judge loop, and which model made it.
+
+    Kept because which model answered is part of the answer. The sizes disagree,
+    the smallest is the one that is right about this decision, and an operator
+    asking why a part took four looks deserves to see the ladder rather than a
+    single opaque verdict.
+    """
+
+    __tablename__ = "view_decisions"
+    __table_args__ = (Index("ix_view_decisions_part_ts", "part_id", "ts"),)
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    part_id: int = Field(foreign_key="parts.id", index=True)
+    ts: datetime = Field(default_factory=utcnow, index=True)
+
+    after_looks: int = 1
+    accept: bool = True
+    next_view_deg: Optional[float] = None
+    reason: Optional[str] = None
+
+    model: Optional[str] = Field(default=None, index=True)
+    tier: Optional[str] = Field(default=None, index=True,
+                                description="nano, lightning, super, ultra or fixed")
+    route_why: Optional[str] = None
+
+    latency_ms: Optional[float] = None
+    prompt_tokens: Optional[int] = None
+    completion_tokens: Optional[int] = None
+
+
 class Inspection(SQLModel, table=True):
     """Post-weld verdict from the cloud vision model, scored against injected truth."""
 
