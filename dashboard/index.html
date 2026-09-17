@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Self-Correcting Production Cell</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #151b24;
+    --panel-2: #1b2430;
+    --line: #263140;
+    --text: #e6edf3;
+    --muted: #8b98a8;
+    --accent: #76b900;      /* line green */
+    --warn: #e3a008;
+    --bad: #e5534b;
+    --good: #3fb950;
+    --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--line);
+    background: var(--panel);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+
+  header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0;
+    letter-spacing: .01em;
+  }
+
+  .status {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+  }
+  .dot.live { background: var(--good); box-shadow: 0 0 8px var(--good); }
+  .dot.down { background: var(--bad); }
+
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    gap: 16px;
+    padding: 16px 20px 32px;
+    max-width: 1500px;
+    margin: 0 auto;
+  }
+
+  @media (max-width: 1000px) {
+    main { grid-template-columns: minmax(0, 1fr); }
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .panel h2 {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    color: var(--muted);
+    margin: 0 0 12px;
+  }
+
+  .kpis {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .kpi { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .kpi .label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+  .kpi .value { font-family: var(--mono); font-size: 26px; font-weight: 600; margin-top: 4px; }
+  .kpi .sub { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .kpi .value.good { color: var(--good); }
+  .kpi .value.warn { color: var(--warn); }
+  .kpi .value.bad  { color: var(--bad); }
+
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; }
+  th {
+    text-align: right;
+    font-weight: 500;
+    color: var(--muted);
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--line);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  th:first-child, td:first-child { text-align: left; }
+  td { text-align: right; padding: 6px 8px; border-bottom: 1px solid var(--panel-2); }
+  tbody tr:hover { background: var(--panel-2); }
+
+  .pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .pill.pass    { background: rgba(63,185,80,.15);  color: var(--good); }
+  .pill.defect  { background: rgba(229,83,75,.15);  color: var(--bad); }
+  .pill.uncertain { background: rgba(227,160,8,.15); color: var(--warn); }
+
+  #chart { width: 100%; height: 130px; display: block; }
+
+  .feed { max-height: 260px; overflow-y: auto; }
+  .feed .row { padding: 8px 0; border-bottom: 1px solid var(--panel-2); }
+  .feed .row:last-child { border-bottom: none; }
+  .feed .head { display: flex; align-items: center; gap: 8px; }
+  .feed .serial { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .feed .why { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+  /* chat */
+  #chat { display: flex; flex-direction: column; height: 100%; min-height: 440px; }
+  #log { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding-right: 4px; }
+  .msg { padding: 9px 12px; border-radius: 8px; font-size: 13px; max-width: 92%; white-space: pre-wrap; }
+  .msg.user { background: var(--panel-2); align-self: flex-end; }
+  .msg.assistant { background: #12212b; border: 1px solid var(--line); align-self: flex-start; }
+  .msg.tool {
+    align-self: flex-start;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    background: transparent;
+    border-left: 2px solid var(--line);
+    border-radius: 0;
+    padding: 2px 10px;
+  }
+  .composer { display: flex; gap: 8px; margin-top: 12px; }
+  .composer input {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 9px 12px;
+    font-family: inherit;
+    font-size: 13px;
+  }
+  .composer input:focus { outline: none; border-color: var(--accent); }
+  .composer button {
+    background: var(--accent);
+    color: #0d1117;
+    border: 0;
+    border-radius: 6px;
+    padding: 0 16px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .composer button:disabled { opacity: .5; cursor: default; }
+
+  .empty { color: var(--muted); font-size: 12px; font-style: italic; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Self-Correcting Production Cell</h1>
+  <div class="status">
+    <span class="dot" id="dot"></span>
+    <span id="conn">connecting</span>
+  </div>
+</header>
+
+<main>
+  <div>
+    <div class="kpis">
+      <div class="kpi">
+        <div class="label">Parts</div>
+        <div class="value" id="k-parts">&ndash;</div>
+        <div class="sub" id="k-parts-sub">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Correction error</div>
+        <div class="value" id="k-err">&ndash;</div>
+        <div class="sub" id="k-err-sub">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Inspection accuracy</div>
+        <div class="value" id="k-insp">&ndash;</div>
+        <div class="sub" id="k-insp-sub">&nbsp;</div>
+      </div>
+      <div class="kpi">
+        <div class="label">Lateral drift</div>
+        <div class="value" id="k-drift">&ndash;</div>
+        <div class="sub" id="k-drift-sub">&nbsp;</div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Correction error, recent parts</h2>
+      <svg id="chart" preserveAspectRatio="none"></svg>
+    </div>
+
+    <div class="panel" style="margin-bottom:16px">
+      <h2>Measurement stream</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Part</th><th>Detected x</th><th>Detected y</th>
+            <th>Error</th><th>Conf</th><th>Latency</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+      <div class="empty" id="rows-empty">No parts yet. Start a cell run to populate this.</div>
+    </div>
+
+    <div class="panel">
+      <h2>Inspection verdicts</h2>
+      <div class="feed" id="insp"></div>
+      <div class="empty" id="insp-empty">No inspections yet.</div>
+    </div>
+  </div>
+
+  <div class="panel" id="chat">
+    <h2>Cell supervisor</h2>
+    <div id="log">
+      <div class="msg assistant">Supervisor online. Ask about drift, a specific part, or request a shift report.</div>
+    </div>
+    <div class="composer">
+      <input id="input" placeholder="Ask the supervisor" autocomplete="off">
+      <button id="send">Send</button>
+    </div>
+  </div>
+</main>
+
+<script>
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2, unit = "") => (v === null || v === undefined) ? "–" : v.toFixed(d) + unit;
+
+function setConn(ok, note) {
+  $("dot").className = "dot " + (ok ? "live" : "down");
+  $("conn").textContent = note;
+}
+
+function classify(el, value, goodBelow, warnBelow) {
+  el.classList.remove("good", "warn", "bad");
+  if (value === null || value === undefined) return;
+  el.classList.add(value < goodBelow ? "good" : value < warnBelow ? "warn" : "bad");
+}
+
+function drawChart(errors) {
+  const svg = $("chart");
+  svg.innerHTML = "";
+  if (!errors.length) return;
+
+  const W = svg.clientWidth || 800, H = 130, pad = 22;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  const max = Math.max(1, ...errors) * 1.15;
+  const bw = (W - pad * 2) / errors.length;
+
+  // 1 mm reference line, the line a cell is judged against
+  const y1 = H - pad - (1 / max) * (H - pad * 2);
+  svg.insertAdjacentHTML("beforeend",
+    `<line x1="${pad}" y1="${y1}" x2="${W - pad}" y2="${y1}"
+       stroke="#3fb950" stroke-width="1" stroke-dasharray="3 3" opacity=".55"/>
+     <text x="${pad}" y="${y1 - 5}" fill="#3fb950" font-size="9"
+       font-family="ui-monospace, monospace" opacity=".8">1 mm</text>`);
+
+  errors.forEach((e, i) => {
+    const h = Math.max(1, (e / max) * (H - pad * 2));
+    const x = pad + i * bw, y = H - pad - h;
+    const fill = e < 1 ? "#3fb950" : e < 3 ? "#e3a008" : "#e5534b";
+    svg.insertAdjacentHTML("beforeend",
+      `<rect x="${x + bw * 0.15}" y="${y}" width="${bw * 0.7}" height="${h}"
+         fill="${fill}" opacity=".85"><title>${e.toFixed(2)} mm</title></rect>`);
+  });
+}
+
+async function refresh() {
+  try {
+    const [stats, measurements, inspections] = await Promise.all([
+      fetch("/api/stats").then(r => r.json()),
+      fetch("/api/measurements?limit=20").then(r => r.json()),
+      fetch("/api/inspections?limit=8").then(r => r.json()),
+    ]);
+
+    setConn(true, "live");
+
+    // KPIs
+    $("k-parts").textContent = stats.parts_total;
+    $("k-parts-sub").textContent =
+      `${stats.parts_accepted} accepted / ${stats.parts_rework} rework`;
+
+    const c = stats.correction;
+    $("k-err").textContent = fmt(c.mean_mm, 2, c.mean_mm === null ? "" : " mm");
+    classify($("k-err"), c.mean_mm, 1, 3);
+    $("k-err-sub").textContent = c.n
+      ? `p95 ${fmt(c.p95_mm)} / max ${fmt(c.max_mm)} / n=${c.n}`
+      : "awaiting ground-truth runs";
+
+    const ins = stats.inspection;
+    $("k-insp").textContent =
+      ins.accuracy === null ? "–" : (ins.accuracy * 100).toFixed(0) + "%";
+    classify($("k-insp"), ins.accuracy === null ? null : 1 - ins.accuracy, 0.1, 0.25);
+    $("k-insp-sub").textContent = ins.n_scored
+      ? `${ins.false_pass} missed / ${ins.false_defect} false alarm / n=${ins.n_scored}`
+      : "awaiting scored inspections";
+
+    const d = stats.drift;
+    $("k-drift").textContent = fmt(d.shift_mm, 2, d.shift_mm === null ? "" : " mm");
+    classify($("k-drift"), d.shift_mm === null ? null : Math.abs(d.shift_mm), 1, 2);
+    $("k-drift-sub").textContent = d.shift_mm === null
+      ? `needs ${d.window * 2} parts`
+      : (d.trending ? "trending, supervisor watching" : "within band");
+
+    // Measurement table, oldest first so the chart reads left to right
+    const ordered = [...measurements].reverse();
+    $("rows-empty").style.display = ordered.length ? "none" : "block";
+    $("rows").innerHTML = [...measurements].map(m => `
+      <tr>
+        <td>#${m.part_id}</td>
+        <td>${m.detected_x.toFixed(4)}</td>
+        <td>${m.detected_y.toFixed(4)}</td>
+        <td style="color:${m.error_mm === null ? "var(--muted)"
+          : m.error_mm < 1 ? "var(--good)"
+          : m.error_mm < 3 ? "var(--warn)" : "var(--bad)"}">${fmt(m.error_mm)}</td>
+        <td>${m.confidence.toFixed(2)}</td>
+        <td>${m.latency_ms === null ? "–" : m.latency_ms.toFixed(0) + " ms"}</td>
+      </tr>`).join("");
+
+    drawChart(ordered.filter(m => m.error_mm !== null).map(m => m.error_mm));
+
+    // Inspection feed
+    $("insp-empty").style.display = inspections.length ? "none" : "block";
+    $("insp").innerHTML = inspections.map(i => `
+      <div class="row">
+        <div class="head">
+          <span class="pill ${i.verdict}">${i.verdict}</span>
+          <span class="serial">#${i.part_id}</span>
+          ${i.defect_type && i.defect_type !== "none"
+            ? `<span class="serial">${i.defect_type.replace(/_/g, " ")}</span>` : ""}
+          ${i.correct === false
+            ? `<span class="pill defect" title="disagrees with injected truth">wrong</span>` : ""}
+        </div>
+        ${i.reasoning ? `<div class="why">${i.reasoning}</div>` : ""}
+      </div>`).join("");
+
+  } catch (err) {
+    setConn(false, "disconnected");
+  }
+}
+
+// Operator chat
+async function send() {
+  const input = $("input"), text = input.value.trim();
+  if (!text) return;
+
+  input.value = "";
+  $("send").disabled = true;
+  $("log").insertAdjacentHTML("beforeend", `<div class="msg user"></div>`);
+  $("log").lastElementChild.textContent = text;
+  $("log").scrollTop = $("log").scrollHeight;
+
+  try {
+    const res = await fetch("/api/agent/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    if (!res.ok) throw new Error(`${res.status}`);
+    const data = await res.json();
+
+    for (const call of (data.tool_calls || [])) {
+      $("log").insertAdjacentHTML("beforeend", `<div class="msg tool"></div>`);
+      $("log").lastElementChild.textContent = `${call.name}(${JSON.stringify(call.arguments || {})})`;
+    }
+    $("log").insertAdjacentHTML("beforeend", `<div class="msg assistant"></div>`);
+    $("log").lastElementChild.textContent = data.reply;
+  } catch (err) {
+    $("log").insertAdjacentHTML("beforeend", `<div class="msg assistant"></div>`);
+    $("log").lastElementChild.textContent =
+      "Supervisor unavailable. Check that the cloud model is configured in .env.";
+  } finally {
+    $("send").disabled = false;
+    $("log").scrollTop = $("log").scrollHeight;
+    input.focus();
+  }
+}
+
+$("send").addEventListener("click", send);
+$("input").addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+window.addEventListener("resize", refresh);
+
+refresh();
+setInterval(refresh, 2000);
+</script>
+</body>
+</html>

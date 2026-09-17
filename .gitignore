@@ -39,3 +39,6 @@ renders/
 Thumbs.db
 .vscode/
 .idea/
+
+# Local dev tooling (machine-specific absolute paths)
+.claude/
