@@ -60,6 +60,8 @@ def parse_args() -> argparse.Namespace:
         help="Do not register parts with the service. Useful when testing offline.",
     )
     parser.add_argument("--api", default=None, help="Service base URL")
+    parser.add_argument("--no-guides", action="store_true", help="Debug: omit guide geometry")
+    parser.add_argument("--no-bead", action="store_true", help="Debug: omit bead geometry")
     parser.add_argument(
         "--bounds",
         action="store_true",
@@ -102,7 +104,7 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 # Where beads are laid out for the post-weld photographs. They are built once,
 # well clear of the fixture, and the camera visits each in turn.
 BEAD_FARM_X = -6.0
-BEAD_FARM_PITCH = 1.0
+BEAD_FARM_PITCH = 4.0
 PART_PARK = (-20.0, 0.0, geo.PART_D / 2 + 0.005)
 
 world = World(stage_units_in_meters=1.0)
@@ -144,6 +146,8 @@ def build_fixture() -> None:
     # the trailing edge steps DOWN at the joint between them; flush or below and
     # the edge catches on the seam and the part stalls short of the stop.
     slide_top = geo.TABLE_TOP + 0.0005
+    if ARGS.no_guides:
+        return
     static_box(
         "/World/Fix/Slide",
         (3.20, 1.70, 0.08),
@@ -214,7 +218,12 @@ def build_bead(path: str, plan, tag_semantics: bool = False) -> None:
     enclosed by the panels and photographs as nothing at all.
     """
     UsdGeom.Xform.Define(stage, path)
-    local_x, local_y = geo.JOINT_LOCAL
+    if ARGS.no_bead:
+        return
+    # Outward along the corner diagonal, so the bead lies on the outside of the
+    # joint where a fillet weld actually sits.
+    local_x = geo.JOINT_LOCAL[0] + geo.BEAD_PROUD
+    local_y = geo.JOINT_LOCAL[1] - geo.BEAD_PROUD
     bw, bd, full_len = geo.BEAD_SIZE
 
     for index, (start, end) in enumerate(plan.segments):
@@ -265,29 +274,43 @@ def build_bead(path: str, plan, tag_semantics: bool = False) -> None:
 
 
 def build_lighting() -> None:
+    """Even, diffuse light.
+
+    A bright key against a dim dome throws hard shadows, and anything the key
+    misses drops to black: on the first pass 84 percent of the weld bead itself
+    rendered as pure black. An inspection station is diffusely lit precisely so
+    that a bead reads everywhere along its length, so the dome carries the scene
+    and the rectangles only lift it.
+    """
     dome = UsdLux.DomeLight.Define(stage, "/World/Dome")
-    dome.CreateIntensityAttr().Set(650.0)
-    key = UsdLux.RectLight.Define(stage, "/World/Key")
-    key.CreateIntensityAttr().Set(9000.0)
-    key.CreateWidthAttr().Set(2.0)
-    key.CreateHeightAttr().Set(2.0)
-    UsdGeom.Xformable(key).AddTranslateOp().Set(Gf.Vec3d(geo.FIXTURE_X, -2.0, 3.0))
+    dome.CreateIntensityAttr().Set(3000.0)
+
+    for name, position, intensity in (
+        ("Key", (geo.FIXTURE_X, -2.0, 3.0), 3500.0),
+        ("Back", (geo.FIXTURE_X, 2.0, 2.6), 2000.0),
+        ("FarmFill", (BEAD_FARM_X, -1.2, geo.TABLE_TOP + 1.6), 3000.0),
+        ("FarmSide", (BEAD_FARM_X - 1.2, 0.2, geo.TABLE_TOP + 1.0), 2000.0),
+    ):
+        light = UsdLux.RectLight.Define(stage, f"/World/{name}")
+        light.CreateIntensityAttr().Set(intensity)
+        light.CreateWidthAttr().Set(3.0)
+        light.CreateHeightAttr().Set(3.0)
+        UsdGeom.Xformable(light).AddTranslateOp().Set(Gf.Vec3d(*position))
 
 
-def make_camera(path: str, eye, aim):
+def make_camera(path: str, eye, aim, focal_length: float = 24.0):
     camera = UsdGeom.Camera.Define(stage, path)
-    camera.CreateFocalLengthAttr().Set(24.0)
+    camera.CreateFocalLengthAttr().Set(focal_length)
+    # Square the aperture to match the square render product. Leaving the default
+    # 4:3 aperture against a 1:1 target is how a subject that the geometry says is
+    # centred ends up outside the frame.
+    camera.CreateHorizontalApertureAttr().Set(20.955)
+    camera.CreateVerticalApertureAttr().Set(20.955)
     xform = UsdGeom.Xformable(camera)
     op = xform.AddTransformOp()
     view = Gf.Matrix4d().SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*aim), Gf.Vec3d(0, 0, 1))
     op.Set(view.GetInverse())
     return camera, op
-
-
-def aim_camera(op, eye, aim) -> None:
-    """Re-aim by writing the transform value. This does reach the renderer."""
-    view = Gf.Matrix4d().SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*aim), Gf.Vec3d(0, 0, 1))
-    op.Set(view.GetInverse())
 
 
 # --------------------------------------------------------------------- arrivals
@@ -349,7 +372,9 @@ def report_bounds(paths: list[str]) -> None:
         if box_range.IsEmpty():
             print(f"{path:34} EMPTY BOUND")
             continue
+        purpose = UsdGeom.Imageable(prim).GetPurposeAttr().Get()
         lo, hi = box_range.GetMin(), box_range.GetMax()
+        print(f"{'':34} purpose={purpose}")
         print(
             f"{path:34} "
             f"{lo[0]:8.3f}..{hi[0]:<8.3f} "
@@ -384,9 +409,8 @@ def main() -> int:
             "/World/Fix/Slide",
             "/World/Guide_0",
             "/World/Guide_1",
+            "/World/Guide_0",
             "/World/Part",
-            "/World/Part/front",
-            "/World/Part/left",
         ])
         return 0
 
@@ -430,29 +454,86 @@ def main() -> int:
     build_part("/World/PartVis", physics=False)
     build_bead("/World/PartVis/Bead", defect_lib.clean_bead(), tag_semantics=True)
 
-    positions, rotations = [], []
-    for row in trials:
+    # The bead farm has to exist before the first frame is drawn. Geometry created
+    # after the stage has composed never reaches the headless renderer, so beads
+    # built later photograph as an empty table. Each part's bead is distinct
+    # geometry and cannot be swapped, so all of them are built now at their own
+    # stations and the camera visits each in turn.
+    print("[station] building bead farm", flush=True)
+    farm_root = UsdGeom.Xform.Define(stage, "/World/BeadFarm")
+    farm_root.AddTranslateOp().Set(Gf.Vec3d(0, 0, 0))
+    farm_root.AddRotateXYZOp().Set(Gf.Vec3f(0, 0, 0))
+    for index, plan in enumerate(plans):
+        holder = UsdGeom.Xform.Define(stage, f"/World/BeadFarm/part_{index}")
+        holder.AddTranslateOp().Set(
+            Gf.Vec3d(BEAD_FARM_X, index * BEAD_FARM_PITCH, geo.TABLE_TOP)
+        )
+        build_bead(f"/World/BeadFarm/part_{index}/bead", plan)
+        # Two panels meeting at the joint, in the same orientation as the corner on
+        # the real part. Without them the bead photographs as a stick floating in
+        # space, and no inspector, human or otherwise, could call it a weld.
+        local_x, local_y = geo.JOINT_LOCAL
+        run = 0.30
+        box(
+            f"/World/BeadFarm/part_{index}/panel_side",
+            (geo.PART_T, run, geo.PART_D),
+            (local_x, local_y + run / 2, geo.BEAD_Z),
+            color=(0.58, 0.60, 0.64),
+        )
+        box(
+            f"/World/BeadFarm/part_{index}/panel_front",
+            (run, geo.PART_T, geo.PART_D),
+            (local_x - run / 2, local_y, geo.BEAD_Z),
+            color=(0.58, 0.60, 0.64),
+        )
+
+    # Both views are captured in the same frame. The part twin is driven to the
+    # settled pose for the wide scan, and the bead farm slides so that this part's
+    # bead sits at a fixed inspection spot for the close-up. Two cameras, both
+    # composed before the first frame, photograph the two at once.
+    #
+    # The camera cannot be re-aimed between frames. Its transform updates in USD
+    # and the renderer ignores it, exactly as scene geometry does. Only poses
+    # driven through the replicator graph re-render, so the subject moves to the
+    # camera rather than the other way round.
+    part_positions, part_rotations = [], []
+    farm_positions = []
+    for index, row in enumerate(trials):
         x, y, yaw_deg = row["settled"]
         # Two frames per capture: the writer trails the scene by one.
-        positions += [(x, y, geo.TABLE_TOP + 0.003)] * 2
-        rotations += [(0.0, 0.0, yaw_deg)] * 2
-    # Park the twin for the bead phase.
-    positions += [PART_PARK] * (2 * ARGS.trials + 4)
-    rotations += [(0.0, 0.0, 0.0)] * (2 * ARGS.trials + 4)
+        part_positions += [(x, y, geo.TABLE_TOP + 0.003)] * 2
+        part_rotations += [(0.0, 0.0, yaw_deg)] * 2
+        # Bring bead `index` to where bead 0 was built.
+        farm_positions += [(0.0, -index * BEAD_FARM_PITCH, 0.0)] * 2
 
     twin_group = rep.get.prims(path_pattern="^/World/PartVis$")
+    farm_group = rep.get.prims(path_pattern="^/World/BeadFarm$")
     with rep.trigger.on_frame():
         with twin_group:
             rep.modify.pose(
-                position=rep.distribution.sequence(positions),
-                rotation=rep.distribution.sequence(rotations),
+                position=rep.distribution.sequence(part_positions),
+                rotation=rep.distribution.sequence(part_rotations),
             )
+        with farm_group:
+            rep.modify.pose(position=rep.distribution.sequence(farm_positions))
 
-    scan_camera, scan_op = make_camera("/World/ScanCam", geo.CAMERA_EYE, geo.CAMERA_AIM)
-    product = rep.create.render_product(str(scan_camera.GetPath()), (640, 640))
-    writer = rep.WriterRegistry.get("BasicWriter")
-    writer.initialize(
-        output_dir=str(OUT_DIR).replace("\\", "/"),
+    scan_camera, _ = make_camera("/World/ScanCam", geo.CAMERA_EYE, geo.CAMERA_AIM)
+    # The scan framing was found empirically and is known to work. The bead sits at
+    # the same offset inside the farm holder that the joint sits at inside the part,
+    # so translating that proven view onto the farm reproduces it exactly. A longer
+    # lens then tightens onto the bead without moving the camera off a known-good
+    # line of sight.
+    shift = (BEAD_FARM_X - geo.FIXTURE_X, 0.0, 0.0)
+    bead_eye = tuple(v + s for v, s in zip(geo.CAMERA_EYE, shift, strict=True))
+    bead_target = tuple(v + s for v, s in zip(geo.CAMERA_AIM, shift, strict=True))
+    bead_camera, _ = make_camera("/World/BeadCam", bead_eye, bead_target, focal_length=35.0)
+
+    scan_product = rep.create.render_product(str(scan_camera.GetPath()), (640, 640))
+    bead_product = rep.create.render_product(str(bead_camera.GetPath()), (640, 640))
+
+    scan_writer = rep.WriterRegistry.get("BasicWriter")
+    scan_writer.initialize(
+        output_dir=str(OUT_DIR / "scans").replace("\\", "/"),
         rgb=True,
         semantic_segmentation=True,
         colorize_semantic_segmentation=False,
@@ -463,51 +544,23 @@ def main() -> int:
         distance_to_image_plane=True,
         normals=True,
     )
-    writer.attach([product])
+    scan_writer.attach([scan_product])
 
-    print("[station] capturing pre-weld scans", flush=True)
+    bead_writer = rep.WriterRegistry.get("BasicWriter")
+    bead_writer.initialize(output_dir=str(OUT_DIR / "beads").replace("\\", "/"), rgb=True)
+    bead_writer.attach([bead_product])
+
+    print("[station] capturing scans and beads", flush=True)
     frame = 0
     for row in trials:
         rep.orchestrator.step(rt_subframes=12)  # lag guard, discarded
         rep.orchestrator.step(rt_subframes=12)  # the one that matches the pose
         frame += 2
-        row["scan_image"] = "rgb_%04d.png" % (frame - 1)
-        row["scan_mask"] = "semantic_segmentation_%04d.png" % (frame - 1)
-        row["scan_depth"] = "distance_to_image_plane_%04d.npy" % (frame - 1)
-        row["scan_normals"] = "normals_%04d.png" % (frame - 1)
-
-    # --- phase 3: post-weld beads -------------------------------------------
-    # Each bead is distinct geometry, and geometry cannot be swapped once the
-    # stage has composed. So every bead is built up front at its own station and
-    # the camera visits them in turn.
-    print("[station] building bead farm", flush=True)
-    for index, plan in enumerate(plans):
-        station_y = index * BEAD_FARM_PITCH
-        holder = UsdGeom.Xform.Define(stage, f"/World/BeadFarm/part_{index}")
-        holder.AddTranslateOp().Set(Gf.Vec3d(BEAD_FARM_X, station_y, geo.TABLE_TOP))
-        build_bead(f"/World/BeadFarm/part_{index}/bead", plan)
-        # A short length of parent metal behind the bead, so the shot reads as a joint.
-        box(
-            f"/World/BeadFarm/part_{index}/backing",
-            (0.18, 0.02, geo.PART_D),
-            (geo.JOINT_LOCAL[0] + 0.09, geo.JOINT_LOCAL[1], geo.BEAD_Z),
-            color=(0.60, 0.62, 0.66),
-        )
-
-    print("[station] capturing post-weld beads", flush=True)
-    for index, row in enumerate(trials):
-        station_y = index * BEAD_FARM_PITCH
-        target = (
-            BEAD_FARM_X + geo.JOINT_LOCAL[0],
-            station_y + geo.JOINT_LOCAL[1],
-            geo.TABLE_TOP + geo.BEAD_Z,
-        )
-        eye = (target[0] - 0.55, target[1] - 0.45, target[2] + 0.30)
-        aim_camera(scan_op, eye, target)
-        rep.orchestrator.step(rt_subframes=12)
-        rep.orchestrator.step(rt_subframes=12)
-        frame += 2
-        row["bead_image"] = "rgb_%04d.png" % (frame - 1)
+        row["scan_image"] = "scans/rgb_%04d.png" % (frame - 1)
+        row["scan_mask"] = "scans/semantic_segmentation_%04d.png" % (frame - 1)
+        row["scan_depth"] = "scans/distance_to_image_plane_%04d.npy" % (frame - 1)
+        row["scan_normals"] = "scans/normals_%04d.png" % (frame - 1)
+        row["bead_image"] = "beads/rgb_%04d.png" % (frame - 1)
 
     rep.orchestrator.wait_until_complete()
     write_manifest(trials, rendered=True)

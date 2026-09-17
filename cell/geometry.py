@@ -27,9 +27,13 @@ PART_T = 0.02
 JOINT_LOCAL = (PART_W / 2 - PART_T / 2, -(PART_H / 2 - PART_T / 2))
 
 # The bead sits proud of both panel faces so it is visible to the camera rather
-# than buried in the corner.
+# than buried in the corner. A bead centred on the crossing of two 20 mm panels
+# shows only a 2 mm sliver on each face and photographs as a dark crevice; on the
+# first pass 85 percent of it rendered black. A fillet weld on a sheet metal box
+# lies ON the outside corner, so the bead is pushed outward along the diagonal.
 BEAD_SIZE = (0.024, 0.024, PART_D + 0.006)
 BEAD_Z = PART_D / 2 + 0.003
+BEAD_PROUD = 0.008
 
 # Torch stand-off from the joint along the outward diagonal.
 STICKOUT_M = 0.012
