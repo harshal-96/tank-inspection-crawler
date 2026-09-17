@@ -77,9 +77,9 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "description": (
                 "Lateral drift detail: the recent window mean against the earlier "
                 "baseline, in millimetres. Positive means the joint is being found "
-                "further in +y than before. Judge it by sigma, not millimetres: "
-                "parts arrive across a wide band, so a shift under 2 sigma is "
-                "ordinary scatter and means nothing. Sustained drift above that "
+                "further in +y than before. The assessment field already says "
+                "whether this is a real trend or ordinary scatter; report what it "
+                "says and do not work it out again from sigma. A real trend "
                 "suggests a mechanical cause such as locator wear."
             ),
             "parameters": {
@@ -183,6 +183,11 @@ def get_cell_status(session: Session, window: int = 20) -> dict[str, Any]:
             "false_alarms": stats.inspection.false_defect,
         },
         "drift": {
+            "assessment": (
+                "A REAL TREND"
+                if stats.drift.trending
+                else "NOT A TREND, ordinary part-to-part scatter"
+            ),
             "shift_mm": _round(stats.drift.shift_mm),
             "noise_mm": _round(stats.drift.noise_mm),
             "sigma": _round(stats.drift.sigma),
@@ -225,8 +230,18 @@ def get_drift(session: Session, window: int = 20) -> dict[str, Any]:
             "available": False,
             "reason": f"Needs at least {signal.window * 2} measured parts to compare windows.",
         }
+    # State the conclusion, not the ingredients for one. Given sigma and a
+    # threshold the model compared them and got it backwards, reporting 1.6 sigma
+    # as "well above" a threshold of 2 and calling ordinary scatter a mechanical
+    # fault. It does not have to compare anything now.
+    verdict = (
+        "A REAL TREND. This shift is larger than scatter can explain."
+        if signal.trending
+        else "NOT A TREND. This is ordinary part-to-part scatter and means nothing."
+    )
     return {
         "available": True,
+        "assessment": verdict,
         "window": signal.window,
         "recent_mean_y_mm": _round(signal.recent_mean_y_mm),
         "baseline_mean_y_mm": _round(signal.baseline_mean_y_mm),
