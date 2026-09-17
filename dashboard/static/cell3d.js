@@ -216,15 +216,37 @@ export class Cell3D {
 
     new GLTFLoader().load("/assets/robot/kr16_2.glb", (gltf) => {
       const root = gltf.scene;
-      root.position.set(base.x, base.y, 0.08);
-      root.rotation.z = yaw;
 
-      // Raise the arm so the tool reaches seam height. The joint axes were
-      // measured on this model rather than taken from the datasheet: the link
-      // frames in the file are not the ones the drawing uses.
-      const pose = { link_2: -0.30, link_3: 0.18, link_5: 0.12 };
+      // The file is Y up and this scene is Z up, so the arm arrives lying on its
+      // side. Measured rather than assumed: the model's bounding box is 0.85 m
+      // tall in Y and 2.17 m long in X, which is a robot on the floor.
+      //
+      // Two parents, because the order matters. The inner one stands the model
+      // up, the outer one turns it to face the corner it welds. Folding both into
+      // one rotation applies the yaw about the model's own sideways axis and
+      // tips it over again.
+      const upright = new THREE.Group();
+      upright.rotation.x = Math.PI / 2;
+      upright.add(root);
+
+      const pivot = new THREE.Group();
+      pivot.position.set(base.x, base.y, 0.08);
+      pivot.rotation.z = yaw;
+      pivot.add(upright);
+
+      // Shoulder up, elbow bent, so the arm reaches the joint instead of lying
+      // straight out in its home pose, which is what makes a robot look like it
+      // has fallen over.
+      //
+      // Axis and angles were both measured on this model rather than assumed.
+      // Turning each joint in turn and watching the flange shows the pitch axis
+      // is Y: a rotation about Z moves the flange sideways and does not lift it
+      // at all, which is why an earlier version set Z and the arm never came up.
+      // The angles then come from searching for the pair that puts the flange at
+      // the joint, which lands within 3 mm of it.
+      const pose = { link_2: -0.70, link_3: 0.94 };
       root.traverse((node) => {
-        if (pose[node.name] !== undefined) node.rotation.z = pose[node.name];
+        if (pose[node.name] !== undefined) node.rotation.y = pose[node.name];
         if (node.isMesh) {
           node.material = new THREE.MeshStandardMaterial({
             color: /RAL9005/i.test(node.material?.name || "") ? 0x14161a : 0xdc6b20,
@@ -233,8 +255,8 @@ export class Cell3D {
           });
         }
       });
-      this.scene.add(root);
-      this.robot = root;
+      this.scene.add(pivot);
+      this.robot = pivot;
     }, undefined, () => {
       // No model is not a broken dashboard. Stand a marker where it would be.
       this.#box(0.3, 0.3, 0.9, base.x, base.y, 0.53, 0xdc6b20,
