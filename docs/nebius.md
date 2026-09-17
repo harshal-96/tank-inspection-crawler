@@ -83,8 +83,15 @@ is what `scripts/hello_nemotron.py` does.
 - `reasoning_content` is present on streaming deltas but not on the non-streaming
   response schema. Stream if the trace is needed, and strip a stray leading
   `<think>` block defensively.
-- Structured output goes through `extra_body={"guided_json": ...}`. The `response_format`
-  field only accepts `json_object` and `text`.
+- Structured output is documented as `extra_body={"guided_json": ...}`, with
+  `response_format` accepting only `json_object` and `text`. Measured against
+  Nemotron 3.5 Lightning, **neither has any effect**: both were ignored and the
+  model still answered in prose. What does work is `reasoning_effort`. The model
+  reasons in plain text rather than in a tagged block, so it will spend an entire
+  token budget thinking before reaching the answer, and `"low"` is not enough to
+  stop it. `"none"` returns the answer directly, in this case cutting 900 tokens of
+  preamble down to 86 tokens of correct JSON. Any call that needs parseable output
+  should set it.
 - Image content parts take a public URL or a base64 data URL. The URL string is capped
   at **13,981,514 characters**, roughly 10 MiB of raw image.
 

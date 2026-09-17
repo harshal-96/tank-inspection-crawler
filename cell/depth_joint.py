@@ -234,3 +234,108 @@ def noisy_depth(
     if dropout > 0:
         out = np.where(rng.random(depth.shape) < dropout, np.nan, out)
     return out
+
+
+@dataclass
+class JointMeasurement:
+    """One look at the joint: the path to weld, and how much to trust it.
+
+    The quality signals exist so that something else can decide whether this look
+    was good enough or whether the part should be presented differently. They are
+    all derived from the fit, not from ground truth, so they are available on a
+    real cell exactly as they are here.
+    """
+
+    waypoints: np.ndarray
+    point: np.ndarray
+    direction: np.ndarray
+    face_a_inliers: int
+    face_b_inliers: int
+    face_a_rms_mm: float
+    face_b_rms_mm: float
+    included_angle_deg: float
+    path_length_mm: float
+
+    def at_height(self, z: float) -> tuple[float, float]:
+        return joint_at_height(self.point, self.direction, z)
+
+    @property
+    def inlier_balance(self) -> float:
+        """0 when one face is invisible, 1 when both are seen equally.
+
+        A face viewed almost edge-on contributes few points and fits badly, which
+        is the failure that drags a joint estimate off.
+        """
+        total = self.face_a_inliers + self.face_b_inliers
+        if total == 0:
+            return 0.0
+        return 2.0 * min(self.face_a_inliers, self.face_b_inliers) / total
+
+    def summary(self) -> dict:
+        """Compact, JSON-safe, and the only thing the planner is shown."""
+        return {
+            "included_angle_deg": round(self.included_angle_deg, 1),
+            "face_a_points": self.face_a_inliers,
+            "face_b_points": self.face_b_inliers,
+            "inlier_balance": round(self.inlier_balance, 3),
+            "face_a_fit_rms_mm": round(self.face_a_rms_mm, 3),
+            "face_b_fit_rms_mm": round(self.face_b_rms_mm, 3),
+            "path_length_mm": round(self.path_length_mm, 1),
+            "waypoints": len(self.waypoints),
+        }
+
+
+def _rms_mm(plane: Plane, points: np.ndarray) -> float:
+    return float(np.sqrt(np.mean(plane.distance(points) ** 2)) * 1000.0)
+
+
+def measure_joint(
+    depth: np.ndarray,
+    intrinsics: Intrinsics,
+    camera_to_world: np.ndarray,
+    mask: Optional[np.ndarray] = None,
+    threshold: float = 0.002,
+    iterations: int = 200,
+    waypoints: int = 12,
+    trim_percentile: float = 2.0,
+    rng: Optional[np.random.Generator] = None,
+) -> JointMeasurement:
+    """One depth image in, a weld path plus its quality signals out.
+
+    The path is bounded by how much of the joint was actually seen, trimmed at both
+    ends so a few stray points cannot stretch it past the real weld.
+    """
+    cloud = backproject(depth, intrinsics, mask)
+    if len(cloud) < 6:
+        raise RuntimeError("not enough valid depth samples to measure a joint")
+    world = transform_points(cloud, camera_to_world)
+
+    rng = rng or np.random.default_rng(0)
+    face_a, inliers_a = fit_plane_ransac(world, threshold, iterations, rng)
+    remaining = world[~inliers_a]
+    if len(remaining) < 3:
+        raise RuntimeError("only one surface in view; no joint to measure")
+    face_b, inliers_b = fit_plane_ransac(remaining, threshold, iterations, rng)
+
+    cosine = abs(float(face_a.normal @ face_b.normal))
+    included = float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
+
+    point, direction = intersect_planes(face_a, face_b)
+
+    # How much of the joint this view actually covers.
+    seen = np.vstack([world[inliers_a], remaining[inliers_b]])
+    t = (seen - point) @ direction
+    lo, hi = np.percentile(t, [trim_percentile, 100.0 - trim_percentile])
+    path = point + np.outer(np.linspace(lo, hi, max(2, waypoints)), direction)
+
+    return JointMeasurement(
+        waypoints=path,
+        point=point,
+        direction=direction,
+        face_a_inliers=int(inliers_a.sum()),
+        face_b_inliers=int(inliers_b.sum()),
+        face_a_rms_mm=_rms_mm(face_a, world[inliers_a]),
+        face_b_rms_mm=_rms_mm(face_b, remaining[inliers_b]),
+        included_angle_deg=included,
+        path_length_mm=float(abs(hi - lo) * 1000.0),
+    )

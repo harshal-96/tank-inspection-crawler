@@ -211,3 +211,33 @@ def test_replay_keeps_rows_that_still_fail(tmp_path: Path):
 
 def test_healthy_is_false_when_service_is_down():
     assert CellClient(base_url="http://127.0.0.1:9", verbose=False, timeout=0.5).healthy() is False
+
+
+# --------------------------------------------------------------------------- orbit
+
+
+def test_orbit_leaves_the_joint_exactly_where_it_was():
+    """The whole point: the target must not move when the view changes."""
+    part_x, part_y, part_yaw = geometry.FIXTURE_X, 0.021, math.radians(1.3)
+    joint = geometry.true_joint(part_x, part_y, part_yaw)
+
+    for degrees in (-75, -40, -10, 0, 10, 40, 75, 180):
+        moved = geometry.orbit_about_joint(
+            part_x, part_y, part_yaw, joint[0], joint[1], math.radians(degrees)
+        )
+        assert geometry.true_joint(*moved) == pytest.approx(joint, abs=1e-12)
+
+
+def test_orbit_actually_moves_the_part():
+    joint = geometry.true_joint(geometry.FIXTURE_X, 0.0, 0.0)
+    moved = geometry.orbit_about_joint(
+        geometry.FIXTURE_X, 0.0, 0.0, joint[0], joint[1], math.radians(45)
+    )
+    assert geometry.distance_mm((moved[0], moved[1]), (geometry.FIXTURE_X, 0.0)) > 100.0
+    assert moved[2] == pytest.approx(math.radians(45))
+
+
+def test_zero_orbit_is_identity():
+    pose = (geometry.FIXTURE_X, 0.017, math.radians(-0.8))
+    joint = geometry.true_joint(*pose)
+    assert geometry.orbit_about_joint(*pose, joint[0], joint[1], 0.0) == pytest.approx(pose)

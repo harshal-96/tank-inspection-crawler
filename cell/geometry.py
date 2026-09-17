@@ -94,3 +94,30 @@ def blind_error_mm(part_x: float, part_y: float, part_yaw: float) -> float:
     This is the baseline the corrected number is compared against.
     """
     return distance_mm(nominal_joint(), true_joint(part_x, part_y, part_yaw))
+
+
+def orbit_about_joint(
+    part_x: float,
+    part_y: float,
+    part_yaw: float,
+    joint_x: float,
+    joint_y: float,
+    theta: float,
+) -> tuple[float, float, float]:
+    """Swing the part around its own joint, to present a different face to a camera.
+
+    The cell's camera cannot be moved once the scene is composed, so a different
+    viewing angle is produced by turning the part instead. Turning it about the
+    joint axis specifically means the joint itself does not move: the ground truth
+    is identical from every view, so any difference in the measurement is the
+    perception changing, not the target.
+
+    All angles in radians. Returns the new part pose.
+    """
+    cos_t, sin_t = math.cos(theta), math.sin(theta)
+    offset_x, offset_y = part_x - joint_x, part_y - joint_y
+    return (
+        joint_x + offset_x * cos_t - offset_y * sin_t,
+        joint_y + offset_x * sin_t + offset_y * cos_t,
+        part_yaw + theta,
+    )
