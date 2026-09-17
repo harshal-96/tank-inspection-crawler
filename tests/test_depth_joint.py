@@ -21,8 +21,11 @@ from cell.depth_joint import (
     fit_two_planes,
     intersect_planes,
     joint_at_height,
+    measure_joint,
     noisy_depth,
+    project,
     transform_points,
+    working_volume,
 )
 
 # A camera looking along world +y, with its own up axis along world +z, so a
@@ -263,3 +266,81 @@ def test_refuses_an_empty_depth_image():
             camera_to_world(),
             at_height=JOINT_HEIGHT,
         )
+
+
+# ------------------------------------------------------------------------ guards
+
+
+def test_measure_rejects_a_near_parallel_pair():
+    """Two nearly parallel planes meet at infinity; reporting that is worse than
+    reporting nothing."""
+    depth = synthetic_depth()
+    with pytest.raises(RuntimeError, match="not a joint"):
+        measure_joint(depth, INTRINSICS, camera_to_world(), min_angle_deg=120.0)
+
+
+def test_measure_rejects_a_joint_running_the_wrong_way():
+    """A table meeting a wall is also square, but its intersection is horizontal."""
+    depth = synthetic_depth()
+    with pytest.raises(RuntimeError, match="off the expected direction"):
+        measure_joint(
+            depth,
+            INTRINSICS,
+            camera_to_world(),
+            expected_direction=np.array([1.0, 0.0, 0.0]),
+        )
+
+
+def test_measure_accepts_the_direction_it_expects():
+    measurement = measure_joint(
+        synthetic_depth(),
+        INTRINSICS,
+        camera_to_world(),
+        expected_direction=np.array([0.0, 0.0, 1.0]),
+    )
+    assert measurement.at_height(JOINT_HEIGHT) == pytest.approx(TRUE_JOINT_XY, abs=5e-4)
+
+
+def test_measurement_reports_the_path_and_its_signals():
+    measurement = measure_joint(synthetic_depth(), INTRINSICS, camera_to_world())
+    assert measurement.waypoints.shape == (12, 3)
+    assert measurement.included_angle_deg == pytest.approx(90.0, abs=0.5)
+    assert measurement.inlier_balance > 0.9
+    assert set(measurement.summary()) >= {"included_angle_deg", "inlier_balance",
+                                          "path_length_mm", "waypoints"}
+
+
+def test_inlier_balance_is_zero_when_a_face_is_unseen():
+    from cell.depth_joint import JointMeasurement
+
+    lopsided = JointMeasurement(
+        waypoints=np.zeros((2, 3)), point=np.zeros(3), direction=np.array([0, 0, 1.0]),
+        face_a_inliers=9000, face_b_inliers=0, face_a_rms_mm=0.1, face_b_rms_mm=0.1,
+        included_angle_deg=90.0, path_length_mm=400.0,
+    )
+    assert lopsided.inlier_balance == 0.0
+
+
+def test_working_volume_excludes_what_is_out_of_range():
+    depth = synthetic_depth()
+    centre = np.array([INTRINSICS.cx, INTRINSICS.cy])
+    wide = working_volume(depth, INTRINSICS, centre, 500, 500, 0.0, 100.0)
+    banded = working_volume(depth, INTRINSICS, centre, 500, 500, 0.9, 1.1)
+    assert banded.sum() < wide.sum()
+    assert banded.sum() > 0
+
+
+def test_working_volume_excludes_what_is_off_to_the_side():
+    depth = synthetic_depth()
+    centre = np.array([INTRINSICS.cx, INTRINSICS.cy])
+    assert working_volume(depth, INTRINSICS, centre, 10, 10, 0.0, 100.0).sum() < 500
+
+
+def test_project_round_trips_through_backprojection():
+    """A point projected to a pixel, then back out at its own depth, returns."""
+    world = np.array([[0.05, -0.30, 0.62]])
+    uv, distance = project(world, INTRINSICS, camera_to_world())
+    depth = np.full((INTRINSICS.height, INTRINSICS.width), np.nan)
+    depth[int(round(uv[0][1])), int(round(uv[0][0]))] = distance[0]
+    back = transform_points(backproject(depth, INTRINSICS), camera_to_world())
+    assert back[0] == pytest.approx(world[0], abs=3e-3)

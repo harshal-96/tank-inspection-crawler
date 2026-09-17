@@ -298,6 +298,9 @@ def measure_joint(
     iterations: int = 200,
     waypoints: int = 12,
     trim_percentile: float = 2.0,
+    min_angle_deg: float = 25.0,
+    expected_direction: Optional[np.ndarray] = None,
+    max_tilt_deg: float = 35.0,
     rng: Optional[np.random.Generator] = None,
 ) -> JointMeasurement:
     """One depth image in, a weld path plus its quality signals out.
@@ -319,8 +322,29 @@ def measure_joint(
 
     cosine = abs(float(face_a.normal @ face_b.normal))
     included = float(np.degrees(np.arccos(np.clip(cosine, -1.0, 1.0))))
+    if included < min_angle_deg:
+        # Two nearly parallel planes intersect in a line that shoots off to
+        # infinity. Reporting a joint from that is worse than reporting nothing.
+        raise RuntimeError(
+            f"the two surfaces differ by only {included:.1f} degrees, which is "
+            "not a joint; this view does not show both faces"
+        )
 
     point, direction = intersect_planes(face_a, face_b)
+
+    if expected_direction is not None:
+        # The weld in this cell runs vertically. A fit that latches onto the table
+        # and a wall also meets at ninety degrees, but its intersection is roughly
+        # horizontal, and solving a horizontal line for a height sends the answer to
+        # infinity. Knowing which way the weld runs is ordinary process knowledge.
+        wanted = np.asarray(expected_direction, dtype=float)
+        wanted = wanted / np.linalg.norm(wanted)
+        tilt = np.degrees(np.arccos(np.clip(abs(float(direction @ wanted)), -1.0, 1.0)))
+        if tilt > max_tilt_deg:
+            raise RuntimeError(
+                f"the fitted joint runs {tilt:.0f} degrees off the expected "
+                "direction; these are not the two faces of the weld"
+            )
 
     # How much of the joint this view actually covers.
     seen = np.vstack([world[inliers_a], remaining[inliers_b]])
@@ -339,3 +363,57 @@ def measure_joint(
         included_angle_deg=included,
         path_length_mm=float(abs(hi - lo) * 1000.0),
     )
+
+
+def project(
+    points_world: np.ndarray, intrinsics: Intrinsics, camera_to_world: np.ndarray
+) -> tuple[np.ndarray, np.ndarray]:
+    """World points to pixel coordinates, with their depth along the optical axis."""
+    points_world = np.atleast_2d(points_world)
+    camera = transform_points(points_world, np.linalg.inv(camera_to_world))
+    depth = -camera[:, 2]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        u = camera[:, 0] * intrinsics.fx / depth + intrinsics.cx
+        v = -camera[:, 1] * intrinsics.fy / depth + intrinsics.cy
+    return np.stack([u, v], axis=1), depth
+
+
+def region_of_interest(
+    intrinsics: Intrinsics,
+    centre_uv: np.ndarray,
+    half_width_px: float,
+    half_height_px: float,
+) -> np.ndarray:
+    """A rectangular pixel mask around an expected location.
+
+    A depth image of a whole cell is mostly floor and fixture, and a plane fit over
+    all of it locks onto the table. A real cell already knows roughly where the
+    joint should be, because that is what the taught program says, so it looks
+    there and refines. This is that crop, and it is a prior on position only: it
+    says nothing about where the joint actually is inside the window.
+    """
+    cols, rows = np.meshgrid(np.arange(intrinsics.width), np.arange(intrinsics.height))
+    return (np.abs(cols - centre_uv[0]) <= half_width_px) & (
+        np.abs(rows - centre_uv[1]) <= half_height_px
+    )
+
+
+def working_volume(
+    depth: np.ndarray,
+    intrinsics: Intrinsics,
+    centre_uv: np.ndarray,
+    half_width_px: float,
+    half_height_px: float,
+    near_m: float,
+    far_m: float,
+) -> np.ndarray:
+    """Pixels near the expected joint, both across the image and in range.
+
+    A depth sensor has a working distance, and a cell knows roughly how far the
+    joint should be. Without the range limit the fit happily takes the floor twenty
+    metres away, which also meets a wall at ninety degrees and looks like a joint
+    until you notice the weld it found is two metres long.
+    """
+    window = region_of_interest(intrinsics, centre_uv, half_width_px, half_height_px)
+    in_range = np.isfinite(depth) & (depth >= near_m) & (depth <= far_m)
+    return window & in_range

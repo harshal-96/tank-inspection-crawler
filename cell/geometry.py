@@ -22,9 +22,15 @@ PART_H = 1.20
 PART_D = 0.45
 PART_T = 0.02
 
-# The weld joint runs down the corner where two panels meet. Expressed in the
-# part's own frame, so it rotates with the part.
-JOINT_LOCAL = (PART_W / 2 - PART_T / 2, -(PART_H / 2 - PART_T / 2))
+# The weld joint runs down the corner where two panels meet, expressed in the
+# part's own frame so it rotates with the part.
+#
+# This is where the OUTER faces meet, not where the centrelines do. A fillet weld
+# on an outside corner is laid on the outer corner, and that is also what any
+# sensor sees: fitting a plane to each visible face and intersecting them lands on
+# the outer corner by construction. Defining it on the centreline instead puts a
+# constant sqrt(2) * thickness / 2 offset, here 14.14 mm, into every measurement.
+JOINT_LOCAL = (PART_W / 2, -(PART_H / 2))
 
 # The bead sits proud of both panel faces so it is visible to the camera rather
 # than buried in the corner. A bead centred on the crossing of two 20 mm panels

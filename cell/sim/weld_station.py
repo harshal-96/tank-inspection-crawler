@@ -60,6 +60,18 @@ def parse_args() -> argparse.Namespace:
         help="Do not register parts with the service. Useful when testing offline.",
     )
     parser.add_argument("--api", default=None, help="Service base URL")
+    parser.add_argument(
+        "--views",
+        type=int,
+        default=5,
+        help="Candidate viewing angles per part. The loop picks among these.",
+    )
+    parser.add_argument(
+        "--orbit-range",
+        type=float,
+        default=45.0,
+        help="Widest swing either side of square, in degrees.",
+    )
     parser.add_argument("--no-guides", action="store_true", help="Debug: omit guide geometry")
     parser.add_argument("--no-bead", action="store_true", help="Debug: omit bead geometry")
     parser.add_argument(
@@ -112,6 +124,11 @@ OUT_DIR.mkdir(parents=True, exist_ok=True)
 BEAD_FARM_X = -6.0
 BEAD_FARM_PITCH = 4.0
 PART_PARK = (-20.0, 0.0, 0.005)
+
+RESOLUTION = (640, 640)
+# Square, to match the square render product. A 4:3 aperture against a 1:1 target
+# is how a subject the geometry says is centred ends up outside the frame.
+APERTURE_MM = 20.955
 
 world = World(stage_units_in_meters=1.0)
 stage = omni.usd.get_context().get_stage()
@@ -413,14 +430,34 @@ def build_lighting() -> None:
         UsdGeom.Xformable(light).AddTranslateOp().Set(Gf.Vec3d(*position))
 
 
+def describe_camera(path: str, focal_length: float = 24.0) -> dict:
+    """Everything needed to turn this camera's depth back into world points.
+
+    USD composes with row vectors, so its local-to-world is the transpose of the
+    column-vector matrix numpy expects. Getting that backwards silently mirrors the
+    whole point cloud.
+    """
+    transform = UsdGeom.Xformable(
+        stage.GetPrimAtPath(path)
+    ).ComputeLocalToWorldTransform(Usd.TimeCode.Default())
+    return {
+        "width": RESOLUTION[0],
+        "height": RESOLUTION[1],
+        "focal_length_mm": focal_length,
+        "horizontal_aperture_mm": APERTURE_MM,
+        "vertical_aperture_mm": APERTURE_MM,
+        "to_world": [[float(transform[j][i]) for j in range(4)] for i in range(4)],
+    }
+
+
 def make_camera(path: str, eye, aim, focal_length: float = 24.0):
     camera = UsdGeom.Camera.Define(stage, path)
     camera.CreateFocalLengthAttr().Set(focal_length)
     # Square the aperture to match the square render product. Leaving the default
     # 4:3 aperture against a 1:1 target is how a subject that the geometry says is
     # centred ends up outside the frame.
-    camera.CreateHorizontalApertureAttr().Set(20.955)
-    camera.CreateVerticalApertureAttr().Set(20.955)
+    camera.CreateHorizontalApertureAttr().Set(APERTURE_MM)
+    camera.CreateVerticalApertureAttr().Set(APERTURE_MM)
     xform = UsdGeom.Xformable(camera)
     op = xform.AddTransformOp()
     view = Gf.Matrix4d().SetLookAt(Gf.Vec3d(*eye), Gf.Vec3d(*aim), Gf.Vec3d(0, 0, 1))
@@ -597,13 +634,13 @@ def main() -> int:
         box(
             f"/World/BeadFarm/part_{index}/panel_side",
             (geo.PART_T, run, geo.PART_D),
-            (local_x, local_y + run / 2, geo.PART_D / 2),
+            (local_x - geo.PART_T / 2, local_y + run / 2, geo.PART_D / 2),
             color=(0.58, 0.60, 0.64),
         )
         box(
             f"/World/BeadFarm/part_{index}/panel_front",
             (run, geo.PART_T, geo.PART_D),
-            (local_x - run / 2, local_y, geo.PART_D / 2),
+            (local_x - run / 2, local_y + geo.PART_T / 2, geo.PART_D / 2),
             color=(0.58, 0.60, 0.64),
         )
 
@@ -616,15 +653,33 @@ def main() -> int:
     # and the renderer ignores it, exactly as scene geometry does. Only poses
     # driven through the replicator graph re-render, so the subject moves to the
     # camera rather than the other way round.
+    # Candidate viewing angles. The camera cannot move, so the part turns about the
+    # joint axis instead, which leaves the joint itself exactly where it is. The
+    # target is therefore identical from every view and any difference between
+    # them is perception, not the thing being measured.
+    if ARGS.views == 1:
+        orbit_angles = [0.0]
+    else:
+        step = 2.0 * ARGS.orbit_range / (ARGS.views - 1)
+        orbit_angles = [round(-ARGS.orbit_range + i * step, 3) for i in range(ARGS.views)]
+    print(f"[station] candidate views (degrees): {orbit_angles}", flush=True)
+
     part_positions, part_rotations = [], []
     farm_positions = []
     for index, row in enumerate(trials):
         x, y, yaw_deg = row["settled"]
-        # Two frames per capture: the writer trails the scene by one.
-        part_positions += [(x, y, geo.TABLE_TOP + 0.003)] * 2
-        part_rotations += [(0.0, 0.0, yaw_deg)] * 2
-        # Bring bead `index` to where bead 0 was built.
-        farm_positions += [(0.0, -index * BEAD_FARM_PITCH, 0.0)] * 2
+        joint_x, joint_y = row["true_joint"]
+        row["views"] = []
+        for angle in orbit_angles:
+            px, py, pyaw = geo.orbit_about_joint(
+                x, y, math.radians(yaw_deg), joint_x, joint_y, math.radians(angle)
+            )
+            # Two frames per capture: the writer trails the scene by one.
+            part_positions += [(px, py, geo.TABLE_TOP + 0.003)] * 2
+            part_rotations += [(0.0, 0.0, math.degrees(pyaw))] * 2
+            # The bead does not change with the view, so the farm holds station.
+            farm_positions += [(0.0, -index * BEAD_FARM_PITCH, 0.0)] * 2
+            row["views"].append({"orbit_deg": angle})
 
     if ARGS.xray:
         painted = 0
@@ -657,8 +712,8 @@ def main() -> int:
     bead_target = tuple(v + s for v, s in zip(geo.CAMERA_AIM, shift, strict=True))
     bead_camera, _ = make_camera("/World/BeadCam", bead_eye, bead_target, focal_length=35.0)
 
-    scan_product = rep.create.render_product(str(scan_camera.GetPath()), (640, 640))
-    bead_product = rep.create.render_product(str(bead_camera.GetPath()), (640, 640))
+    scan_product = rep.create.render_product(str(scan_camera.GetPath()), RESOLUTION)
+    bead_product = rep.create.render_product(str(bead_camera.GetPath()), RESOLUTION)
 
     scan_writer = rep.WriterRegistry.get("BasicWriter")
     scan_writer.initialize(
@@ -684,24 +739,31 @@ def main() -> int:
     )
     bead_writer.attach([bead_product])
 
-    print("[station] capturing scans and beads", flush=True)
+    total = len(trials) * len(orbit_angles)
+    print(f"[station] capturing {total} views over {len(trials)} parts", flush=True)
     frame = 0
     for row in trials:
-        rep.orchestrator.step(rt_subframes=12)  # lag guard, discarded
-        rep.orchestrator.step(rt_subframes=12)  # the one that matches the pose
-        frame += 2
-        row["scan_image"] = "scans/rgb_%04d.png" % (frame - 1)
-        row["scan_mask"] = "scans/semantic_segmentation_%04d.png" % (frame - 1)
-        row["scan_depth"] = "scans/distance_to_image_plane_%04d.npy" % (frame - 1)
-        row["scan_normals"] = "scans/normals_%04d.png" % (frame - 1)
+        for view in row["views"]:
+            rep.orchestrator.step(rt_subframes=12)  # lag guard, discarded
+            rep.orchestrator.step(rt_subframes=12)  # the one that matches the pose
+            frame += 2
+            stamp = frame - 1
+            view["rgb"] = "scans/rgb_%04d.png" % stamp
+            view["mask"] = "scans/semantic_segmentation_%04d.png" % stamp
+            view["depth"] = "scans/distance_to_image_plane_%04d.npy" % stamp
+            view["normals"] = "scans/normals_%04d.png" % stamp
+        # The bead is the same whichever way the part was turned, so one shot of it.
         row["bead_image"] = "beads/rgb_%04d.png" % (frame - 1)
 
     rep.orchestrator.wait_until_complete()
-    write_manifest(trials, rendered=True)
+    camera = describe_camera("/World/ScanCam")
+    eye = [round(camera["to_world"][i][3], 4) for i in range(3)]
+    print(f"[station] scan camera at {eye}, authored {geo.CAMERA_EYE}", flush=True)
+    write_manifest(trials, rendered=True, camera=camera)
     return 0
 
 
-def write_manifest(trials: list[dict], rendered: bool) -> None:
+def write_manifest(trials: list[dict], rendered: bool, camera: dict | None = None) -> None:
     client = None
     if not ARGS.no_post:
         client = CellClient(base_url=ARGS.api)
@@ -721,6 +783,8 @@ def write_manifest(trials: list[dict], rendered: bool) -> None:
         "seed": ARGS.seed,
         "defect_rate": ARGS.defect_rate,
         "rendered": rendered,
+        "camera": camera,
+        "joint_height": geo.TABLE_TOP + geo.PART_D / 2,
         "capture_dir": str(OUT_DIR),
         "rows": trials,
     }
