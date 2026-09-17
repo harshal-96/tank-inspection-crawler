@@ -366,6 +366,12 @@ def main() -> int:
         rgb=True,
         semantic_segmentation=True,
         colorize_semantic_segmentation=False,
+        # Depth and normals come free from the same render, and they are the
+        # control inputs a world model needs to turn these renders into
+        # photorealistic variants. Capturing them now costs nothing and saves
+        # re-running the whole campaign later.
+        distance_to_image_plane=True,
+        normals=True,
     )
     writer.attach([product])
 
@@ -377,6 +383,8 @@ def main() -> int:
         frame += 2
         row["scan_image"] = "rgb_%04d.png" % (frame - 1)
         row["scan_mask"] = "semantic_segmentation_%04d.png" % (frame - 1)
+        row["scan_depth"] = "distance_to_image_plane_%04d.npy" % (frame - 1)
+        row["scan_normals"] = "normals_%04d.png" % (frame - 1)
 
     # --- phase 3: post-weld beads -------------------------------------------
     # Each bead is distinct geometry, and geometry cannot be swapped once the

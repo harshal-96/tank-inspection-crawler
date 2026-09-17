@@ -45,9 +45,28 @@ pattern-finding across a shift, and explanation belong in the cloud.
 
 | Layer | Platform | Model |
 | --- | --- | --- |
-| Post-weld inspection | Nebius Token Factory | NVIDIA Nemotron vision model |
-| Cell supervisor agent | Nebius Token Factory | NVIDIA Nemotron reasoning model, with tool calling |
-| Detector training | Nebius AI Cloud GPUs | Detector fine-tuned on synthetic data |
+| Cell supervisor agent | Nebius Token Factory | NVIDIA Nemotron, with tool calling |
+| Post-weld inspection | Nebius Serverless Endpoints | NVIDIA Cosmos Reason, self-hosted |
+| Synthetic data hardening | Nebius Serverless Jobs | NVIDIA Cosmos Transfer |
+| Detector training | Nebius Serverless Jobs | Detector trained on hardened synthetic data |
+| Detector serving | Nebius Serverless Endpoints | The trained detector behind HTTPS |
+
+### Closing the gap between simulation and reality
+
+A detector trained on rendered images is good at rendered images. That is the
+standing weakness of synthetic training data, and the reason most simulation work
+never reaches a real machine.
+
+The simulation emits more than a photograph. Every frame also carries a depth map,
+a segmentation mask and surface normals, computed from the same render. Those are
+exactly the control inputs a world foundation model needs, so each rendered weld
+becomes the seed for a set of photorealistic variants that keep the geometry but
+change the appearance.
+
+The detector is then trained on the hardened set, and both detectors, the one
+trained on raw renders and the one trained on hardened renders, are measured on
+photographs of a real part taken with a real camera. The difference between those
+two numbers is the result this project is built to produce.
 
 ## Validation
 
@@ -71,17 +90,31 @@ perception path is shown working outside simulation as well.
 ## Architecture
 
 ```
-  EDGE (local)                          CLOUD (Nebius Token Factory)
-  ------------                          ----------------------------
-  camera -> detector -> correction        Nemotron vision  -> inspection verdict
-     |                      |             Nemotron reason  -> supervisor decisions
-     |                      v                     ^
-     |              robot retargets               |
-     v                                            |
-  post-weld capture ------------------------------+
+  TRAINING (Nebius Serverless Jobs)
+  ---------------------------------
+  simulation render + depth + segmentation
+        |
+        v  Cosmos Transfer            photorealistic variants
+        |
+        v  training job               hardened detector
+        |
+        v  Serverless Endpoint        served over HTTPS
+        |
+  ======|=====================================================
+        v
+  EDGE (in the cell)                    CLOUD (Nebius)
+  ------------------                    --------------
+  camera -> detector -> correction        Cosmos Reason -> inspection verdict
+     |                      |             Nemotron      -> supervisor decisions
+     |                      v                    ^
+     |              robot retargets              |
+     v                                           |
+  post-weld capture -----------------------------+
      |
      v
   FastAPI service + database  <->  operator dashboard
+
+  Both detectors are scored on photographs of a real part from a real camera.
 ```
 
 Every measurement, verdict and decision lands in one database. The dashboard and the
