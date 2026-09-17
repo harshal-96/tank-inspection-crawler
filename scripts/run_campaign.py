@@ -157,8 +157,17 @@ def fuse(looks: list[Look]) -> Optional[np.ndarray]:
 
 
 def run_guided(
-    row: dict, ctx: Context, max_looks: int, start_view_deg: float = BASELINE_VIEW_DEG
+    row: dict, ctx: Context, max_looks: int, start_view_deg: float = BASELINE_VIEW_DEG,
+    routed: bool = False,
 ) -> tuple[list[Look], list[dict]]:
+    """Walk the look-and-judge loop for one part.
+
+    With routed set, each decision goes to the smallest Nemotron that the evidence
+    says can make it, instead of every decision going to the same model. The cost
+    and the answers are both recorded so the two can be compared rather than
+    asserted.
+    """
+    from brain.router import assess
     from brain.viewplanner import plan_next_view
 
     truth = np.array(row["true_joint"])
@@ -175,7 +184,11 @@ def run_guided(
         if not remaining:
             break
 
-        decision = plan_next_view([look.for_planner() for look in looks], remaining)
+        evidence = [look.for_planner() for look in looks]
+        route = assess(evidence) if routed else None
+        decision = plan_next_view(
+            evidence, remaining, model=route.model if route else None
+        )
         decisions.append(
             {
                 "after_looks": len(looks),
@@ -183,6 +196,11 @@ def run_guided(
                 "next_view_deg": decision.next_view_deg,
                 "reason": decision.reason,
                 "latency_ms": round(decision.latency_ms or 0.0),
+                "model": decision.model,
+                "tier": route.tier if route else "fixed",
+                "route_why": route.describe() if route else None,
+                "prompt_tokens": decision.prompt_tokens,
+                "completion_tokens": decision.completion_tokens,
             }
         )
         if decision.accept or decision.next_view_deg is None:
@@ -205,6 +223,12 @@ def main() -> int:
     )
     parser.add_argument("--out", default="data/campaign.jsonl")
     parser.add_argument("--no-post", action="store_true")
+    parser.add_argument(
+        "--routed",
+        action="store_true",
+        help="Send each decision to the smallest Nemotron the evidence allows, "
+             "instead of sending every decision to the same model.",
+    )
     parser.add_argument("--api", default=None)
     args = parser.parse_args()
 
@@ -224,7 +248,9 @@ def main() -> int:
         baseline_view = by_angle.get(args.baseline_view) or row["views"][0]
         baseline = take_look(baseline_view, truth, ctx)
 
-        looks, decisions = run_guided(row, ctx, args.max_looks, args.baseline_view)
+        looks, decisions = run_guided(
+            row, ctx, args.max_looks, args.baseline_view, routed=args.routed
+        )
         fused = fuse(looks)
         guided_error = None if fused is None else 1000.0 * float(np.linalg.norm(fused - truth))
 
