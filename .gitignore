@@ -50,6 +50,7 @@ data/tray.png
 data/bent_corner.png
 data/blender_tray.png
 data/look_p9_*.png
+data/meshcheck.json
 
 # Isaac Sim / USD scratch
 *.usd
