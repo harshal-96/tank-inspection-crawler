@@ -43,6 +43,10 @@ data/captures/
 data/captures_*/
 data/captures_show/
 data/cap50/
+data/cap50v2/
+data/cap100/
+data/*_batch*.log
+data/render_all.log
 data/cubeprobe/
 
 # Working renders from framing and debugging passes. The figures that are

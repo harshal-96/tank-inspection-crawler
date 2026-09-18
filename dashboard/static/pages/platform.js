@@ -26,14 +26,6 @@ const ROWS = [
     tone: "s1",
   },
   {
-    job: "Held in reserve for the same question under load",
-    platform: "Nebius Token Factory",
-    model: "nvidia/Nemotron-3_5-Lightning",
-    cadence: "as needed",
-    why: "asked for a second look on 38 of 39 calls that did not need one",
-    tone: "s2",
-  },
-  {
     job: "Which machine is going out of adjustment?",
     platform: "Nebius Token Factory",
     model: "deepseek-ai/DeepSeek-V4.1-Flash",
@@ -86,10 +78,10 @@ const ROWS = [
 export function render() {
   return `
     <p class="lede">
-      Four sizes of Nemotron are served on Token Factory, and this cell uses all
-      four for different jobs, because testing showed they are not interchangeable. Every
-      row below is a call the cell actually makes. The last column is the measurement that
-      decided it, not a preference.
+      Four sizes of Nemotron are served on Token Factory. All four were scored on the
+      per-part question and the smallest one runs it; every other job goes to whichever
+      model measured best on it, NVIDIA or not. Every row below is a call the cell actually
+      makes. The last column is the measurement that decided it, not a preference.
     </p>
 
     <div class="tiles" id="pf-tiles"></div>
@@ -165,7 +157,7 @@ function tiles(ev) {
   const briefs = live?.briefs?.length ?? 0;
 
   V.$("pf-tiles").innerHTML = [
-    tile("NVIDIA model sizes used", "4", "s5", "Nano, Lightning, Super and Ultra, each on a different question"),
+    tile("NVIDIA model sizes scored", "4", "s5", "Nano, Lightning, Super and Ultra on the same decisions; the smallest runs"),
     tile("Model calls in this run", modelCalls.toLocaleString(), "",
       `${nvidiaCalls} of them on an NVIDIA model`),
     tile("Tokens through Token Factory", tokens.toLocaleString(), "",

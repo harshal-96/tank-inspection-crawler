@@ -242,9 +242,10 @@ burn-through "porosity". The simulator draws burn-through as one dark hole in an
 unbroken bead, and the definitions said porosity was "small dark rounded cavities", so
 the models were reading the picture correctly and being marked wrong for it. The
 definitions now separate one large hole where the bead is missing from several small
-pits, and the renderer now stops the bead either side of the hole; the fifty beads in
-this table are the existing renders under the sharper definitions (the last column
-above). Under the prompt the cell now uses:
+pits, and the renderer now stops the bead either side of the hole. The fifty beads in
+this table are the earlier renders under the sharper definitions (the last column
+above); the same fifty parts have since been re-rendered with the corrected hole, and
+scoring on those is the next run. Under the prompt the cell now uses:
 
 <!-- vision-beads:begin -->
 | | Beads judged | Named right | Pass/defect right | False alarms | Missed | Declined | Defect types named | Median time |
