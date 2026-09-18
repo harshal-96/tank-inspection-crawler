@@ -469,6 +469,38 @@ def robustness_study() -> dict[str, Any]:
     return {"available": True, "weldable_mm": WELDABLE_MM, "arms": arms}
 
 
+def compensation_study() -> dict[str, Any]:
+    """Welding where the joint is going to be, and how wrong the model may be.
+
+    The interesting number is not the improvement at nominal, which any
+    compensation scheme can show. It is the range of model error over which
+    compensating still beats not compensating, because a distortion model on a
+    real machine is calibrated rather than known.
+    """
+    rows = _read("compensation.jsonl")
+    if not rows:
+        return {"available": False}
+
+    ordered = sorted(rows, key=lambda r: r["model_error"])
+    nominal = next((r for r in ordered if r["model_error"] == 0.0), ordered[0])
+    helped = [r["model_error"] for r in ordered if r["helped"]]
+    weldable = [r["model_error"] for r in ordered if r["weldable"]]
+
+    return {
+        "available": True,
+        "curve": ordered,
+        "trials": nominal.get("trials"),
+        "nominal": nominal,
+        "helps_from": min(helped) if helped else None,
+        "helps_to": max(helped) if helped else None,
+        "weldable_from": min(weldable) if weldable else None,
+        "weldable_to": max(weldable) if weldable else None,
+        # Over-modelling pushes the torch past the joint; under-modelling just
+        # leaves some of the walk behind. Only one of those has a hard edge.
+        "breaks_by": "over-predicting how far the metal moves",
+    }
+
+
 def all_studies() -> dict[str, Any]:
     return {
         "seam": seam_study(),
@@ -478,4 +510,5 @@ def all_studies() -> dict[str, Any]:
         "inspection": inspection_study(),
         "vision": vision_study(),
         "robustness": robustness_study(),
+        "compensation": compensation_study(),
     }
