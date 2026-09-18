@@ -179,8 +179,17 @@ function accuracy() {
 function grid() {
   const order = ["routed", "nano", "lightning", "super", "ultra"];
   const cases = ev.router.grid;
+  // One column per decision, not per part. Seventeen parts were looked at more
+  // than once and each of those gave one to four decision points, thirty-nine
+  // in all. Drawing only the first per part made the caption say 17 under rows
+  // that add up to 39, and every square carries its own verdict anyway.
+  const columns = [];
+  cases.forEach((c) => {
+    const depth = Math.max(0, ...Object.values(c.calls).map((v) => v.length));
+    for (let k = 0; k < depth; k++) columns.push({ trial: c.trial, k, calls: c.calls });
+  });
   const cell = 15, gap = 2, padL = 92, padT = 22;
-  const w = padL + cases.length * (cell + gap) + 10;
+  const w = padL + columns.length * (cell + gap) + 10;
   const h = padT + order.length * (cell + gap) + 26;
   let out = "";
   order.forEach((armName, r) => {
@@ -188,22 +197,26 @@ function grid() {
     const y = padT + r * (cell + gap);
     out += `<text class="axis-label" x="${padL - 10}" y="${y + cell / 2 + 3.5}" text-anchor="end"
       font-size="10" fill="${V.ARM_COLOUR[armName]}">${armName}</text>`;
-    cases.forEach((c, i) => {
-      const calls = c.calls[armName] || [];
-      const call = calls[0];
+    columns.forEach((col, i) => {
+      const call = (col.calls[armName] || [])[col.k];
       const x = padL + i * (cell + gap);
       const colour = !call ? "var(--band)" : call.correct ? "var(--good)" : "var(--critical)";
+      // The right call for this decision follows from what was said and whether
+      // it was right, so it is exact per square rather than one answer per part.
+      const shouldLook = call ? (call.correct ? call.said_look : !call.said_look) : null;
       out += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="3.5" fill="${colour}"
         opacity="${call ? 0.85 : 0.35}"
-        data-tip="<b>${armName}</b> <span class='k'>on decision ${i + 1}</span><br>
+        data-tip="<b>${armName}</b> <span class='k'>part ${col.trial}, look ${col.k + 1}</span><br>
           ${call ? (call.said_look ? "asked for another look" : "accepted the measurement")
-                 : "no record"}<br>
-          <span class='k'>correct call was</span> <b>${c.should_look ? "look again" : "accept"}</b>"/>`;
+                 : "no record"}${call
+            ? `<br><span class='k'>correct call was</span> <b>${shouldLook ? "look again" : "accept"}</b>`
+            : ""}"/>`;
     });
-    out += `<text x="${padL + cases.length * (cell + gap) + 8}" y="${y + cell / 2 + 3.5}"
+    out += `<text x="${padL + columns.length * (cell + gap) + 8}" y="${y + cell / 2 + 3.5}"
       font-size="10" fill="var(--text-secondary)" font-family="var(--mono)">${a.correct}/${a.n}</text>`;
   });
-  out += V.axisTitle(padL, h - 8, `${cases.length} decisions, in the order they were taken`);
+  out += V.axisTitle(padL, h - 8,
+    `${columns.length} decisions on ${cases.length} parts, in the order they were taken`);
   V.paint(V.$("rt-grid"), V.svg(w, h, out));
 }
 
