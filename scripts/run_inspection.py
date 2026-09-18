@@ -43,6 +43,9 @@ def main() -> int:
                              "model the picture is a rendering and closes the uncertain exit.")
     parser.add_argument("--crop", action=argparse.BooleanOptionalAction, default=True,
                         help="Send the bead window at twice the size instead of the whole part.")
+    parser.add_argument("--renders", default="v1",
+                        help="Which renders the beads come from: v1 drew burn-through as a "
+                             "pore in an unbroken bead, v2 stops the bead at the hole.")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest)
@@ -58,6 +61,11 @@ def main() -> int:
 
     started = time.time()
     records = []
+    # Rows go to disk as they come. A run that dies on bead 49 keeps 48 verdicts
+    # and their cost, instead of nothing.
+    out = Path(args.out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    handle = out.open("w", encoding="utf-8")
     print(f"{'part':>5} {'injected':>14} {'verdict':>9} {'called':>14} {'ok':>4} {'ms':>6}")
     print("-" * 62)
 
@@ -86,7 +94,10 @@ def main() -> int:
             "framing": args.framing,
             "crop": args.crop,
             "definitions": result.extra.get("definitions", 1),
+            "renders": args.renders,
         })
+        handle.write(json.dumps(records[-1]) + chr(10))
+        handle.flush()
         room = " *" if result.extra.get("retried_with_room") else ""
         print(f"{row['trial']:>5} {injected:>14} {result.verdict.value:>9} "
               f"{called:>14} {'yes' if correct else 'NO':>4} {result.latency_ms:>6.0f}{room}",
@@ -107,11 +118,7 @@ def main() -> int:
                     injected_defect=injected,
                 )
 
-    out = Path(args.out)
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with out.open("w", encoding="utf-8") as handle:
-        for record in records:
-            handle.write(json.dumps(record) + "\n")
+    handle.close()
 
     judged = [r for r in records if r["verdict"] != "uncertain"]
     declined = len(records) - len(judged)

@@ -83,3 +83,4 @@ Thumbs.db
 data/finetune/adapter/
 data/finetune/drift_train.jsonl
 data/finetune/drift_val.jsonl
+data/cap150/

@@ -426,16 +426,22 @@ def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
 
 
 VARIANT_LABELS = {
-    ("as_written", False, 1): "prompt as first written",
-    ("rendering", False, 1): "told it is a rendering",
-    ("rendering", True, 1): "told it is a rendering, shown the bead up close",
-    ("rendering", True, 2): "and a hole defined apart from a pore",
+    ("as_written", False, 1, "v1"): "prompt as first written",
+    ("rendering", False, 1, "v1"): "told it is a rendering",
+    ("rendering", True, 1, "v1"): "told it is a rendering, shown the bead up close",
+    ("rendering", True, 2, "v1"): "and a hole defined apart from a pore",
+    ("rendering", True, 2, "v2"): "and the hole drawn as a hole, on 150 beads",
 }
 
+# The renders the cell's beads come from. v2 stops the bead at a burn-through
+# and there are 150 of them; the cell reports on those once they are scored,
+# and on the 50 v1 beads until then.
+CELL_RENDERS = "v2"
 
-def _variant_of(row: dict[str, Any]) -> tuple[str, bool, int]:
+
+def _variant_of(row: dict[str, Any]) -> tuple[str, bool, int, str]:
     return (row.get("framing") or "as_written", bool(row.get("crop")),
-            int(row.get("definitions") or 1))
+            int(row.get("definitions") or 1), str(row.get("renders") or "v1"))
 
 
 def vision_study() -> dict[str, Any]:
@@ -450,14 +456,18 @@ def vision_study() -> dict[str, Any]:
     and without the bead shown up close. All three are reported; `arms` is the
     variant the cell runs with.
     """
-    by_variant: dict[tuple[str, bool], list[dict[str, Any]]] = {}
+    # Rows are pooled by model and variant before scoring, so a model scored
+    # in two files on the same beads and prompt is one arm, not two.
+    pooled: dict[tuple, list[dict[str, Any]]] = {}
     for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
         rows = _read(path.name)
         if not rows or "injected" not in rows[0]:
             continue
-        variant = _variant_of(rows[0])
-        by_variant.setdefault(variant, []).append(
-            _score_inspection(rows, rows[0].get("model", path.stem)))
+        key = (_variant_of(rows[0]), rows[0].get("model", path.stem))
+        pooled.setdefault(key, []).extend(rows)
+    by_variant: dict[tuple, list[dict[str, Any]]] = {}
+    for (variant, label), rows in pooled.items():
+        by_variant.setdefault(variant, []).append(_score_inspection(rows, label))
     if not by_variant:
         return {"available": False}
     cell = nebius_vision_label()
@@ -468,30 +478,37 @@ def vision_study() -> dict[str, Any]:
             continue
         arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
         variants.append({"framing": key[0], "crop": key[1], "definitions": key[2],
-                         "label": VARIANT_LABELS[key], "arms": arms})
+                         "renders": key[3], "label": VARIANT_LABELS[key], "arms": arms})
     wanted = cell_variant()
     running = wanted if wanted in by_variant else next(iter(by_variant))
     current = next(v for v in variants
-                   if (v["framing"], v["crop"], v["definitions"]) == running)
+                   if (v["framing"], v["crop"], v["definitions"], v["renders"]) == running)
     return {"available": True, "arms": current["arms"], "cell_model": cell,
             "cell_variant": current["label"], "variants": variants}
 
 
-def cell_variant() -> tuple[str, bool, int]:
-    """The prompt, framing and definitions the cell inspects with, from the same settings."""
-    return (inspector.default_framing(), inspector.bead_window() is not None,
+def cell_variant() -> tuple[str, bool, int, str]:
+    """The prompt, framing, definitions and renders the cell reports on."""
+    base = (inspector.default_framing(), inspector.bead_window() is not None,
             inspector.DEFINITIONS_VERSION)
+    for path in DATA_DIR.glob("inspections*.jsonl"):
+        rows = _read(path.name)
+        if rows and _variant_of(rows[0]) == base + (CELL_RENDERS,):
+            return base + (CELL_RENDERS,)
+    return base + ("v1",)
 
 
 def cell_inspection_rows() -> list[dict[str, Any]]:
     """The fifty verdicts from the model and prompt the cell inspects with."""
     cell = nebius_vision_label()
+    wanted = cell_variant()
+    pooled: list[dict[str, Any]] = []
     for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
         rows = _read(path.name)
-        if (rows and "injected" in rows[0] and _variant_of(rows[0]) == cell_variant()
+        if (rows and "injected" in rows[0] and _variant_of(rows[0]) == wanted
                 and registry.display(rows[0].get("model", "")) == cell):
-            return rows
-    return _read("inspections.jsonl")
+            pooled.extend(rows)
+    return pooled or _read("inspections.jsonl")
 
 
 def nebius_vision_label() -> str:
