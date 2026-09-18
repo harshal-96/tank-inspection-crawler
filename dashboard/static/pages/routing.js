@@ -27,10 +27,10 @@ export function render() {
     <div class="grid">
             <div class="card w12">
         <header><h2>Three of four sizes were right every time; the smallest one runs</h2></header>
-        <div class="hint">Every measurement in this run was good enough to weld on, so the right
-          call was always to accept it. A model that asked for another look was wrong, and each
-          wrong call cost a robot move. This is under the prompt the cell runs, which states
-          the boundary in numbers; the last card shows what the first prompt did.</div>
+        <div class="hint" id="rt-accuracy-hint">Scored against what a second look actually
+          achieved, under the prompt the cell runs. A model can be wrong two ways: ask for a
+          look it did not need, which costs a robot move, or accept a view that failed, which
+          welds the part blind.</div>
         <div id="rt-accuracy"></div>
       </div>
 
@@ -43,8 +43,8 @@ export function render() {
           still asks with the boundary stated.</div>
         <div id="rt-grid"></div>
         <div class="legend">
-          <span><i style="background:var(--good)"></i>accepted, correctly</span>
-          <span><i style="background:var(--critical)"></i>asked for a look it did not need</span>
+          <span><i style="background:var(--good)"></i>right call</span>
+          <span><i style="background:var(--critical)"></i>wrong call: a look it did not need, or a failed view accepted</span>
         </div>
       </div>
 
@@ -156,7 +156,16 @@ function tiles() {
       + `${V.pct(saved / ultra.total_latency_s, 0)} less`, "s"),
     tile("Camera looks per part", routed.looks_per_decision.toFixed(2), "good",
       `one is the least possible; the 120B took ${superb.looks_per_decision.toFixed(2)}`),
+    tile("Parts welded blind", `${routed.blind_accepts}`, routed.blind_accepts ? "bad" : "good",
+      `of ${routed.should_look} decisions where the first view failed and a look was needed`),
   ].join("");
+  const p = ev.router.points;
+  const hint = V.$("rt-accuracy-hint");
+  if (p && hint) hint.insertAdjacentHTML("beforeend",
+    ` ${p.n} decisions: ${p.replayed} replayed from the campaign and ${p.first_view} where a`
+    + ` part is seen first from one of its five angles. A look was needed on ${p.look_needed},`
+    + ` every one of them a view that failed to measure; on this capture set any view that`
+    + ` measures at all is good enough to weld on.`);
 }
 
 const tile = (label, value, tone, sub, unit = "") => `<div class="tile">

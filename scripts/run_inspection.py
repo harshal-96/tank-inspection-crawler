@@ -85,6 +85,7 @@ def main() -> int:
             "retried_with_room": bool(result.extra.get("retried_with_room")),
             "framing": args.framing,
             "crop": args.crop,
+            "definitions": result.extra.get("definitions", 1),
         })
         room = " *" if result.extra.get("retried_with_room") else ""
         print(f"{row['trial']:>5} {injected:>14} {result.verdict.value:>9} "

@@ -210,6 +210,14 @@ def router_study() -> dict[str, Any]:
         arm["should_look"] += 1 if row["should_look_again"] else 0
         arm["latency"].append(row.get("latency_ms"))
         arm["tokens"].append(row.get("tokens"))
+        # The two ways to be wrong cost different things: an extra look is a
+        # robot move, a blind accept is a part welded on a view that a look
+        # would have fixed. Before the decision set had both answers in it, only
+        # the first could ever happen.
+        arm["extra_looks"] = arm.get("extra_looks", 0) + (
+            1 if row["said_look_again"] and not row["should_look_again"] else 0)
+        arm["blind_accepts"] = arm.get("blind_accepts", 0) + (
+            1 if row["should_look_again"] and not row["said_look_again"] else 0)
         if row["said_look_again"]:
             arm["gain_mm"] += row.get("gain_mm") or 0.0
             arm["cost_mm"] += row.get("cost_mm") or 0.0
@@ -225,6 +233,8 @@ def router_study() -> dict[str, Any]:
             "accuracy": arm["correct"] / arm["n"],
             "said_look": arm["said_look"],
             "should_look": arm["should_look"],
+            "extra_looks": arm.get("extra_looks", 0),
+            "blind_accepts": arm.get("blind_accepts", 0),
             "looks_per_decision": looks / arm["n"],
             "median_latency_ms": _median(arm["latency"]),
             "total_latency_s": sum(v for v in arm["latency"] if v) / 1000.0,
@@ -235,8 +245,28 @@ def router_study() -> dict[str, Any]:
     order = ["routed", "nano", "lightning", "super", "ultra"]
     summary.sort(key=lambda a: order.index(a["arm"]) if a["arm"] in order else 99)
 
+    # What the decision set is made of. A replayed point is one the campaign
+    # actually reached; a first-view point is a capture seen first from one of
+    # its five angles, and the ones where that view failed to measure are the
+    # cases where a look is needed.
+    kinds = {r.get("kind", "replayed") for r in rows}
+    first_arm = next(iter(arms)) if arms else None
+    own = [r for r in rows if r["arm"] == first_arm]
+    points = {
+        "n": len(own),
+        "replayed": sum(1 for r in own if r.get("kind", "replayed") == "replayed"),
+        "first_view": sum(1 for r in own if r.get("kind") == "first-view"),
+        "look_needed": sum(1 for r in own if r["should_look_again"]),
+        "kinds": sorted(kinds),
+    }
+
     # A per-case grid, so the disagreements are visible rather than averaged away.
-    cases = sorted({(r["trial"], r["should_look_again"]) for r in rows})
+    # Trials are ints for replayed points and "part@angle" strings for first-view
+    # ones, so they are ordered as text with the replayed ones first.
+    def trial_key(item):
+        trial = str(item[0])
+        return ("@" in trial, trial.zfill(8) if "@" not in trial else trial)
+    cases = sorted({(r["trial"], r["should_look_again"]) for r in rows}, key=trial_key)
     grid = [{"trial": t, "should_look": s, "calls": {}} for t, s in cases]
     index = {(g["trial"], g["should_look"]): g for g in grid}
     seen: dict[tuple[str, int], int] = {}
@@ -252,7 +282,7 @@ def router_study() -> dict[str, Any]:
             "correct": row["correct"],
         })
 
-    return {"available": True, "arms": summary, "grid": grid}
+    return {"available": True, "arms": summary, "grid": grid, "points": points}
 
 
 # ---------------------------------------------------------- study 4: drift, by ear
@@ -396,14 +426,16 @@ def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
 
 
 VARIANT_LABELS = {
-    ("as_written", False): "prompt as first written",
-    ("rendering", False): "told it is a rendering",
-    ("rendering", True): "told it is a rendering, shown the bead up close",
+    ("as_written", False, 1): "prompt as first written",
+    ("rendering", False, 1): "told it is a rendering",
+    ("rendering", True, 1): "told it is a rendering, shown the bead up close",
+    ("rendering", True, 2): "and a hole defined apart from a pore",
 }
 
 
-def _variant_of(row: dict[str, Any]) -> tuple[str, bool]:
-    return (row.get("framing") or "as_written", bool(row.get("crop")))
+def _variant_of(row: dict[str, Any]) -> tuple[str, bool, int]:
+    return (row.get("framing") or "as_written", bool(row.get("crop")),
+            int(row.get("definitions") or 1))
 
 
 def vision_study() -> dict[str, Any]:
@@ -435,18 +467,20 @@ def vision_study() -> dict[str, Any]:
         if not arms:
             continue
         arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
-        variants.append({"framing": key[0], "crop": key[1], "label": VARIANT_LABELS[key],
-                         "arms": arms})
+        variants.append({"framing": key[0], "crop": key[1], "definitions": key[2],
+                         "label": VARIANT_LABELS[key], "arms": arms})
     wanted = cell_variant()
     running = wanted if wanted in by_variant else next(iter(by_variant))
-    current = next(v for v in variants if (v["framing"], v["crop"]) == running)
+    current = next(v for v in variants
+                   if (v["framing"], v["crop"], v["definitions"]) == running)
     return {"available": True, "arms": current["arms"], "cell_model": cell,
             "cell_variant": current["label"], "variants": variants}
 
 
-def cell_variant() -> tuple[str, bool]:
-    """The prompt and framing the cell inspects with, from the same settings."""
-    return inspector.default_framing(), inspector.bead_window() is not None
+def cell_variant() -> tuple[str, bool, int]:
+    """The prompt, framing and definitions the cell inspects with, from the same settings."""
+    return (inspector.default_framing(), inspector.bead_window() is not None,
+            inspector.DEFINITIONS_VERSION)
 
 
 def cell_inspection_rows() -> list[dict[str, Any]]:
@@ -684,7 +718,11 @@ HARD_ARM_LABELS = {
 # 28 case files are not read any more and are not pooled with these: they were
 # measured on a set with a hole in it, where clear + camera generated nothing at
 # all, and mixing the two would average a defective test with its replacement.
-HARD_FILES = ("hard64_a.jsonl", "hard64_b.jsonl", "hard64_c.jsonl")
+# hard64_d is the edge model asked the cloud arms' exact question, with the
+# fitted numbers and the boundary sentence, and once more with the sentence
+# withheld. The edge arm in hard64_c was asked a different, poorer question and
+# is superseded by it.
+HARD_FILES = ("hard64_a.jsonl", "hard64_b.jsonl", "hard64_c.jsonl", "hard64_d.jsonl")
 
 # Only the arms that are not a model in their own right need naming here. Every
 # actual model goes through the registry, so a label used in one result file and a
@@ -693,6 +731,8 @@ HARD_ARM_LABELS = {
     "rule": "the threshold as arithmetic",
     "cloud": "Nemotron 3 Super 120B",
     "cloud_blind": "Nemotron 3 Super 120B, boundary withheld",
+    "edge": "Qwen3 1.7B trained, on the cell",
+    "edge_blind": "Qwen3 1.7B trained, boundary withheld",
 }
 
 
@@ -768,6 +808,10 @@ def hard_study() -> dict[str, Any]:
     passes: dict[str, list[list[dict[str, Any]]]] = {}
     for name in HARD_FILES:
         rows = _read(name)
+        # The edge arm in hard64_c was asked a poorer question than the cloud
+        # arms beside it. hard64_d asks it the same one and replaces that arm.
+        if name == "hard64_c.jsonl" and (DATA_DIR / "hard64_d.jsonl").is_file():
+            rows = [r for r in rows if r.get("arm") != "edge"]
         if not rows:
             continue
         grouped: dict[str, list[dict[str, Any]]] = {}

@@ -498,10 +498,21 @@ def build_bead(
     def along(fraction: float) -> float:
         return base_z + fraction * full_len
 
+    # Burn-through melts the weld metal away, so the bead stops either side of
+    # the hole. Drawn over an unbroken bead it read as one dark pore, and every
+    # model called it porosity, which by the definitions it was given it was.
+    segments = list(plan.segments)
+    if plan.hole is not None:
+        at, radius = plan.hole
+        half = 1.3 * radius / full_len
+        segments = [piece for start, end in segments
+                    for piece in ((start, min(end, at - half)), (max(start, at + half), end))
+                    if piece[1] - piece[0] > 1e-4]
+
     tagged = []
 
     if not detailed:
-        for index, (start, end) in enumerate(plan.segments):
+        for index, (start, end) in enumerate(segments):
             length = (end - start) * full_len
             if length <= 1e-4:
                 continue
@@ -518,7 +529,7 @@ def build_bead(
         leg = geo.FILLET_LEG
         pitch = geo.RIPPLE_PITCH
         count = 0
-        for start, end in plan.segments:
+        for start, end in segments:
             span = (end - start) * full_len
             ripples = max(1, int(span / pitch))
             for i in range(ripples):
@@ -606,7 +617,7 @@ def build_bead(
         # and what shows is the dark cavity behind it.
         ellipsoid(
             f"{path}/burn_through",
-            (radius, radius, radius),
+            (radius * 1.2, radius * 1.2, radius * 1.5),
             (local_x - 0.002, local_y + 0.002, along(at)),
             color=(0.03, 0.03, 0.035),
         )

@@ -20,6 +20,7 @@ from cell.drift import (
     SCENARIOS,
     SYSTEM_PROMPT,
     SYSTEM_PROMPT_WITH_REFERENCE,
+    THRESHOLD_NOTE,
     VISIBLE_RATIO,
     build_stream,
     discriminators,
@@ -126,7 +127,11 @@ def test_generated_examples_support_their_own_labels(tmp_path):
     for row in rows:
         roles = [m["role"] for m in row["messages"]]
         assert roles == ["system", "user", "assistant"]
-        assert row["messages"][0]["content"] == SYSTEM_PROMPT
+        # The training text carries the same boundary sentence and fitted numbers
+        # the evaluation gives every arm, so the edge model is trained on the
+        # question it is asked.
+        assert row["messages"][0]["content"] == SYSTEM_PROMPT + THRESHOLD_NOTE
+        assert "Fitted over the whole run:" in row["messages"][1]["content"]
 
         answer = json.loads(row["messages"][2]["content"])
         assert answer["cause"] in SCENARIOS

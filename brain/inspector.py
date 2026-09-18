@@ -32,9 +32,12 @@ Defect definitions:
 Any visible break in bead continuity is a skip.
 - undercut: a groove melted into the parent metal along the bead toe, leaving a notch \
 that reduces the throat.
-- porosity: gas pores, visible as small dark rounded cavities in the bead face.
+- porosity: several small dark rounded pits in the bead face, each narrower than \
+the bead.
 - spatter: loose droplets of metal scattered on the parent metal beside the bead.
-- burn_through: a hole melted fully through the joint.
+- burn_through: one dark hole where the weld metal is missing and the cavity behind \
+shows through, about as wide as the bead or wider. One large hole is burn_through; \
+several small pits are porosity.
 
 A bead is a pass ONLY if it runs continuously end to end and shows none of the above.
 Report the single most severe defect visible. If the image is too dark, blurred or \
@@ -67,6 +70,10 @@ PHOTO_PROMPT = SYSTEM_PROMPT.replace(
 )
 
 FRAMINGS = {"as_written": SYSTEM_PROMPT, "rendering": RENDER_PROMPT, "photograph": PHOTO_PROMPT}
+
+# The defect definitions changed once: version 1 let a rendered burn-through
+# read as porosity. A result file records which version it was scored under.
+DEFINITIONS_VERSION = 2
 
 # What the bead camera is looking at, set per site: BEAD_SOURCE=rendering on the
 # simulator this project ships with, BEAD_SOURCE=photograph on a cell.
@@ -264,7 +271,7 @@ def inspect_weld(
         "completion_tokens": reply.completion_tokens,
         "raw": raw,
         "extra": {"retried_with_room": reply.retried_with_room, "framing": framing,
-                  "crop": crop},
+                  "crop": crop, "definitions": DEFINITIONS_VERSION},
     }
 
     try:

@@ -60,12 +60,14 @@ from cell.drift import (  # noqa: E402
     HELD_OUT_SEEDS,
     SCENARIOS,
     SCENARIOS_WITH_CAMERA,
+    THRESHOLD_NOTE,
     TRAINING_SEED_BASE,
     VISIBLE_RATIO,
     build_stream,
     discriminators,
     is_held_out,
     prompt_for,
+    stats_block,
     user_prompt,
 )
 
@@ -167,8 +169,8 @@ def make_example(scenario: str, seed: int, parts: int, severity: float,
     }
     return {
         "messages": [
-            {"role": "system", "content": prompt_for(rows)},
-            {"role": "user", "content": user_prompt(rows)},
+            {"role": "system", "content": prompt_for(rows) + THRESHOLD_NOTE},
+            {"role": "user", "content": user_prompt(rows) + stats_block(rows)},
             {"role": "assistant", "content": json.dumps(answer)},
         ],
         # Kept out of the messages; used for the summary and for auditing the set.

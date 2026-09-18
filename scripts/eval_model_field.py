@@ -87,44 +87,25 @@ def ask(rows: list[dict], model: str, timeout_s: float = CALL_TIMEOUT_S) -> dict
     call is retried without it rather than scoring a model zero for refusing an
     argument it never claimed to take.
     """
-    client = nebius.client()
     messages = [
         {"role": "system", "content": prompt_for(rows)},
         {"role": "user", "content": user_prompt(rows)},
     ]
     started = time.perf_counter()
+    # One policy for every model, the same one the cell runs: a rejected option
+    # is dropped and the call made again, and a reply that spent its budget
+    # thinking is asked once more with room. The first version of this file had
+    # its own three-stage version of the same idea, which is how two harnesses
+    # come to disagree.
     try:
-        response = client.with_options(timeout=timeout_s).chat.completions.create(
-            model=model, temperature=0.0, max_tokens=400,
-            reasoning_effort="none", messages=messages,
-        )
-    except Exception:  # noqa: BLE001
-        try:
-            response = client.with_options(timeout=timeout_s).chat.completions.create(
-                model=model, temperature=0.0, max_tokens=700, messages=messages,
-            )
-        except Exception as exc:  # noqa: BLE001
-            return {"cause": "error", "confidence": 0.0,
-                    "evidence": f"{type(exc).__name__}: {exc}"[:200],
-                    "latency_ms": round((time.perf_counter() - started) * 1000)}
-
-    raw = nebius.reply_text(response.choices[0].message) or ""
-
-    # A reply that does not parse is usually not a model that cannot answer. It is
-    # a model that reasons out loud and ran out of budget before reaching the JSON.
-    # reasoning_effort is a Nemotron parameter; every other family ignores it and
-    # thinks in the output instead. The first pass of this comparison scored GLM
-    # and gpt-oss at zero for exactly that, which would have been a false claim
-    # about them. So an unparseable reply buys one more attempt with room to think.
-    if not _has_json(raw):
-        try:
-            response = client.with_options(timeout=timeout_s * 2).chat.completions.create(
-                model=model, temperature=0.0, max_tokens=THINKING_TOKENS,
-                messages=messages,
-            )
-            raw = nebius.reply_text(response.choices[0].message) or raw
-        except Exception:  # noqa: BLE001 - keep the first reply and report it
-            pass
+        reply = nebius.chat(messages, model=model, max_tokens=400, reasoning_effort="none",
+                            parses=nebius.extract_json,
+                            api=nebius.client().with_options(timeout=timeout_s))
+    except Exception as exc:  # noqa: BLE001
+        return {"cause": "error", "confidence": 0.0,
+                "evidence": f"{type(exc).__name__}: {exc}"[:200],
+                "latency_ms": round((time.perf_counter() - started) * 1000)}
+    raw = reply.raw or ""
 
     latency = (time.perf_counter() - started) * 1000
     data = parse_verdict(raw)

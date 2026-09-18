@@ -52,11 +52,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from brain import nebius  # noqa: E402
 from cell.drift import (  # noqa: E402
+    THRESHOLD_NOTE,
     VISIBLE_RATIO,
     build_hard_case,
     discriminators,
     parse_verdict,
     prompt_for,
+    stats_block,
     user_prompt,
 )
 
@@ -72,26 +74,6 @@ PLAN = [
     ("subtle_camera", "camera"),
     ("mixed", "mixed"),
 ]
-
-THRESHOLD_NOTE = f"""
-
-The cell fits a least squares line to each channel and measures its slope against
-its own residual scatter. A channel under {VISIBLE_RATIO:.0f} times that scatter is
-not trending however large the slope looks; over {VISIBLE_RATIO:.0f} times it is.
-Some runs sit close to that line, and some have more than one machine going out at
-once. Say what the evidence supports."""
-
-
-def stats_block(rows: list[dict]) -> str:
-    d = discriminators(rows)
-    out = ["", "Fitted over the whole run:",
-           f"  tilt       {d['tilt_slope']:+.4f} mm/part   {d['tilt_ratio']:5.2f} times scatter",
-           f"  bottom     {d['shift_slope']:+.4f} mm/part   {d['shift_ratio']:5.2f} times scatter"]
-    if "reference_ratio" in d:
-        out.append(f"  reference  {d['reference_slope']:+.4f} mm/part   "
-                   f"{d['reference_ratio']:5.2f} times scatter")
-    return "\n".join(out)
-
 
 def rule(rows: list[dict]) -> str:
     """The whole diagnosis as arithmetic, exactly as a threshold would do it."""
@@ -165,12 +147,22 @@ def load_edge(base: str, adapter: str):
     return tokenizer, model
 
 
-def ask_edge(rows: list[dict], tokenizer, model) -> tuple[str, float]:
+def ask_edge(rows: list[dict], tokenizer, model,
+             tell_threshold: bool = True) -> tuple[str, float]:
+    """The edge model, asked exactly what the cloud arm is asked.
+
+    The first version of this gave the cloud models the threshold sentence and
+    the fitted slopes, and gave the edge model the raw rows and nothing else,
+    then put both in one table. That is two questions, not two models. The edge
+    model was trained on the raw rows, so the fair question may cost it; the
+    number is reported either way, and the training text now matches.
+    """
     import torch
 
+    system = prompt_for(rows) + (THRESHOLD_NOTE if tell_threshold else "")
     text = tokenizer.apply_chat_template(
-        [{"role": "system", "content": prompt_for(rows)},
-         {"role": "user", "content": user_prompt(rows)}],
+        [{"role": "system", "content": system},
+         {"role": "user", "content": user_prompt(rows) + stats_block(rows)}],
         tokenize=False, add_generation_prompt=True, enable_thinking=False)
     inputs = tokenizer(text, return_tensors="pt").to(model.device)
     started = time.perf_counter()
@@ -259,9 +251,10 @@ def main() -> int:
                     arms[arm].append({**case, "said": said, "effort": effort,
                                       "correct": is_correct(said, truth), "ms": ms})
         if edge is not None:
-            said, ms = ask_edge(rows, *edge)
-            arms["edge"].append({**case, "said": said,
-                                 "correct": is_correct(said, truth), "ms": ms})
+            for arm, tell in (("edge", True), ("edge_blind", False)):
+                said, ms = ask_edge(rows, *edge, tell_threshold=tell)
+                arms[arm].append({**case, "said": said,
+                                  "correct": is_correct(said, truth), "ms": ms})
 
     families = [f for f, _ in PLAN]
     seen: list[str] = []

@@ -465,3 +465,30 @@ TRAINING_SEED_BASE = 20_000
 
 def is_held_out(seed: int) -> bool:
     return any(abs(seed - s) <= HELD_OUT_MARGIN for s in HELD_OUT_SEEDS)
+
+# What the cloud arms of the hard test are told about the boundary, and the
+# fitted numbers they are shown. Every arm that is compared in one table gets
+# both, including the edge model, and the training set is written from the same
+# text; a comparison where one arm is told the rule and another is not is a
+# comparison of two questions.
+THRESHOLD_NOTE = f"""
+
+The cell fits a least squares line to each channel and measures its slope against
+its own residual scatter. A channel under {VISIBLE_RATIO:g} times that scatter is
+not trending however large the slope looks; over {VISIBLE_RATIO:g} times it is.
+Some runs sit close to that line, and some have more than one machine going out at
+once. Say what the evidence supports."""
+
+
+def stats_block(rows: list[dict]) -> str:
+    """The fitted slopes and ratios, as text under the measurements."""
+    d = discriminators(rows)
+    lines = ["", "Fitted over the whole run:",
+             f"  tilt       {d['tilt_slope']:+.4f} mm/part   "
+             f"{d['tilt_ratio']:5.2f} times scatter",
+             f"  bottom     {d['shift_slope']:+.4f} mm/part   "
+             f"{d['shift_ratio']:5.2f} times scatter"]
+    if "reference_ratio" in d:
+        lines.append(f"  reference  {d['reference_slope']:+.4f} mm/part   "
+                     f"{d['reference_ratio']:5.2f} times scatter")
+    return "\n".join(lines)

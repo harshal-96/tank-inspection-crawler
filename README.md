@@ -32,7 +32,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | --- | --- | --- |
 | Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
 | Routing to the right model size | 39 of 39 for the smallest model, and for two larger ones | ground truth, not a larger model's opinion |
-| Post-weld inspection | 92% pass or defect on 50 beads, 37 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
+| Post-weld inspection | 88% pass or defect on 50 beads, 39 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
 | Which machine is drifting, on hard cases | **best model 72%, a fixed rule 56%** | cases sampled onto the decision boundary |
@@ -226,36 +226,45 @@ framing changed, and it changed for every model. Each cell is defects named righ
 the beads the model would judge:
 
 <!-- vision-variants:begin -->
-| | prompt as first written | told it is a rendering | told it is a rendering, shown the bead up close |
-| --- | --- | --- | --- |
-| **MiniMax-M3** | 1 of 1 judged, 49 declined; 0 missed | 34 of 50 judged; 9 missed | 37 of 50 judged; 4 missed |
-| Gemma 3 27B | 31 of 50 judged; 4 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 4 missed |
-| MiniCPM-V 4.5 | 31 of 50 judged; 19 missed | 31 of 50 judged; 19 missed | 31 of 50 judged; 14 missed |
-| Kimi K2.6 | 31 of 40 judged, 10 declined; 7 missed | 32 of 46 judged, 4 declined; 9 missed | 33 of 42 judged, 8 declined; 5 missed |
-| DeepSeek V4.1 Flash | 17 of 26 judged, 24 declined; 1 missed | 35 of 50 judged; 3 missed | 35 of 50 judged; 3 missed |
-| GLM-5.3 Flash | 12 of 21 judged, 29 declined; 2 missed | 35 of 49 judged, 1 declined; 3 missed | 33 of 44 judged, 6 declined; 3 missed |
+| | prompt as first written | told it is a rendering | told it is a rendering, shown the bead up close | and a hole defined apart from a pore |
+| --- | --- | --- | --- | --- |
+| **MiniMax-M3** | 1 of 1 judged, 49 declined; 0 missed | 34 of 50 judged; 9 missed | 37 of 50 judged; 4 missed | 39 of 50 judged; 6 missed |
+| Gemma 3 27B | 31 of 50 judged; 4 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 4 missed | 36 of 50 judged; 4 missed |
+| MiniCPM-V 4.5 | 31 of 50 judged; 19 missed | 31 of 50 judged; 19 missed | 31 of 50 judged; 14 missed | 31 of 50 judged; 19 missed |
+| Kimi K2.6 | 31 of 40 judged, 10 declined; 7 missed | 32 of 46 judged, 4 declined; 9 missed | 33 of 42 judged, 8 declined; 5 missed | 38 of 45 judged, 5 declined; 4 missed |
+| DeepSeek V4.1 Flash | 17 of 26 judged, 24 declined; 1 missed | 35 of 50 judged; 3 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 3 missed |
+| GLM-5.3 Flash | 12 of 21 judged, 29 declined; 2 missed | 35 of 49 judged, 1 declined; 3 missed | 33 of 44 judged, 6 declined; 3 missed | 36 of 46 judged, 4 declined; 4 missed |
 <!-- vision-variants:end -->
 
-Told the truth, nobody declines and every model improves. Under the prompt the cell now
-uses:
+Told the truth, nobody declines and every model improves. One more fault in the
+question was found the same way, by reading the wrong answers: every model called a
+burn-through "porosity". The simulator draws burn-through as one dark hole in an
+unbroken bead, and the definitions said porosity was "small dark rounded cavities", so
+the models were reading the picture correctly and being marked wrong for it. The
+definitions now separate one large hole where the bead is missing from several small
+pits, and the renderer now stops the bead either side of the hole; the fifty beads in
+this table are the existing renders under the sharper definitions (the last column
+above). Under the prompt the cell now uses:
 
 <!-- vision-beads:begin -->
 | | Beads judged | Named right | Pass/defect right | False alarms | Missed | Declined | Defect types named | Median time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MiniMax-M3** | 50 of 50 | 37 | 46 | 0 | 4 | 0 | 5 | 2.5 s |
-| Gemma 3 27B | 50 of 50 | 36 | 45 | 1 | 4 | 0 | 5 | 1.8 s |
-| DeepSeek V4.1 Flash | 50 of 50 | 35 | 47 | 0 | 3 | 0 | 3 | 3.7 s |
-| MiniCPM-V 4.5 | 50 of 50 | 31 | 36 | 0 | 14 | 0 | 2 | 1.5 s |
-| GLM-5.3 Flash | 44 of 50 | 33 | 41 | 0 | 3 | 6 | 3 | 8.8 s |
-| Kimi K2.6 | 42 of 50 | 33 | 37 | 0 | 5 | 8 | 3 | 11.8 s |
+| **MiniMax-M3** | 50 of 50 | 39 | 44 | 0 | 6 | 0 | 4 | 2.5 s |
+| DeepSeek V4.1 Flash | 50 of 50 | 36 | 47 | 0 | 3 | 0 | 4 | 3.2 s |
+| Gemma 3 27B | 50 of 50 | 36 | 46 | 0 | 4 | 0 | 3 | 1.7 s |
+| MiniCPM-V 4.5 | 50 of 50 | 31 | 31 | 0 | 19 | 0 | 0 | 1.4 s |
+| GLM-5.3 Flash | 46 of 50 | 36 | 42 | 0 | 4 | 4 | 4 | 8.5 s |
+| Kimi K2.6 | 45 of 50 | 38 | 41 | 0 | 4 | 5 | 4 | 10.2 s |
 <!-- vision-beads:end -->
 
-MiniMax-M3, DeepSeek V4.1 Flash and Gemma tie within the noise of fifty beads; a paired
-test on the same beads gives p between 0.5 and 1.0 for every pair. The cell inspects
-with MiniMax-M3: the most defects named right, no false alarms, and 2.5 seconds a bead.
-MiniCPM reaches 31 by calling nearly every bead a pass and ships fourteen bad parts. A
-single accuracy figure cannot tell these apart, which is why every score in this
-repository is reported as more than one number.
+MiniMax-M3, DeepSeek V4.1 Flash and Gemma tie within the noise of fifty beads on every
+column; a paired test on the same beads separates none of them. The cell inspects with
+MiniMax-M3: the most defects named right, no false alarms, 2.5 seconds a bead. DeepSeek
+misses fewer bad parts, three against six, at a second longer per bead, and a shop that
+weighs a shipped defect above cycle time should take it; the difference is three beads
+and inside the noise. MiniCPM reaches 31 by calling every bead a pass and ships nineteen
+bad parts. A single accuracy figure cannot tell these apart, which is why every score in
+this repository is reported as more than one number.
 
 One thing the comparison had to be fair about: a reasoning model spends its output
 budget thinking before it answers, and under the 400 tokens the inspector sends it came
@@ -755,6 +764,14 @@ Sixty-four cases, eight per family and scenario pair over eight seeds. The last 
 columns are the paired comparison against the rule on the same cases: how many the arm
 got right where the rule did not, how many the other way, and the exact McNemar p.
 Concordant cases say nothing about which arm is better and are excluded.
+
+Every arm in this table is asked the same question: the measurements, the fitted slope
+of each channel against its own scatter, and the sentence that says where the boundary
+is. The first version gave the cloud models all of that and gave the edge model the raw
+rows alone, and put both in one table; that was two questions, not two models. Asked
+the full question the edge model scores the same 43 of 64, with or without the boundary
+sentence, and its training set is now written from the same text so a retrain sees what
+it will be asked.
 
 Four things fall out of it, and the first is about the test rather than the models.
 

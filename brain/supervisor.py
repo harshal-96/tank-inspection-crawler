@@ -152,7 +152,7 @@ def _run(
     max_tokens: int = MAX_TOKENS,
 ) -> AgentReply:
     """Drive the tool-calling loop until the model answers in prose."""
-    client = nebius.client()
+    api = nebius.client()
     started = time.perf_counter()
     reply = AgentReply(reply="", model=model)
     recorded: list[int] = []
@@ -160,17 +160,16 @@ def _run(
 
     for round_index in range(1, max_rounds + 1):
         reply.rounds = round_index
-        response = client.chat.completions.create(
-            model=model,
-            messages=messages,
+        turn = nebius.chat(
+            messages, model=model, max_tokens=max_tokens, api=api,
             tools=TOOL_SCHEMAS,
             # Force a lookup on the opening round. With conversation history in
             # context the model will otherwise reuse a figure it quoted earlier,
             # which goes stale the moment another part is measured. Grounding the
             # first round costs one call and removes a whole class of wrong answer.
             tool_choice="required" if round_index == 1 else "auto",
-            max_tokens=max_tokens,
         )
+        response = turn.response
         if response.usage:
             reply.prompt_tokens += response.usage.prompt_tokens
             reply.completion_tokens += response.usage.completion_tokens
