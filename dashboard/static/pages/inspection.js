@@ -37,7 +37,7 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>Naming the defect is harder than spotting one</h2></header>
+        <header><h2>Spotting a defect against naming it</h2></header>
         <div class="hint">Both numbers are real, but they are not the same claim. The cell uses the
           pass/defect call to route a part; the named defect is advice for the person who fixes it.</div>
         <div id="in-split"></div>
@@ -51,12 +51,12 @@ export function render() {
       </div>
 
       <div class="card w7">
-        <header><h2>What it catches, and what it confuses</h2></header>
+        <header><h2>Which defects get confused for which</h2></header>
         <div id="in-classes"></div>
       </div>
 
       <div class="card w12">
-        <header><h2>Two vision models, the same score, opposite behaviour</h2></header>
+        <header><h2>Two vision models on the same fifty beads</h2></header>
         <div class="hint">The account serves two models that can see. On these fifty beads they
           name the same number of defects correctly. The same number means very different things for each of them, which is why a
           single accuracy figure should never be quoted on its own.</div>
@@ -66,7 +66,7 @@ export function render() {
 
       <div class="card w12">
         <header>
-          <h2>Every bead, with the reasoning attached</h2>
+          <h2>Every bead, and the reason given</h2>
           <span class="grow" style="flex:1"></span>
           <div class="seg" id="in-filter">
             <button data-f="all" class="on">All</button>
@@ -285,10 +285,9 @@ function vision() {
       `Both models name <b>${quiet.named_correct}</b> of ${quiet.n} correctly.
        <b>${V.esc(quiet.model.split("/").pop())}</b> gets there by calling every bead a pass:
        zero false alarms, and <b>${quiet.missed}</b> bad parts shipped. It is faster and it is
-       useless. <b>${V.esc(working.model.split("/").pop())}</b> gets there by looking, which costs
-       <b>${working.false_alarms}</b> false alarms and misses <b>${working.missed}</b>.
-       This is the same trap the small model falls into on the drift question, and the reason
-       every score on this dashboard is reported as two numbers rather than one.`;
+       useless. <b>${V.esc(working.model.split("/").pop())}</b> gets there by looking, at
+       <b>${working.false_alarms}</b> false alarms and <b>${working.missed}</b> misses.
+       Same score, opposite behaviour.`;
   }
 }
 

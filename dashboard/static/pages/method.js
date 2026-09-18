@@ -62,7 +62,7 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>What this does not show</h2></header>
+        <header><h2>What this does not cover</h2></header>
         <div id="me-limits"></div>
       </div>
 
@@ -192,13 +192,11 @@ function generality() {
   </div>`;
 
   V.$("me-general-meta").innerHTML =
-    `What carries across is the architecture and the discipline: measure before acting, decide
+    `What carries across is the architecture: measure before acting, decide
      per station, refuse rather than guess, score everything against a truth fixed in advance,
      and route the question by how often it is asked. What does not carry across is any number
      on this dashboard. Each process needs its own feature to find, its own process model in
-     place of <b>weld_params</b>, its own defect vocabulary, and its own calibration.
-     Claiming otherwise would be the same mistake as quoting an accuracy figure measured on
-     exact depth, which is the thing the sensor study exists to stop.`;
+     place of <b>weld_params</b>, its own defect vocabulary, and its own calibration.`;
 }
 
 function tiers(ev) {

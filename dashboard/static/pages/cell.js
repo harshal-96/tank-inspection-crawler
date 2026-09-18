@@ -43,7 +43,7 @@ export function render() {
         <div id="cell-parts"></div>
       </div>
       <div class="card w4">
-        <header><h2>The one look that starts the weld</h2></header>
+        <header><h2>The camera, and the look it takes</h2></header>
         <div class="hint">The camera is fixed to its own post, not the arm: a camera that rides
           the wrist has to be recalibrated against every pose it takes, and its view is the first
           thing the torch gets in the way of.</div>

@@ -111,7 +111,7 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>Where the wall clock goes</h2></header>
+        <header><h2>Model time per part, across the run</h2></header>
         <div class="hint">Time spent waiting on a model, per part, across the run. The cheap
           question is asked fifty times; the expensive one is asked once.</div>
         <div id="pf-time"></div>
@@ -119,7 +119,7 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>What the platform would not do</h2></header>
+        <header><h2>Platform limits met during the build</h2></header>
         <div class="hint">These limits shaped what got built. Anyone deciding whether to use the same
           platform needs to know them more than they need to hear the successes.</div>
         <div id="pf-limits"></div>
@@ -230,8 +230,5 @@ function time(ev) {
   V.paint(V.$("pf-time"), V.ranked(rows, { width: 440, rowH: 36, padL: 176 }));
   V.$("pf-time-meta").innerHTML =
     `The routing is worth <b>${(ultra.total_latency_s - routed.total_latency_s).toFixed(0)} s</b>
-     across fifty parts, which is the difference between asking a question fifty times cheaply
-     and asking it fifty times expensively. The shift-level question is asked once, so its
-     wall clock barely registers, which is exactly why it could afford a larger model until
-     it did not need one.`;
+     across fifty parts, The shift-level question is asked once, so its wall clock barely registers.`;
 }

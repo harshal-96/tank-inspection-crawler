@@ -46,7 +46,7 @@ export function render() {
       </div>
 
       <div class="card w5">
-        <header><h2>The term the cell cannot see</h2></header>
+        <header><h2>The largest term, and why it is invisible here</h2></header>
         <div class="hint">Hand eye calibration is both the largest unmeasured contribution
           and, on the seam alone, undetectable. A camera whose calibration has crept moves
           every measurement equally at the bottom and the top, which is exactly what a
@@ -193,9 +193,7 @@ function confound(c, b) {
      <b>${c.arms[1].correct}/${c.arms[1].n}</b> with a reference feature bolted to the machine
      base. The drifting camera went from <b>${c.camera_without.correct}/${c.camera_without.n}</b>
      to <b>${c.camera_with.correct}/${c.camera_with.n}</b>: without the instrument it was never
-     identified once, and the answer given instead was always the fixture. Same model, same
-     prompt structure, one extra column. What was missing was not intelligence, it was an
-     instrument, and it is the same instrument that would catch the
+     identified once, and the answer given instead was always the fixture. Same model, same prompt structure, one extra column. The same reference feature would catch the
      <b>${V.fmt(b.budgets[2].terms.find((t) => t.name === "Hand eye calibration").mm, 2)} mm</b>
      calibration term above going out.`;
 }

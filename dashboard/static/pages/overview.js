@@ -68,7 +68,7 @@ export function render() {
 
     <div class="grid">
       <div class="card w12" id="bg-honest">
-        <header><h2>Before quoting that first number</h2></header>
+        <header><h2>What these numbers leave out</h2></header>
         <div class="hint">Two things worth knowing before you read any of the numbers below.</div>
         <div id="ov-caveats"></div>
       </div>

@@ -25,7 +25,7 @@ export function render() {
 
     <div class="grid">
       <div class="card w7">
-        <header><h2>How wrong the model can be and still pay</h2></header>
+        <header><h2>How far the distortion model can be off and still help</h2></header>
         <div class="hint">There is an obvious way to cheat this: predict the distortion with
           the same model that produces it, and the correction is exact by construction. So the
           cell compensates with nominal constants while the metal moves by perturbed ones,
@@ -40,7 +40,7 @@ export function render() {
       </div>
 
       <div class="card w5">
-        <header><h2>Why it fails on one side and not the other</h2></header>
+        <header><h2>Where it stops helping</h2></header>
         <div id="cp-shape"></div>
       </div>
 
@@ -158,8 +158,7 @@ function curve(c) {
      <b>${V.fmt(n.compensated_mm, 2)} mm</b>. More usefully, compensating still beats not
      compensating from <b>${(c.helps_from * 100).toFixed(0)}%</b> to
      <b>+${(c.helps_to * 100).toFixed(0)}%</b> model error, which is a wide enough band that a
-     calibrated model on a real machine would sit inside it. The curve is not symmetric, and
-     that asymmetry is the practical result: the failure is on the over-modelled side.`;
+     calibrated model on a real machine would sit inside it. The curve is not symmetric: it fails on the over-modelled side.`;
 }
 
 function table(c) {

@@ -24,18 +24,15 @@ export function render() {
       Correcting every part hides the reason they need correcting. If the press is
       slowly going out of adjustment, the cell will keep welding parts correctly and nobody
       finds out until it has drifted too far to correct. So the cell reads the same
-      measurements a second time, across a whole run of parts, and says which machine is at
-      fault. This is the one job the small model cannot do, and this page says so.
+      measurements a second time, across a whole run of parts, and says which machine is at fault. This is the one job the small model cannot do.
     </p>
 
     <div class="tiles" id="dg-tiles"></div>
 
     <div class="grid">
       <div class="card w7">
-        <header><h2>Who named the cause, and who guessed one answer for everything</h2></header>
-        <div class="hint">Four seeds, three scenarios each. A model that always says the same thing
-          scores four out of twelve by arithmetic, not by diagnosis, which is why the shape of the
-          answers matters as much as the count.</div>
+        <header><h2>Which model named the cause, run by run</h2></header>
+        <div class="hint">Four seeds, three scenarios each. A model that always gives the same answer scores four out of twelve by arithmetic, so the spread of answers matters as much as the count.</div>
         <div id="dg-grid"></div>
         <div class="legend">
           <span><i style="background:var(--good)"></i>named it correctly</span>
@@ -44,7 +41,7 @@ export function render() {
       </div>
 
       <div class="card w5">
-        <header><h2>What each model actually said</h2></header>
+        <header><h2>The answer each model gave</h2></header>
         <div class="hint">The answer distribution, not the score. A single colour across the whole
           row means the model was not reading the evidence.</div>
         <div id="dg-spread"></div>
@@ -57,7 +54,7 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>Taught instead of bought</h2></header>
+        <header><h2>A 1.7B trained on the simulator, run on the cell</h2></header>
         <div class="hint">The cell is a simulation with a forming model in it, so a run of parts
           with a known fault costs nothing to make and arrives already labelled. Six hundred of
           them were generated, away from the seeds below, and a 1.7B model was fine-tuned on
@@ -67,7 +64,7 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>The harder question, once the blind spot was found</h2></header>
+        <header><h2>Four causes, with the reference feature</h2></header>
         <div class="hint">Everything above answers one of three causes. A fourth exists and is
           invisible in the seam: a camera whose calibration has crept moves every measurement
           exactly as a creeping fixture does. Adding a reference feature on the machine base
@@ -81,7 +78,7 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>The test the answer key passes</h2></header>
+        <header><h2>Scored on cases built to sit on the boundary</h2></header>
         <div class="hint">Every score above it is measured on cases that are not hard, and the
           boundary written out as four lines of arithmetic scores full marks on them in zero
           milliseconds. So a second set is built the other way, by rejection sampling until each
@@ -101,7 +98,7 @@ export function render() {
 
       <div class="card w12">
         <header>
-          <h2>What the model pointed at</h2>
+          <h2>The evidence each verdict cited</h2>
           <span class="grow" style="flex:1"></span>
           <select id="dg-model"></select>
         </header>
@@ -145,11 +142,11 @@ function tiles() {
     untrained
       ? tile("The same 1.7B, untrained", `${untrained.correct}/${untrained.n}`, "bad",
           untrained.degenerate
-            ? `answered "${untrained.always_said}" every time, which is what training fixed`
+            ? `answered "${untrained.always_said}" every time`
             : "before fine-tuning")
       : "",
     sevSuper ? tile("120B at 2.5× severity", `${sevSuper.correct}/${sevSuper.n}`, "good",
-      "it improves when the signal does, which is what reading looks like") : "",
+      "it improves when the signal gets stronger") : "",
     trained
       ? tile("Time to a diagnosis", `${V.fmt(trained.median_latency_ms / 1000, 1)}`, "",
           "seconds, on a laptop GPU, asked once a shift", "s")
@@ -243,9 +240,7 @@ function spread() {
   const degenerate = d.runs.filter((r) => r.degenerate).map((r) => r.tier);
   V.$("dg-spread-meta").innerHTML =
     `${degenerate.length ? `<b>${degenerate.join("</b> and <b>")}</b> gave the same answer to every run, ` : ""}
-     which scores <b>4/12</b> whether or not anything was read. The score alone would have made them look
-     like partial successes; the answer distribution is what shows they were not diagnosing.
-     This is why the shift-level question is routed up rather than kept on the small model.`;
+     which scores <b>4/12</b> whether or not anything was read. The distribution, not the score, is what shows that. It is why the shift-level question is routed up.`;
 }
 
 /** The cloud ladder and the trained edge model on one axis. */
@@ -289,9 +284,7 @@ function edge() {
       `<b>${trained.correct}/${trained.n}</b> on the held-out cases, against
        <b>${best.correct}/${best.n}</b> for the largest cloud model that reads the evidence.
        ${untrained ? `The same model untrained scores <b>${untrained.correct}/${untrained.n}</b>
-       by answering <b>${untrained.always_said}</b> every time, which is the same arithmetic the
-       small Nemotron sizes fall into and is what says the training did the work rather than the
-       prompt. ` : ""}
+       by answering <b>${untrained.always_said}</b> every time. ` : ""}
        It answers in <b>${V.fmt(trained.median_latency_ms, 0)} ms</b> on a laptop GPU, slower per
        call than the cloud and available when the line is not. The training set was generated by
        the simulator, so the labels cost nothing and the seeds scored here were excluded from it.`;
@@ -407,15 +400,12 @@ function hard() {
       Here it answers <b>none</b> to ${said} of ${edge.n} runs and catches
       <b>${m ? `${m.correct} of ${m.n}` : "few"}</b> marginal faults, against
       ${V.pct(edge.rate)} overall at p ${edge.vs_rule ? edge.vs_rule.p.toFixed(2) : "?"}
-      versus the rule. It learned the threshold and very little past it, which is exactly
-      the behaviour an easy set cannot tell apart from diagnosis.`);
+      versus the rule. It learned the threshold and very little past it.`);
   }
   if (h.worst_spread) {
     bits.push(`Read the gaps with the spread in mind. At temperature zero the same model on
       the same cases varies by up to <b>${h.worst_spread}</b> between passes, so a difference
-      of one or two here is not a difference, and the p value beside each score is measured
-      on one pass rather than on the pooled passes: repeating a test does not make its result
-      more significant, though pooling it would say so. An arm marked <b>*</b> was called without the
+      of one or two here is not a difference, and each p is measured on one pass rather than on the pooled passes, because repeating a test does not make its result more significant. An arm marked <b>*</b> was called without the
       reasoning option its endpoint rejects; the question, the data and the scoring are
       identical for every arm.`);
   }
@@ -475,12 +465,9 @@ function fourway() {
        ? `The 120B in the cloud managed <b>${c.arms[1].correct}/${c.arms[1].n}</b> with the same
           instrument and <b>${c.arms[0].correct}/${c.arms[0].n}</b> without it. `
        : ""}
-     The honest cost is time: it answers in <b>${V.fmt(trained.median_latency_ms / 1000, 1)} s</b>
+     It answers in <b>${V.fmt(trained.median_latency_ms / 1000, 1)} s</b>
      on a laptop GPU against about 1.6 s for the 120B, because the table is longer and it writes
-     out its reasoning. For a question asked once a shift on a machine with no network, that is
-     the right side of the trade. The three-cause result above is kept rather than replaced,
-     because it is what those models were actually scored on, and quietly restating it against a
-     harder question would be the kind of thing this dashboard exists to avoid.`;
+     out its reasoning. The three-cause result above is kept rather than restated against a harder question, because it is what those models were scored on.`;
 }
 
 function severity() {
@@ -520,11 +507,9 @@ function severity() {
   const improved = rows.filter((r) => r.after > r.before).map((r) => r.tier);
   const flat = rows.filter((r) => r.after <= r.before).map((r) => r.tier);
   V.$("dg-severity-meta").innerHTML =
-    `${improved.length ? `<b>${improved.join(", ")}</b> improved when the fault got stronger, which is what
-      reading the evidence looks like. ` : ""}
-     ${flat.length ? `<b>${flat.join(", ")}</b> did not move, which is what a fixed answer looks like. ` : ""}
-     The practical reading: this question belongs on a larger model, it is asked once a shift rather than
-     once a part, and the cost of putting it there is a few seconds a shift.`;
+    `${improved.length ? `<b>${improved.join(", ")}</b> improved when the fault got stronger. ` : ""}
+     ${flat.length ? `<b>${flat.join(", ")}</b> did not move. ` : ""}
+     The question is asked once a shift rather than once a part, so running it on a larger model costs a few seconds a shift.`;
 }
 
 function picker() {

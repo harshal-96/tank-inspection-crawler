@@ -37,7 +37,7 @@ export function render() {
       </div>
 
       <div class="card w4">
-        <header><h2>What is left, and why</h2></header>
+        <header><h2>What the correction cannot remove</h2></header>
         <div class="hint">Correcting the path removes the offset, but it cannot remove the bow, because
           the seam itself is curved. That bow is the limit on how accurate this method
           can get.</div>
@@ -171,8 +171,8 @@ function strip() {
 /**
  * The residual is two percent of the miss, so three bars on one scale would be one
  * bar and two hairlines. This draws the miss at full scale and then magnifies what
- * is left, with the magnification stated, which is the honest way to show a figure
- * whose two halves are three orders apart.
+ * is left, with the magnification stated, because the two halves are three orders
+ * apart and one scale would hide the smaller one.
  */
 function decomp() {
   const s = ev.seam;
@@ -248,8 +248,7 @@ function refused() {
   const clean = counts.get(0) || 0;
   V.$("sm-refused-meta").innerHTML =
     `<b>${s.refused_stations}</b> of <b>${s.stations_measured.toLocaleString()}</b> stations refused across the run,
-     on <b>${s.n_parts - clean}</b> parts. A refusal is not a failure of the weld: it is the cell saying the
-     press fit-up needs correcting rather than the arc being asked to bridge it.`;
+     on <b>${s.n_parts - clean}</b> parts. A refused station means the gap there is wider than one pass can bridge, so the fit-up needs correcting at the press.`;
 }
 
 function locating() {
@@ -269,9 +268,8 @@ function locating() {
   V.$("sm-locating-meta").innerHTML =
     `The gap that matters is the first one: <b>${V.fmt(l.blind.mean_mm, 1)} mm</b> down to
      <b>${V.fmt(l.one_look.mean_mm, 2)} mm</b>, bought by looking once. Deciding whether to look again
-     is worth <b>${V.fmt(Math.abs(l.one_look.mean_mm - l.routed.mean_mm), 3)} mm</b> on the mean here, which
-     is honest: on this part mix the first look was almost always good enough, and the value of the
-     decision is that it did not spend a second look finding that out.`;
+     is worth <b>${V.fmt(Math.abs(l.one_look.mean_mm - l.routed.mean_mm), 3)} mm</b> on the mean:
+     on this part mix the first look was almost always good enough.`;
 }
 
 /* --------------------------------------------------------------------- detail */

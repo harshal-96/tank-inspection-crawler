@@ -43,7 +43,7 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>The disagreements, laid out rather than averaged</h2></header>
+        <header><h2>Every decision, arm by arm</h2></header>
         <div class="hint">One column per decision, one row per arm. Green is a correct call, red a
           wrong one. The block of red was read here as over-caution in larger models. The card
           below shows that reading was wrong, and the fault was in the prompt.</div>
@@ -55,7 +55,7 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>Not over-caution. An instruction with no number in it.</h2></header>
+        <header><h2>The same decisions, with the boundary given a number</h2></header>
         <div class="hint">The prompt these arms were given said to accept a single view only if
           its signals were &ldquo;excellent&rdquo;, and never said what excellent meant. Every
           part starts with exactly one view, so read literally that sentence asks for a second
@@ -146,11 +146,10 @@ function promptAudit() {
   const best = models[moved.indexOf(Math.max(...moved))];
   V.$("rt-prompt-meta").innerHTML =
     `One sentence moved <b>${V.esc(best.name)}</b> from <b>${best.as_written.correct}</b> to
-     <b>${best.stated.correct}</b> of ${n}. The routing decision stands, because the small model
-     is still the right one to run here and it was right for a reason worth keeping: it does not
-     need the boundary spelled out. But the explanation this page used to give, that larger
-     models are inherently more cautious, does not survive the test. They were obeying an
-     instruction, and the instruction had no number in it.`;
+     <b>${best.stated.correct}</b> of ${n}. The small model is still the right one to
+     run here: it reaches the correct call without the boundary spelled out. But the larger
+     models were not being more cautious. They were following an instruction that had no
+     number in it.`;
 }
 
 function arm(name) { return ev.router.arms.find((a) => a.arm === name); }
@@ -230,8 +229,7 @@ function cost() {
   V.$("rt-cost-meta").innerHTML =
     `The routed arm sits in the bottom left: <b>${routed.looks_per_decision.toFixed(2)}</b> looks per part
      in <b>${routed.total_latency_s.toFixed(0)} s</b>, and it was right more often than the arm that
-     cost <b>${ultra.total_latency_s.toFixed(0)} s</b>. Caution is not free here, and on this question it
-     did not buy accuracy either.`;
+     cost <b>${ultra.total_latency_s.toFixed(0)} s</b>.`;
 }
 
 function grid() {
@@ -304,8 +302,8 @@ function live() {
   V.bindTips(host);
 
   V.$("rt-live-meta").innerHTML =
-    `Every row carries the model that answered and why it was picked, so a decision can be traced
-     back to a tier rather than to "the AI".`;
+    `Every row carries the model that answered and why it was picked, so a decision can be
+     traced back to the tier that made it.`;
 
   const reasons = rows.slice(0, 6);
   V.$("rt-reasons").innerHTML = reasons.map((d) => `

@@ -55,10 +55,9 @@ export function render() {
 
     <div class="grid">
       <div class="card w12">
-        <header><h2>Following each failure mode until it breaks</h2></header>
+        <header><h2>Each failure mode, taken until it breaks</h2></header>
         <div class="hint">One axis at a time, everything else clean, so each curve shows what
-          that one failure costs rather than a mixture. The pale line is the worst station on
-          any part, which is what actually burns through and degrades far faster than the mean.</div>
+          that one failure costs rather than a mixture. The pale line is the worst station on any part. It degrades far faster than the mean, and it is the one that burns through.</div>
         <div id="lm-curves"></div>
         <div class="legend">
           <span><i class="line" style="background:var(--after)"></i>mean error, faces fitted from all their points</span>
@@ -75,9 +74,8 @@ export function render() {
       </div>
 
       <div class="card w5">
-        <header><h2>Whole sensors, every failure mode at once</h2></header>
-        <div class="hint">The curves above change one thing at a time, which is what makes them useful for
-          diagnosis. These are the combinations a real camera actually produces.</div>
+        <header><h2>Real sensors, every failure mode at once</h2></header>
+        <div class="hint">The curves above change one thing at a time. These are the combinations a real camera actually produces.</div>
         <div id="lm-named"></div>
       </div>
     </div>`;
@@ -230,11 +228,7 @@ function limits(r) {
   V.$("lm-verdict").innerHTML =
     `The binding constraint is range accuracy, and it is tighter than it looks:
      <b>${axial.holds_to} mm</b> at a metre. A general purpose stereo depth camera is
-     around 2.5 mm at that range, so this method does not belong on one. That is not a
-     disappointment, it is the specification: production seam trackers use laser line
-     triangulation at a tenth of a millimetre, and this sweep says why. Losing most of
-     the frame, by contrast, barely matters, which is the opposite of what the shiny
-     sheet metal problem sounds like it should be.`;
+     around 2.5 mm at that range, so this method does not run on one. Production seam trackers use laser line triangulation at a tenth of a millimetre. Losing most of the frame barely matters by comparison.`;
 }
 
 function named(r) {
