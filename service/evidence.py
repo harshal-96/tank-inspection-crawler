@@ -392,6 +392,83 @@ def vision_study() -> dict[str, Any]:
     return {"available": True, "arms": arms}
 
 
+# The sweep is run twice: once scoring the slice measurements alone, once with
+# each face fitted from every point it has. The pair is the finding.
+ROBUSTNESS_ARMS: dict[str, tuple[str, str]] = {
+    "slices": ("robustness_slices.jsonl", "measured slice by slice"),
+    "refined": ("robustness_refined.jsonl", "faces fitted from all their points"),
+}
+
+WELDABLE_MM = 1.0
+
+
+def _mean_holds(row: dict[str, Any]) -> bool:
+    """The path is broadly on the joint."""
+    return bool(row.get("weldable"))
+
+
+def _edge(ordered: list[dict[str, Any]], passes) -> dict[str, Any]:
+    """Where along a swept axis a criterion stops being met."""
+    held = [r["value"] for r in ordered if passes(r)]
+    failed = [r for r in ordered if not passes(r)]
+    return {
+        "holds_to": max(held) if held else None,
+        "fails_at": failed[0]["value"] if failed else None,
+        "fails_by": ("nothing measurable" if failed and failed[0]["parts_tracked"] == 0
+                     else "drifting off the joint while still reporting a path"
+                     if failed else None),
+    }
+
+
+def robustness_study() -> dict[str, Any]:
+    """Where the perception stops working, and what moving it cost.
+
+    Every other number in this repository was measured on exact rendered depth,
+    which makes them ceilings rather than results. This is the only study that
+    asks the question an engineer asks first, which is not how good it is but
+    where the edge is.
+    """
+    arms = []
+    for key, (name, label) in ROBUSTNESS_ARMS.items():
+        rows = _read(name)
+        if not rows:
+            continue
+        axes: dict[str, list[dict[str, Any]]] = {}
+        for row in rows:
+            axes.setdefault(row["axis"], []).append(row)
+
+        limits = {}
+        for axis, curve in axes.items():
+            if axis == "named":
+                continue
+            ordered = sorted(curve, key=lambda r: r["value"])
+
+            # The threshold is declared on the mean because that is what was
+            # fixed before the sweep ran. It is not the whole story and is not
+            # presented as one: the worst station on any part is what actually
+            # burns through, it degrades far faster than the mean, and it is
+            # carried alongside every point on the curve so a reader sees both.
+            # Putting a second threshold on it now, after seeing the data, would
+            # be exactly the sort of thing this study exists to avoid.
+            limits[axis] = _edge(ordered, _mean_holds)
+            limits[axis]["worst_mm_when_it_fails"] = next(
+                (r["worst_mm"] for r in ordered if not _mean_holds(r)), None)
+            limits[axis]["worst_mm_at_best"] = ordered[0].get("worst_mm") if ordered else None
+        arms.append({
+            "arm": key,
+            "label": label,
+            "axes": {a: sorted(c, key=lambda r: r["value"]) for a, c in axes.items()
+                     if a != "named"},
+            "named": sorted((r for r in rows if r["axis"] == "named"),
+                            key=lambda r: r["mean_mm"] if r["mean_mm"] is not None else 1e9),
+            "limits": limits,
+        })
+
+    if not arms:
+        return {"available": False}
+    return {"available": True, "weldable_mm": WELDABLE_MM, "arms": arms}
+
+
 def all_studies() -> dict[str, Any]:
     return {
         "seam": seam_study(),
@@ -400,4 +477,5 @@ def all_studies() -> dict[str, Any]:
         "drift": drift_study(),
         "inspection": inspection_study(),
         "vision": vision_study(),
+        "robustness": robustness_study(),
     }

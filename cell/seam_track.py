@@ -111,6 +111,68 @@ class SeamTrack:
             [np.convolve(padded[:, i], kernel, mode="valid") for i in range(3)]
         )
 
+    def fitted_path(self, degree: int = 3, robust_passes: int = 2,
+                    reject_sigma: float = 2.5) -> np.ndarray:
+        """The path a low-order curve puts through the stations, which is the one to weld.
+
+        Treating each station as an independent measurement throws away the
+        strongest thing known about the part. The seam is a fold line in
+        continuous sheet: springback and camber bow it over its whole length, and
+        the metal physically cannot jink between one station and the next 20 mm
+        away. So the deviation from straight is smooth and low order, and anything
+        in a station-by-station reading that is not smooth is the sensor rather
+        than the seam.
+
+        A moving average would also suppress that, but it pays for it at the ends,
+        where it has nothing to average against and falls back on the edge value,
+        and the ends of a seam are exactly where a bow is largest. A polynomial in
+        distance along the seam has no such edge, and it is the right shape: a
+        cubic covers a single springback arc and the S that camber adds to it.
+
+        Two other things matter and are cheap. Stations differ in how well they
+        were measured, so each is weighted by its own fit residual rather than
+        counted equally. And a station that disagrees with the curve by more than
+        a few robust deviations is dropped and the curve refitted, because a fit
+        that ran away on one slice should not be allowed to bend the path the
+        torch follows.
+        """
+        stations = self.measured
+        if len(stations) < degree + 2:
+            return self.path()
+
+        along = np.array([s.along_m for s in stations], dtype=float)
+        points = np.array([s.position for s in stations], dtype=float)
+
+        # A station's uncertainty scales with its own fit residual. The floor
+        # keeps a suspiciously perfect slice from dominating every other one.
+        residual = np.array([max(s.residual_mm, 0.05) for s in stations], dtype=float)
+        weights = 1.0 / np.square(residual)
+
+        span = max(along.max() - along.min(), 1e-9)
+        t = (along - along.min()) / span            # conditioned, so the fit is stable
+        keep = np.ones(len(stations), dtype=bool)
+
+        curve = points
+        for _ in range(max(1, robust_passes)):
+            if keep.sum() < degree + 2:
+                break
+            coefficients = [
+                np.polyfit(t[keep], points[keep, axis], degree, w=weights[keep])
+                for axis in range(3)
+            ]
+            curve = np.column_stack([np.polyval(c, t) for c in coefficients])
+
+            off = np.linalg.norm(points - curve, axis=1)
+            scale = np.median(np.abs(off - np.median(off))) * 1.4826
+            if scale < 1e-9:
+                break
+            fresh = off < np.median(off) + reject_sigma * scale
+            if fresh.sum() < degree + 2 or np.array_equal(fresh, keep):
+                break
+            keep = fresh
+
+        return curve
+
     def wander_mm(self, smooth: bool = True) -> float:
         """How far the seam departs from the straight line between its own ends.
 
@@ -317,6 +379,101 @@ def measure_station(
     return position, gap_mm, len(a), len(b), residual_mm, None
 
 
+def surface_path(
+    points_world: np.ndarray,
+    seam_start: np.ndarray,
+    seam_end: np.ndarray,
+    heights: np.ndarray,
+    half_width_m: float = 0.045,
+    degree: int = 2,
+    threshold_m: Optional[float] = None,
+    rng: Optional[np.random.Generator] = None,
+) -> Optional[np.ndarray]:
+    """Where the seam runs, from both faces at once rather than slice by slice.
+
+    Station-by-station measurement has a weakness that only shows up on a real
+    sensor. Each station fits its two lines from the few hundred points inside a
+    thin slice, and a short segment constrains a line's ANGLE badly. The angular
+    error is then multiplied by the distance out to the vertex, so a slice fit
+    that looks reasonable puts the corner millimetres away. Thickening the slice
+    helps a little and costs resolution; it does not address the cause.
+
+    The cause is that the faces were treated as new evidence at every station,
+    when they are two continuous panels seen in tens of thousands of points. A
+    folded panel has one orientation. What varies along the seam is how far out
+    the panel sits, because springback and camber bow it, and that is a single
+    number per height rather than a whole new plane.
+
+    So each face is fitted once, robustly, from every point near the seam, giving
+    a normal that tens of thousands of samples agree on. Only the offset is
+    allowed to vary, as a low-order polynomial in height, which is exactly the
+    freedom a bow needs and no more. The seam at a height is then where the two
+    bowed faces and that height meet: three planes, one point, well conditioned.
+
+    Returns None when the cloud does not hold two distinct faces, which is a
+    refusal rather than a guess. The caller keeps its slice measurements in that
+    case, because a station it cannot improve is better left as measured.
+    """
+    from cell import geometry as geo
+    from cell.depth_joint import Plane, fit_two_planes
+
+    # The inlier band has to be narrower than the sheet is thick, or a panel's
+    # two faces are claimed by one plane and its offset lands between them. On
+    # 2 mm sheet a 2.5 mm band, which looks like an ordinary RANSAC tolerance,
+    # biased the seam by 1.4 mm and made this estimator worse than the slices it
+    # was meant to beat. Derived from the geometry rather than tuned.
+    if threshold_m is None:
+        threshold_m = 0.6 * geo.PART_T
+
+    axis = np.asarray(seam_end, dtype=float) - np.asarray(seam_start, dtype=float)
+    length = float(np.linalg.norm(axis))
+    if length < 1e-6:
+        return None
+    axis = axis / length
+
+    start = np.asarray(seam_start, dtype=float)
+    along = (points_world - start) @ axis
+    radial = points_world - start - np.outer(along, axis)
+    near = (np.linalg.norm(radial, axis=1) < half_width_m)
+    near &= (along > -0.02) & (along < length + 0.02)
+    gathered = points_world[near]
+    if len(gathered) < 200:
+        return None
+
+    try:
+        face_a, face_b = fit_two_planes(gathered, threshold=threshold_m, rng=rng)
+    except (RuntimeError, ValueError):
+        return None
+
+    def bowed_offset(face: Plane) -> Optional[np.poly1d]:
+        """How far the face sits out, as a function of height along the seam."""
+        signed = gathered @ face.normal - face.offset
+        inliers = np.abs(signed) < threshold_m
+        if inliers.sum() < max(50, (degree + 1) * 20):
+            return None
+        h = (gathered[inliers] - start) @ axis
+        d = gathered[inliers] @ face.normal
+        # Conditioned on the seam's own length so the fit does not depend on where
+        # the part happens to sit in the cell.
+        return np.poly1d(np.polyfit(h / length, d, degree))
+
+    offset_a = bowed_offset(face_a)
+    offset_b = bowed_offset(face_b)
+    if offset_a is None or offset_b is None:
+        return None
+
+    matrix = np.stack([face_a.normal, face_b.normal, axis])
+    if abs(np.linalg.det(matrix)) < 1e-6:
+        return None
+
+    out = []
+    for height in np.asarray(heights, dtype=float):
+        t = height / length
+        rhs = np.array([offset_a(t), offset_b(t), float(start @ axis) + height])
+        out.append(np.linalg.solve(matrix, rhs))
+    return np.array(out)
+
+
 def track_seam(
     points_world: np.ndarray,
     seam_start: np.ndarray,
@@ -405,6 +562,7 @@ def find_and_track(
     slice_thickness_m: float = SLICE_THICKNESS_M,
     locate_range_m: float = LOCATE_RANGE_M,
     capture_range_m: float = CAPTURE_RANGE_M,
+    refine: bool = True,
 ) -> SeamTrack:
     """Locate this part's seam first, then track along it.
 
@@ -453,7 +611,7 @@ def find_and_track(
     located_start = fit[1]
     located_end = fit[0] * length + fit[1]
 
-    return track_seam(
+    track = track_seam(
         points_world,
         located_start,
         located_end,
@@ -462,3 +620,47 @@ def find_and_track(
         slice_thickness_m=slice_thickness_m,
         capture_range_m=capture_range_m,
     )
+    if refine:
+        track = refine_positions(track, points_world, located_start, located_end,
+                                 half_width_m=half_width_m)
+    return track
+
+
+def refine_positions(
+    track: SeamTrack,
+    points_world: np.ndarray,
+    seam_start: np.ndarray,
+    seam_end: np.ndarray,
+    half_width_m: float = 0.045,
+) -> SeamTrack:
+    """Replace each station's position with the one both whole faces agree on.
+
+    Only the position changes. The gap, the point counts and the residual stay as
+    the slice measured them, because those are local by nature: a gap is how far
+    short the metal stops HERE, and nothing about the rest of the seam can tell
+    you that. Where the seam runs is the opposite kind of quantity, and is better
+    estimated from every point on both panels than from the few hundred inside one
+    slice.
+
+    Silently does nothing when the faces cannot be fitted. A station that cannot
+    be improved is left as measured rather than dropped.
+    """
+    measured = track.measured
+    if len(measured) < 4:
+        return track
+
+    heights = np.array([s.along_m for s in measured])
+    refined = surface_path(points_world, seam_start, seam_end, heights,
+                           half_width_m=half_width_m)
+    if refined is None:
+        return track
+
+    # A refinement that disagrees with the slices by more than the capture range
+    # is not a refinement, it is a different seam. Keep the slices in that case.
+    moved = np.linalg.norm(refined - np.array([s.position for s in measured]), axis=1)
+    if float(np.median(moved)) > CAPTURE_RANGE_M:
+        return track
+
+    for station, position in zip(measured, refined, strict=True):
+        station.position = position
+    return track
