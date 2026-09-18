@@ -30,6 +30,13 @@ const GROUPS = ["Result", "Studies", "Cell", "Reference"];
 
 let current = null;
 
+// Mounting is asynchronous: a page fetches, then draws into elements its own
+// render() put on screen. Navigate away while that is in flight and the elements
+// are gone, so the draw throws on a null. Every navigation takes a ticket, and a
+// mount that comes back holding a stale one stops rather than writing into a page
+// that is no longer there.
+let visit = 0;
+
 function rail() {
   const groups = GROUPS.map((g) => {
     const items = PAGES.filter((p) => p.meta.group === g);
@@ -78,6 +85,7 @@ async function route() {
   const page = BY_ID.get(id) || overview;
   if (current === page) return;
 
+  const ticket = ++visit;
   current?.unmount?.();
   current = page;
 
@@ -95,6 +103,7 @@ async function route() {
   try {
     await page.mount?.();
   } catch (err) {
+    if (ticket !== visit) return;        // navigated away; not this page's problem
     body.insertAdjacentHTML("afterbegin",
       `<div class="card w12"><div class="empty">This page could not be drawn: ${V.esc(err.message)}</div></div>`);
     console.error(err);
@@ -118,7 +127,12 @@ function status() {
 
   subscribe(() => {
     status();
-    current?.update?.();
+    const ticket = visit;
+    try {
+      current?.update?.();
+    } catch (err) {
+      if (ticket === visit) console.error(err);
+    }
   });
 
   await refreshLive();

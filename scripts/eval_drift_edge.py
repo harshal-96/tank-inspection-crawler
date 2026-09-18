@@ -37,8 +37,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell.drift import (  # noqa: E402
     SCENARIOS,
-    SYSTEM_PROMPT,
+    SCENARIOS_WITH_CAMERA,
     build_stream,
+    prompt_for,
     quiet_seed,
     trend,
     user_prompt,
@@ -77,7 +78,9 @@ def ask(tokenizer, model, rows: list[dict]) -> dict:
     import torch
 
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        # Paired to the rows, so a model is never told about a reference column
+        # that is not in its table or shown one nobody described.
+        {"role": "system", "content": prompt_for(rows)},
         {"role": "user", "content": user_prompt(rows)},
     ]
     # Qwen3 thinks by default. The cloud baselines were all run with reasoning
@@ -122,14 +125,20 @@ def main() -> int:
                         help="Score the untrained model, to show what training bought")
     parser.add_argument("--severity", type=float, default=1.0)
     parser.add_argument("--out", default=None)
+    parser.add_argument("--with-camera", action="store_true",
+                        help="The four-way question, including a drifting camera, with "
+                             "the reference feature that separates it from a drifting "
+                             "fixture. Harder, and the one that matters.")
     args = parser.parse_args()
+
+    scenarios = SCENARIOS_WITH_CAMERA if args.with_camera else SCENARIOS
 
     adapter = None if args.base_only else args.adapter
     if adapter and not Path(adapter).is_dir():
         raise SystemExit(f"no adapter at {adapter}; run scripts/finetune_drift.py --fetch")
 
-    out = Path(args.out or ("data/drift_eval_edge_base.jsonl" if args.base_only
-                            else "data/drift_eval_edge.jsonl"))
+    stem = "drift_eval_edge4" if args.with_camera else "drift_eval_edge"
+    out = Path(args.out or f"data/{stem}{'_base' if args.base_only else ''}.jsonl")
 
     tokenizer, model = load(args.base, adapter)
 
@@ -139,9 +148,10 @@ def main() -> int:
     print("-" * 74)
 
     for run in range(args.runs):
-        for scenario in SCENARIOS:
+        for scenario in scenarios:
             seed = quiet_seed(args.parts, 100 + run * 137)
-            rows, truth = build_stream(args.parts, scenario, seed, args.severity)
+            rows, truth = build_stream(args.parts, scenario, seed, args.severity,
+                                       reference=args.with_camera)
             verdict = ask(tokenizer, model, rows)
             correct = verdict.get("cause") == truth
             records.append({
@@ -166,9 +176,13 @@ def main() -> int:
 
     correct = sum(1 for r in records if r["correct"])
     print(f"\n{correct}/{len(records)} diagnosed correctly")
-    for scenario in SCENARIOS:
+    for scenario in scenarios:
         rows = [r for r in records if r["scenario"] == scenario]
         print(f"  {scenario:<8} {sum(1 for r in rows if r['correct'])}/{len(rows)}")
+    if args.with_camera:
+        confusable = [r for r in records if r["scenario"] in ("fixture", "camera")]
+        got = sum(1 for r in confusable if r["correct"])
+        print(f"  the two that look alike on the seam alone: {got}/{len(confusable)}")
     said = {r["said"] for r in records}
     if len(said) == 1:
         print(f"  [warning] answered {said.pop()!r} every time, which is not diagnosis")
