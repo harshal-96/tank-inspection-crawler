@@ -22,7 +22,7 @@ const ROWS = [
     platform: "Nebius Token Factory",
     model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
     cadence: "once per part",
-    why: "right on 39 of 39 calls against the known answer, one look per part, and the cheapest of the three sizes that were",
+    why: "right on 88 of 89 calls against the known answer, never a wasted look, and the cheapest of the three sizes that scored that",
     tone: "s1",
   },
   {

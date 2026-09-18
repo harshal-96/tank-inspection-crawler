@@ -31,7 +31,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | | Result | Scored against |
 | --- | --- | --- |
 | Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
-| Routing to the right model size | 39 of 39 for the smallest model, and for two larger ones | ground truth, not a larger model's opinion |
+| Routing to the right model size | 88 of 89 for the smallest model, no part welded on a failed view | ground truth, not a larger model's opinion |
 | Post-weld inspection | 88% pass or defect on 50 beads, 39 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
@@ -281,20 +281,28 @@ of work. It is the obvious next step and no result from it is claimed here.
 The obvious architecture is a ladder: a cheap model on routine calls, a large one when
 the evidence conflicts. That is what was built, and measuring it took it apart.
 
-Scored against ground truth rather than against the largest model's opinion, on 39
+Scored against ground truth rather than against the largest model's opinion, on 89
 decision points where the simulation knows the answer, under the prompt the cell runs:
 
-| Model | Correct | Robot moves wasted | Model time for the run |
-| --- | --- | --- | --- |
-| Nemotron 3 Nano 30B | **39 of 39** | 0 | 50 s |
-| Nemotron 3.5 Lightning | 39 of 39 | 0 | 47 s |
-| Nemotron 3 Super 120B | 19 of 39 | 20 | 65 s |
-| Nemotron 3 Ultra 550B | 39 of 39 | 0 | 63 s |
+| Model | Correct | Looks it did not need | Failed views accepted | Model time for the run |
+| --- | --- | --- | --- | --- |
+| Nemotron 3 Nano 30B | **88 of 89** | 0 | 1 | 132 s |
+| Nemotron 3.5 Lightning | 88 of 89 | 0 | 1 | 98 s |
+| Nemotron 3 Super 120B | 61 of 89 | 28 | 0 | 150 s |
+| Nemotron 3 Ultra 550B | 88 of 89 | 1 | 0 | 141 s |
 
-Three of the four sizes get every decision right. The smallest one runs, fifty times a
-part, because it is the cheapest of the three that are right; the largest buys nothing
-here. The 120B still asks for a second look on half the parts with the boundary stated,
-and that is the one model-level finding in the table.
+The decision set has both answers in it, which the first version of this test did not.
+Thirty-nine points are replayed from the campaign, where every part was seen square-on
+first and a second look was never worth taking. Fifty more take a captured part and
+show it first from one of its five angles, twenty-five where the first view failed to
+measure or landed tens of millimetres out and a look is needed, twenty-five where it
+did not. A model can now be wrong two ways: ask for a look it does not need, which costs
+a robot move, or accept a view that a look would have fixed, which welds the part on it.
+Three of the four sizes get all but one right; the one miss for the two smaller models
+is a square-on view a look would have improved by a third of a millimetre, the
+boundary case. The smallest one runs because it is the cheapest of the three. The 120B
+still asks for a second look on a third of the parts with the boundary stated, and that
+is the one model-level finding in the table.
 
 That is not the first table this section carried, and the reason it changed is worth
 keeping. The prompt as first written said:
@@ -305,9 +313,9 @@ Every part in the campaign starts with exactly one view, and "excellent" is neve
 defined anywhere in the prompt. Read literally, that sentence instructs a model to ask
 for a second look on every part in the set, which is precisely what Super did, 39 times
 out of 39. Scoring that as a judgment failure was scoring obedience to an instruction
-with no number in it. Under that prompt the same 39 decisions scored Nano 34, Lightning
-1, Super 0 and Ultra 21 of 39, and this file called the smallest model the most correct
-one and told a story about large models being cautious.
+with no number in it. Under that prompt the 39 replayed decisions scored Nano 34,
+Lightning 1, Super 0 and Ultra 21 of 39, and this file called the smallest model the
+most correct one and told a story about large models being cautious.
 
 Putting the same decisions to the same models with one sentence added, giving the
 boundary a number taken from what the cell already treats as a good view rather than
