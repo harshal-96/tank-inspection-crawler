@@ -15,6 +15,7 @@ import * as diagnosis from "./pages/diagnosis.js";
 import * as inspection from "./pages/inspection.js";
 import * as limits from "./pages/limits.js";
 import * as compensation from "./pages/compensation.js";
+import * as budget from "./pages/budget.js";
 import * as cell from "./pages/cell.js";
 import * as parts from "./pages/parts.js";
 import * as supervisor from "./pages/supervisor.js";
@@ -23,7 +24,7 @@ import * as method from "./pages/method.js";
 import * as platform from "./pages/platform.js";
 
 const PAGES = [overview, seam, routing, diagnosis, inspection, limits, compensation,
-               cell, parts, briefs, supervisor, method, platform];
+               budget, cell, parts, briefs, supervisor, method, platform];
 const BY_ID = new Map(PAGES.map((p) => [p.meta.id, p]));
 const GROUPS = ["Result", "Studies", "Cell", "Reference"];
 

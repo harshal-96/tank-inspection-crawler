@@ -32,6 +32,23 @@ from cell.forming import PressDrift, plan_shift
 
 SCENARIOS = ("press", "fixture", "none")
 
+# The same question with the blind spot closed. A camera whose calibration has
+# crept moves every measurement it makes, equally at the bottom of the seam and
+# the top, which is the same signature a creeping fixture leaves. Measured on the
+# seam alone the two are not merely hard to separate, they are identical, and the
+# diagnosis answers "fixture" to both with high confidence. That sends a fitter to
+# re-shim a fixture that is fine while the camera mount goes on moving.
+#
+# Nothing in a cleverer model fixes that, because the information is not in the
+# data. It needs an instrument: a reference feature bolted to the machine base,
+# not to the fixture, which the camera also sees. If the reference moves, the
+# camera moved. If the reference holds still while parts walk, the fixture moved.
+SCENARIOS_WITH_CAMERA = ("press", "fixture", "camera", "none")
+
+# How far the reference feature sits from the seam, and the scatter on reading it.
+# It is a machined edge rather than a joint, so it reads better than the seam does.
+REFERENCE_NOISE_MM = 0.35
+
 SYSTEM_PROMPT = """You watch a robot welding cell and diagnose what is going wrong.
 
 Each part is measured before welding. The cell tracks the weld seam along its
@@ -59,23 +76,76 @@ Answer with JSON only:
  "evidence": "one or two sentences naming the numbers that decided it"}"""
 
 
+SYSTEM_PROMPT_WITH_REFERENCE = """You watch a robot welding cell and diagnose what is going wrong.
+
+Each part is measured before welding. The cell tracks the weld seam along its
+whole length, so for every part you are given where the seam sits at the BOTTOM of
+the joint and where it sits at the TOP, both as an offset in millimetres from
+where a perfect part would put it.
+
+You are also given a reference reading: a fixed feature bolted to the machine
+base, which the same camera measures on every part. Nothing about the press or the
+fixture can move it. Only the camera moving can.
+
+Four things can be happening.
+
+fixture: the part is being located badly. The whole seam moves together, so the
+bottom offset and the top offset drift by about the same amount, AND the reference
+stays put, because the fixture cannot move a feature bolted to the base. Fix the
+fixture or the locators.
+
+camera: the camera mount has crept, so every measurement it makes is shifted. The
+seam appears to move exactly as it would for a bad fixture, bottom and top
+together, AND the reference drifts with it by the same amount. Nothing is wrong
+with the parts at all. Recalibrate the camera.
+
+press: the press brake is going out of adjustment. A bend angle is applied at the
+fold and multiplied by the height of the side, so the TOP of the seam walks while
+the BOTTOM stays roughly where it was. The tilt, top minus bottom, is what trends.
+The reference stays put. Fix the press.
+
+none: nothing is trending. Parts scatter about zero the way any process does.
+Say so. Do not invent a fault.
+
+The reference is what separates fixture from camera. On the seam alone those two
+are identical, so check it before answering either.
+
+Answer with JSON only:
+{"cause": "fixture" | "camera" | "press" | "none",
+ "confidence": 0.0 to 1.0,
+ "evidence": "one or two sentences naming the numbers that decided it"}"""
+
+
 def build_stream(parts: int, scenario: str, seed: int,
-                 severity: float = 1.0) -> tuple[list[dict], str]:
+                 severity: float = 1.0,
+                 reference: bool = False) -> tuple[list[dict], str]:
     """Make a run of parts with a known fault, and the measurements it produces.
 
     severity scales how far out the machine has gone. At 1.0 the press drift
     moves the tilt by about twice the part-to-part scatter, which is a fault a
     shop would be arguing about rather than one it had already found.
+
+    reference adds the reading of a fixture-independent feature, which is what
+    separates a drifting camera from a drifting fixture. Off by default so the
+    three-scenario study keeps producing exactly the streams it was scored on.
     """
     rng = random.Random(seed)
     drift = (PressDrift(lean_deg_per_part=0.012 * severity, side="right",
                         starts_at=parts // 4)
              if scenario == "press" else None)
+    if scenario not in (*SCENARIOS, "camera"):
+        raise ValueError(f"unknown scenario {scenario!r}")
     trays = plan_shift(parts, seed=seed, drift=drift)
 
     rows = []
     for index, tray in enumerate(trays):
         corner = tray.welded_corner()
+
+        # A camera that has crept moves everything it measures, by the same amount
+        # at every height and on every feature, including the reference.
+        camera_shift = 0.0
+        if scenario == "camera" and index >= parts // 4:
+            camera_shift = 0.6 * severity * (index - parts // 4)
 
         # How the part sat in the fixture. Ordinary scatter, plus a creep in one
         # direction if the fixture is the thing going off.
@@ -94,29 +164,53 @@ def build_stream(parts: int, scenario: str, seed: int,
         root_two = math.sqrt(2.0)
         bottom_dx, bottom_dy = corner.seam_offset_m(0.0, geo.PART_D)
         top_dx, top_dy = corner.seam_offset_m(geo.PART_D, geo.PART_D)
-        bottom = ((bottom_dx - bottom_dy) / root_two + settle) * 1000.0
-        top = ((top_dx - top_dy) / root_two + settle) * 1000.0
-        rows.append({
+        bottom = ((bottom_dx - bottom_dy) / root_two + settle) * 1000.0 + camera_shift
+        top = ((top_dx - top_dy) / root_two + settle) * 1000.0 + camera_shift
+        row = {
             "part": index,
             "seam_bottom_mm": round(bottom, 3),
             "seam_top_mm": round(top, 3),
             "tilt_mm": round(top - bottom, 3),
-        })
+        }
+        if reference:
+            # Bolted to the machine base, so the press and the fixture cannot move
+            # it. Only the camera can.
+            row["reference_mm"] = round(
+                camera_shift + rng.gauss(0.0, REFERENCE_NOISE_MM), 3)
+        rows.append(row)
     return rows, scenario
 
 
 def format_table(rows: list[dict]) -> str:
-    """The measurement stream as the model is shown it."""
-    return "\n".join(
-        f"part {r['part']:>3}  bottom {r['seam_bottom_mm']:+7.3f}  "
-        f"top {r['seam_top_mm']:+7.3f}  tilt {r['tilt_mm']:+7.3f}"
-        for r in rows
-    )
+    """The measurement stream as the model is shown it.
+
+    The reference column appears only when the run carries one, so a stream built
+    without it produces exactly the table the three-scenario study was scored on.
+    """
+    has_reference = bool(rows) and "reference_mm" in rows[0]
+    lines = []
+    for r in rows:
+        line = (f"part {r['part']:>3}  bottom {r['seam_bottom_mm']:+7.3f}  "
+                f"top {r['seam_top_mm']:+7.3f}  tilt {r['tilt_mm']:+7.3f}")
+        if has_reference:
+            line += f"  reference {r['reference_mm']:+7.3f}"
+        lines.append(line)
+    return "\n".join(lines)
 
 
 def user_prompt(rows: list[dict]) -> str:
     return ("Measurements in the order the parts were made, millimetres:\n\n"
             + format_table(rows))
+
+
+def prompt_for(rows: list[dict]) -> str:
+    """The system prompt matching what the rows actually carry.
+
+    Pairing these by hand is how a model ends up told about a reference column
+    that is not in its table, or shown one nobody described.
+    """
+    return (SYSTEM_PROMPT_WITH_REFERENCE
+            if rows and "reference_mm" in rows[0] else SYSTEM_PROMPT)
 
 
 def trend(values: list[float]) -> float:
@@ -168,11 +262,21 @@ def slope_ratio(values: list[float]) -> tuple[float, float]:
 
 
 def discriminators(rows: list[dict]) -> dict[str, float]:
-    """Both slopes and both ratios, which is everything the answer turns on."""
+    """Every slope the answer turns on, each against its own scatter.
+
+    Two channels when the reference is not instrumented, three when it is. The
+    third is the one that separates a drifting camera from a drifting fixture,
+    and without it those two are the same measurement.
+    """
     tilt, tilt_ratio = slope_ratio([r["tilt_mm"] for r in rows])
     shift, shift_ratio = slope_ratio([r["seam_bottom_mm"] for r in rows])
-    return {"tilt_slope": tilt, "tilt_ratio": tilt_ratio,
-            "shift_slope": shift, "shift_ratio": shift_ratio}
+    out = {"tilt_slope": tilt, "tilt_ratio": tilt_ratio,
+           "shift_slope": shift, "shift_ratio": shift_ratio}
+    if rows and "reference_mm" in rows[0]:
+        ref, ref_ratio = slope_ratio([r["reference_mm"] for r in rows])
+        out["reference_slope"] = ref
+        out["reference_ratio"] = ref_ratio
+    return out
 
 
 # How far a slope has to stand out of the scatter before a run is worth training

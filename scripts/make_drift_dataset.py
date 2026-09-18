@@ -59,12 +59,13 @@ from cell.drift import (  # noqa: E402
     HELD_OUT_MARGIN,
     HELD_OUT_SEEDS,
     SCENARIOS,
-    SYSTEM_PROMPT,
+    SCENARIOS_WITH_CAMERA,
     TRAINING_SEED_BASE,
     VISIBLE_RATIO,
     build_stream,
     discriminators,
     is_held_out,
+    prompt_for,
     user_prompt,
 )
 
@@ -78,6 +79,16 @@ SEVERITY_RANGE = (0.6, 2.6)
 PARTS_CHOICES = (20, 24, 30, 36, 40)
 
 
+def reference_clause(d: dict[str, float]) -> str:
+    """What the fixed feature says, when there is one to say it."""
+    if "reference_ratio" not in d:
+        return ""
+    moved = "has moved" if d["reference_ratio"] >= VISIBLE_RATIO else "has not moved"
+    return (f" The reference on the machine base reads {d['reference_slope']:+.4f} mm "
+            f"per part at {d['reference_ratio']:.1f} times scatter, so the camera "
+            f"{moved}.")
+
+
 def evidence_for(scenario: str, d: dict[str, float], parts: int) -> str:
     """One sentence naming the numbers the verdict turned on.
 
@@ -87,20 +98,28 @@ def evidence_for(scenario: str, d: dict[str, float], parts: int) -> str:
     """
     tilt, shift = d["tilt_slope"], d["shift_slope"]
     t_tilt, t_shift = d["tilt_ratio"], d["shift_ratio"]
+    if scenario == "camera":
+        return (f"The seam appears to move bodily, {shift:+.4f} mm per part at "
+                f"{t_shift:.1f} times scatter with tilt flat at {t_tilt:.1f}, which on "
+                f"the seam alone is indistinguishable from a bad fixture."
+                + reference_clause(d)
+                + " The parts are fine; the measurement is not.")
     if scenario == "press":
         return (f"Tilt trends at {tilt:+.4f} mm per part, {t_tilt:.1f} times its own "
                 f"scatter, while the bottom of the seam sits at {shift:+.4f} mm per "
                 f"part and only {t_shift:.1f} times scatter, which is nothing. The top "
-                f"is walking and the bottom is not, so the bend angle is going out.")
+                f"is walking and the bottom is not, so the bend angle is going out."
+                + reference_clause(d))
     if scenario == "fixture":
         return (f"The bottom of the seam drifts {shift:+.4f} mm per part, {t_shift:.1f} "
                 f"times its own scatter, and tilt stays inside the noise at "
                 f"{tilt:+.4f} mm per part, {t_tilt:.1f} times scatter. The whole seam "
-                f"moves together, so the part is being located badly.")
+                f"moves together, so the part is being located badly."
+                + reference_clause(d))
     return (f"Tilt is {tilt:+.4f} mm per part at {t_tilt:.1f} times scatter and the "
             f"bottom is {shift:+.4f} mm per part at {t_shift:.1f} times scatter. "
             f"Neither stands out of the part-to-part variation over {parts} parts, "
-            f"so there is no fault to name.")
+            f"so there is no fault to name." + reference_clause(d))
 
 
 def confidence_for(scenario: str, d: dict[str, float]) -> float:
@@ -113,27 +132,33 @@ def confidence_for(scenario: str, d: dict[str, float]) -> float:
         strength = d["tilt_ratio"] / 6.0
     elif scenario == "fixture":
         strength = d["shift_ratio"] / 6.0
+    elif scenario == "camera":
+        strength = d["reference_ratio"] / 6.0
     else:
         strength = 1.0 - max(d["tilt_ratio"], d["shift_ratio"]) / VISIBLE_RATIO
     return round(min(0.97, max(0.55, 0.55 + 0.42 * min(1.0, max(0.0, strength)))), 2)
 
 
-def make_example(scenario: str, seed: int, parts: int, severity: float) -> dict | None:
+def make_example(scenario: str, seed: int, parts: int, severity: float,
+                 reference: bool = False) -> dict | None:
     """One labelled run, or nothing if the run does not support its own label.
 
     A fault that was injected but did not show is dropped rather than labelled.
     Keeping it would teach the model to name a cause with no evidence for it,
     which is the exact failure the small model already has.
     """
-    rows, truth = build_stream(parts, scenario, seed, severity)
+    rows, truth = build_stream(parts, scenario, seed, severity, reference=reference)
     d = discriminators(rows)
     tilt_shows = d["tilt_ratio"] >= VISIBLE_RATIO
     shift_shows = d["shift_ratio"] >= VISIBLE_RATIO
-    if truth == "press" and not (tilt_shows and not shift_shows):
+    ref_shows = d.get("reference_ratio", 0.0) >= VISIBLE_RATIO
+    if truth == "press" and not (tilt_shows and not shift_shows and not ref_shows):
         return None
-    if truth == "fixture" and not (shift_shows and not tilt_shows):
+    if truth == "fixture" and not (shift_shows and not tilt_shows and not ref_shows):
         return None
-    if truth == "none" and (tilt_shows or shift_shows):
+    if truth == "camera" and not (shift_shows and not tilt_shows and ref_shows):
+        return None
+    if truth == "none" and (tilt_shows or shift_shows or ref_shows):
         return None                      # scatter that looks like a fault, unlabelled
     answer = {
         "cause": truth,
@@ -142,7 +167,7 @@ def make_example(scenario: str, seed: int, parts: int, severity: float) -> dict 
     }
     return {
         "messages": [
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": prompt_for(rows)},
             {"role": "user", "content": user_prompt(rows)},
             {"role": "assistant", "content": json.dumps(answer)},
         ],
@@ -155,19 +180,20 @@ def make_example(scenario: str, seed: int, parts: int, severity: float) -> dict 
 
 
 def generate(count: int, rng: random.Random, seed_base: int,
-             used: set[int]) -> list[dict]:
-    """Balanced across the three scenarios, and never on a held-out seed."""
+             used: set[int], scenarios=SCENARIOS,
+             reference: bool = False) -> list[dict]:
+    """Balanced across the scenarios, and never on a held-out seed."""
     out: list[dict] = []
     attempts = 0
     while len(out) < count and attempts < count * 40:
         attempts += 1
-        scenario = SCENARIOS[len(out) % len(SCENARIOS)]
+        scenario = scenarios[len(out) % len(scenarios)]
         seed = seed_base + rng.randrange(0, 900_000)
         if seed in used or is_held_out(seed):
             continue
         parts = rng.choice(PARTS_CHOICES)
         severity = rng.uniform(*SEVERITY_RANGE)
-        example = make_example(scenario, seed, parts, severity)
+        example = make_example(scenario, seed, parts, severity, reference=reference)
         if example is None:
             continue
         used.add(seed)
@@ -199,12 +225,19 @@ def main() -> int:
     parser.add_argument("--val", type=int, default=80)
     parser.add_argument("--seed", type=int, default=7)
     parser.add_argument("--out", default="data/finetune")
+    parser.add_argument("--with-camera", action="store_true",
+                        help="Four scenarios including a drifting camera, with the "
+                             "reference feature that separates it from a drifting "
+                             "fixture. On the seam alone those two are identical.")
     args = parser.parse_args()
 
+    scenarios = SCENARIOS_WITH_CAMERA if args.with_camera else SCENARIOS
     rng = random.Random(args.seed)
     used: set[int] = set()
-    train = generate(args.train, rng, TRAINING_SEED_BASE, used)
-    val = generate(args.val, rng, TRAINING_SEED_BASE + 1_000_000, used)
+    train = generate(args.train, rng, TRAINING_SEED_BASE, used,
+                     scenarios=scenarios, reference=args.with_camera)
+    val = generate(args.val, rng, TRAINING_SEED_BASE + 1_000_000, used,
+                   scenarios=scenarios, reference=args.with_camera)
 
     out = Path(args.out)
     write(out / "drift_train.jsonl", train)

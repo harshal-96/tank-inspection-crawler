@@ -501,6 +501,68 @@ def compensation_study() -> dict[str, Any]:
     }
 
 
+
+CONFUSABLE = ("fixture", "camera")
+
+
+def confound_study() -> dict[str, Any]:
+    """A drifting camera and a drifting fixture are the same measurement.
+
+    The seam stream cannot separate them, and no model fixes that because the
+    information is not in the data. What fixes it is a reference feature bolted to
+    the machine base, which only the camera can move. The study is run with and
+    without it so the gain is attributable to the instrument rather than the model.
+    """
+    rows = _read("confound.jsonl")
+    if not rows:
+        return {"available": False}
+
+    def arm(reference: bool) -> dict[str, Any]:
+        got = [r for r in rows if r["reference"] is reference]
+        if not got:
+            return {"available": False}
+        by_scenario: dict[str, dict[str, int]] = {}
+        for r in got:
+            slot = by_scenario.setdefault(r["scenario"], {"n": 0, "correct": 0})
+            slot["n"] += 1
+            slot["correct"] += 1 if r["correct"] else 0
+        confusable = [r for r in got if r["scenario"] in CONFUSABLE]
+        return {
+            "available": True,
+            "reference": reference,
+            "label": "with the reference" if reference else "on the seam alone",
+            "n": len(got),
+            "correct": sum(1 for r in got if r["correct"]),
+            "by_scenario": by_scenario,
+            "confusable_correct": sum(1 for r in confusable if r["correct"]),
+            "confusable_n": len(confusable),
+            "median_latency_ms": _median([r.get("latency_ms") for r in got]),
+            "cases": got,
+        }
+
+    blind, seeing = arm(False), arm(True)
+    if not blind.get("available") or not seeing.get("available"):
+        return {"available": False}
+    return {
+        "available": True,
+        "model": rows[0].get("model"),
+        "arms": [blind, seeing],
+        "camera_without": blind["by_scenario"].get("camera", {}),
+        "camera_with": seeing["by_scenario"].get("camera", {}),
+    }
+
+
+def error_budget_study() -> dict[str, Any]:
+    """Everything between the joint and the torch, not just the link we measured.
+
+    Computed rather than read from a file, because it is an argument about which
+    terms exist and how they combine rather than the output of a run.
+    """
+    from cell import error_budget
+
+    return {"available": True} | error_budget.summary()
+
+
 def all_studies() -> dict[str, Any]:
     return {
         "seam": seam_study(),
@@ -511,4 +573,6 @@ def all_studies() -> dict[str, Any]:
         "vision": vision_study(),
         "robustness": robustness_study(),
         "compensation": compensation_study(),
+        "confound": confound_study(),
+        "error_budget": error_budget_study(),
     }
