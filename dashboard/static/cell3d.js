@@ -28,6 +28,39 @@ const COLOUR = {
   arc: 0xffd28a,
 };
 
+/* The viewport is a lit studio rather than a document, so it keeps its own
+   environment: what changes with the page theme is the room the cell stands in,
+   not the cell. The parts, the torch and the seam markers read the same on both,
+   which is the point of leaving them alone. */
+const STUDIO = {
+  dark: {
+    background: 0x070a0e,
+    fogNear: 6, fogFar: 16,
+    floor: 0x11161c,
+    gridMajor: 0x1b2836, gridMinor: 0x141c26,
+    skyLight: 0x8fa6c0, groundLight: 0x0a0d12, hemi: 1.05,
+    keyLight: 0xffffff, key: 1.5,
+    fillLight: 0x93b4ff, fill: 0.5,
+  },
+  light: {
+    background: 0xeef1f4,
+    fogNear: 7, fogFar: 19,
+    floor: 0xdfe4e9,
+    gridMajor: 0xc3ccd4, gridMinor: 0xd6dde3,
+    skyLight: 0xffffff, groundLight: 0xb9c4cf, hemi: 1.35,
+    keyLight: 0xffffff, key: 1.25,
+    fillLight: 0xc8d8f0, fill: 0.45,
+  },
+};
+
+function studio() {
+  const chosen = document.documentElement.dataset.theme;
+  const dark = chosen === "dark"
+    || (chosen !== "light"
+        && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  return dark ? STUDIO.dark : STUDIO.light;
+}
+
 export class Cell3D {
   constructor(canvas) {
     this.canvas = canvas;
@@ -41,8 +74,9 @@ export class Cell3D {
     this.renderer.shadowMap.enabled = false;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x070a0e);
-    this.scene.fog = new THREE.Fog(0x070a0e, 6, 16);
+    const room = studio();
+    this.scene.background = new THREE.Color(room.background);
+    this.scene.fog = new THREE.Fog(room.background, room.fogNear, room.fogFar);
 
     this.camera = new THREE.PerspectiveCamera(42, 1, 0.05, 80);
     this.camera.up.set(0, 0, 1);              // the cell is Z up
@@ -69,13 +103,34 @@ export class Cell3D {
   }
 
   #light() {
-    this.scene.add(new THREE.HemisphereLight(0x8fa6c0, 0x0a0d12, 1.05));
-    const key = new THREE.DirectionalLight(0xffffff, 1.5);
-    key.position.set(6, -5, 6);
-    this.scene.add(key);
-    const fill = new THREE.DirectionalLight(0x93b4ff, 0.5);
-    fill.position.set(-4, 4, 3);
-    this.scene.add(fill);
+    const room = studio();
+    this.hemi = new THREE.HemisphereLight(room.skyLight, room.groundLight, room.hemi);
+    this.scene.add(this.hemi);
+    this.key = new THREE.DirectionalLight(room.keyLight, room.key);
+    this.key.position.set(6, -5, 6);
+    this.scene.add(this.key);
+    this.fill = new THREE.DirectionalLight(room.fillLight, room.fill);
+    this.fill.position.set(-4, 4, 3);
+    this.scene.add(this.fill);
+  }
+
+  /** Repaint the room when the page theme changes. The cell itself is untouched. */
+  retheme() {
+    const room = studio();
+    this.scene.background = new THREE.Color(room.background);
+    this.scene.fog = new THREE.Fog(room.background, room.fogNear, room.fogFar);
+    if (this.hemi) {
+      this.hemi.color.setHex(room.skyLight);
+      this.hemi.groundColor.setHex(room.groundLight);
+      this.hemi.intensity = room.hemi;
+    }
+    if (this.key) { this.key.color.setHex(room.keyLight); this.key.intensity = room.key; }
+    if (this.fill) { this.fill.color.setHex(room.fillLight); this.fill.intensity = room.fill; }
+    if (this.grid) {
+      this.grid.material.color.setHex(room.gridMajor);
+      this.grid.material.needsUpdate = true;
+    }
+    if (this.floorMesh) this.floorMesh.material.color.setHex(room.floor);
   }
 
   resize() {
@@ -135,12 +190,14 @@ export class Cell3D {
   }
 
   #floor(g) {
-    const grid = new THREE.GridHelper(24, 48, 0x1b2836, 0x141c26);
+    const room = studio();
+    const grid = new THREE.GridHelper(24, 48, room.gridMajor, room.gridMinor);
     grid.rotation.x = Math.PI / 2;            // GridHelper is XZ; the cell is XY
     grid.position.set(g.fixture.x_m, 0, 0);
+    this.grid = grid;
     this.scene.add(grid);
-    this.#box(24, 24, 0.02, g.fixture.x_m, 0, -0.011, COLOUR.floor,
-              { metalness: 0.0, roughness: 1.0 });
+    this.floorMesh = this.#box(24, 24, 0.02, g.fixture.x_m, 0, -0.011, room.floor,
+                               { metalness: 0.0, roughness: 1.0 });
   }
 
   #table(g) {

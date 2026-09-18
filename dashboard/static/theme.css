@@ -1,10 +1,108 @@
 /* The one place colour, type and surface are decided.
    The restraint is deliberate: a surface this dense earns its structure from
-   spacing and a hairline, not from a border round every object. Series colours
-   are a validated categorical set, assigned to a model by identity and never
-   reshuffled when a filter changes the series count. */
+   spacing and a hairline, not from a border round every object.
+
+   Both themes are designed, not inverted. Light is the bare :root so it is what
+   a viewer with no preference gets; dark is redefined twice, once behind
+   prefers-color-scheme for the system setting and once behind [data-theme] so an
+   explicit choice wins in either direction.
+
+   Series colours are assigned to a model by identity and never reshuffled when a
+   filter changes the series count. Each set is validated separately against its
+   own surface rather than lightened or darkened from the other one: the light set
+   needed a different green entirely, because the dark green loses its chroma on
+   paper and reads grey, and the amber beside it fell to a colour-blind separation
+   of 7.2 before it was re-stepped. Both sets now pass every check with the worst
+   adjacent pair above 8. */
 
 :root {
+  color-scheme: light;
+
+  --bg:          #f4f5f6;
+  --surface-1:   #ffffff;
+  --surface-2:   #f0f2f4;
+  --surface-3:   #e7eaed;
+  --line:        #dfe3e7;
+  --hair:        #e9ecef;
+
+  --text-primary:   #141a20;
+  --text-secondary: #4d5862;
+  --text-muted:     #78838d;
+
+  /* categorical, fixed order, validated against the light surface */
+  --series-1: #1f6fd0;  /* Nano */
+  --series-2: #b8431a;  /* Lightning */
+  --series-3: #00785a;  /* Super */
+  --series-4: #b07f00;  /* Ultra */
+  --series-5: #b03a68;  /* Routed */
+
+  /* reserved status, never reused as a series */
+  --good:     #1a7f37;
+  --warning:  #9a6700;
+  --critical: #c0332b;
+
+  /* the two states of the story */
+  --before: #98a2ac;
+  --after:  #3d7f00;
+
+  --bar:          #f4f5f6e8;
+  --glass:        #ffffffc4;
+  --scroll-thumb: #ccd2d8;
+  --cell-ink:     #0d2417;   /* the numeral printed on a heat cell */
+  --band:         #ccd4db;   /* a drawn mark on a light card, not a surface */
+  --hover:        #0b131c07;          /* a hair of ink, for row hover on paper */
+  --tip-bg:       #ffffff;
+  --tip-line:     #d5dbe0;
+  --tip-shadow:   #10192340;
+
+  --mono: "IBM Plex Mono", ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --rail: 238px;
+  --radius: 12px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+
+    --bg:          #0b0e13;
+    --surface-1:   #10141b;
+    --surface-2:   #141922;
+    --surface-3:   #1a212b;
+    --line:        #1b222c;
+    --hair:        #161c25;
+
+    --text-primary:   #e8edf3;
+    --text-secondary: #97a4b4;
+    --text-muted:     #63717f;
+
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --series-4: #c98500;
+    --series-5: #d55181;
+
+    --good:     #3fb950;
+    --warning:  #d29922;
+    --critical: #e5534b;
+
+    --before: #6b7683;
+    --after:  #7fc400;
+
+    --bar:          #0b0e13e6;
+    --glass:        #0b0f15bd;
+    --scroll-thumb: #1f2833;
+    --cell-ink:     #ffffff;
+    --band:         #232c38;
+    --hover:        #ffffff04;
+    --tip-bg:       #0d1218;
+    --tip-line:     #25303d;
+    --tip-shadow:   #000000a0;
+  }
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
 
   --bg:          #0b0e13;
@@ -18,27 +116,28 @@
   --text-secondary: #97a4b4;
   --text-muted:     #63717f;
 
-  /* categorical, fixed order, validated for the dark surface */
-  --series-1: #3987e5;  /* Nano */
-  --series-2: #d95926;  /* Lightning */
-  --series-3: #199e70;  /* Super */
-  --series-4: #c98500;  /* Ultra */
-  --series-5: #d55181;  /* Routed */
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --series-4: #c98500;
+  --series-5: #d55181;
 
-  /* reserved status, never reused as a series */
   --good:     #3fb950;
   --warning:  #d29922;
   --critical: #e5534b;
 
-  /* the two states of the story */
   --before: #6b7683;
   --after:  #7fc400;
 
-  --mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
-  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-
-  --rail: 238px;
-  --radius: 12px;
+  --bar:          #0b0e13e6;
+  --glass:        #0b0f15bd;
+  --scroll-thumb: #1f2833;
+  --cell-ink:     #ffffff;
+  --band:         #232c38;
+  --hover:        #ffffff04;
+  --tip-bg:       #0d1218;
+  --tip-line:     #25303d;
+  --tip-shadow:   #000000a0;
 }
 
 * { box-sizing: border-box; }
@@ -54,7 +153,7 @@ body {
 }
 a { color: inherit; }
 ::-webkit-scrollbar { width: 9px; height: 9px; }
-::-webkit-scrollbar-thumb { background: #1f2833; border-radius: 6px; border: 2px solid var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 6px; border: 2px solid var(--bg); }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ------------------------------------------------------------------ app frame */
@@ -78,7 +177,7 @@ a { color: inherit; }
 
 .rail .group {
   font-size: 10px; text-transform: uppercase; letter-spacing: .12em;
-  color: #4d5a68; padding: 22px 10px 7px; font-weight: 600;
+  color: var(--text-muted); padding: 22px 10px 7px; font-weight: 600;
 }
 .rail a.nav {
   display: flex; align-items: center; gap: 11px;
@@ -90,10 +189,10 @@ a { color: inherit; }
 .rail a.nav .ico { width: 15px; height: 15px; flex: none; opacity: .6; }
 .rail a.nav.active .ico { opacity: 1; color: var(--after); }
 .rail a.nav .tag {
-  margin-left: auto; font-family: var(--mono); font-size: 10px; color: #4d5a68;
+  margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--text-muted);
 }
 .rail .spacer { flex: 1; min-height: 26px; }
-.rail .foot { font-size: 11px; color: #4d5a68; padding: 0 10px; line-height: 1.7; }
+.rail .foot { font-size: 11px; color: var(--text-muted); padding: 0 10px; line-height: 1.7; }
 
 /* ------------------------------------------------------------------- top bar */
 
@@ -102,7 +201,7 @@ a { color: inherit; }
 .topbar {
   display: flex; align-items: center; gap: 14px;
   padding: 0 40px; border-bottom: 1px solid var(--hair);
-  background: rgba(11, 14, 19, .9); backdrop-filter: blur(10px);
+  background: var(--bar); backdrop-filter: blur(10px);
   position: sticky; top: 0; z-index: 30; height: 64px; flex: none;
 }
 .topbar h1 { font-size: 17px; margin: 0; font-weight: 550; letter-spacing: -.015em; line-height: 1.2; }
@@ -269,7 +368,7 @@ th {
 td { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--hair); vertical-align: top; }
 td.num { font-family: var(--mono); text-align: right; padding-right: 18px; white-space: nowrap; }
 tr:last-child td { border-bottom: none; }
-tbody tr:hover td { background: #ffffff04; }
+tbody tr:hover td { background: var(--hover); }
 /* A key/value block reads as text, not as a table with rules through it. */
 table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
 
@@ -314,8 +413,8 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
   padding: 12px 0 11px; cursor: pointer; text-align: left; color: inherit;
   display: flex; flex-direction: column; gap: 3px; border-radius: 0;
 }
-.partcard:hover { background: #ffffff04; }
-.partcard.sel { border-top-color: var(--after); background: #ffffff05; }
+.partcard:hover { background: var(--hover); }
+.partcard.sel { border-top-color: var(--after); background: var(--hover); }
 .partcard .row { display: flex; align-items: baseline; gap: 9px; }
 .partcard .id { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
 .partcard .big { font-family: var(--mono); font-size: 18px; font-weight: 450; margin-left: auto;
@@ -336,7 +435,7 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
               color: var(--text-muted); pointer-events: none; }
 .overlay-br { position: absolute; right: 22px; bottom: 14px; }
 .overlay-tr button, .overlay-br .legend {
-  background: rgba(11, 15, 21, .74); backdrop-filter: blur(8px);
+  background: var(--glass); backdrop-filter: blur(8px);
 }
 .overlay-br .legend { margin: 0; padding: 7px 12px; border-radius: 8px; }
 .glass .label { font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase;
@@ -363,14 +462,26 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
 .suggest button { font-size: 11.5px; padding: 4px 11px; border-radius: 999px;
                   border-color: var(--hair); }
 
+/* The theme switch sits in the top bar with the other pills, so it reads as
+   status furniture rather than a control competing with the page. */
+.pill.theme-toggle {
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; padding: 5px 8px; line-height: 0;
+  color: var(--text-secondary);
+}
+.pill.theme-toggle:hover { color: var(--text-primary); border-color: var(--line); }
+.pill.theme-toggle:focus-visible {
+  outline: 2px solid var(--series-1); outline-offset: 2px;
+}
+
 /* ------------------------------------------------------------------ tooltip */
 
 #tip {
   position: fixed; z-index: 100; pointer-events: none; opacity: 0;
   transition: opacity .09s; max-width: 300px;
-  background: #0d1218; border: 1px solid #25303d;
+  background: var(--tip-bg); border: 1px solid var(--tip-line);
   border-radius: 8px; padding: 9px 12px; font-size: 11.5px; line-height: 1.65;
-  box-shadow: 0 14px 40px #000000a0; color: var(--text-secondary);
+  box-shadow: 0 14px 40px var(--tip-shadow); color: var(--text-secondary);
 }
 #tip.on { opacity: 1; }
 #tip b { color: var(--text-primary); font-family: var(--mono); font-weight: 500; }

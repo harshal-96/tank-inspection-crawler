@@ -133,7 +133,7 @@ function chain(b) {
       const width = t.mm * scale;
       if (width > 0.4) {
         out += `<rect x="${x + 0.8}" y="${y + 22}" width="${Math.max(0, width - 1.6)}"
-          height="20" rx="4" fill="${SOURCE_COLOUR[t.source] || "var(--surface-3)"}"
+          height="20" rx="4" fill="${SOURCE_COLOUR[t.source] || "var(--band)"}"
           opacity=".92"
           data-tip="<b>${V.esc(t.name)}</b> <b>${V.fmt(t.mm, 3)} mm</b><br>
             <span class='k'>${V.esc(t.kind)}, ${V.esc(t.source)}</span><br>

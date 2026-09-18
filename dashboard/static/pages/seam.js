@@ -148,7 +148,7 @@ function strip() {
     const devs = track ? deviations(track.path || []).map(Math.abs) : null;
     const lo = p.mean_mm - (p.max_mm - p.mean_mm) * 0.6;
     out += `<line x1="${x}" y1="${yOf(Math.max(0, lo))}" x2="${x}" y2="${yOf(p.max_mm)}"
-      stroke="var(--surface-3)" stroke-width="${Math.max(2.5, cw * 0.52)}" stroke-linecap="round"/>`;
+      stroke="var(--band)" stroke-width="${Math.max(2.5, cw * 0.52)}" stroke-linecap="round"/>`;
     if (devs && devs.length) {
       devs.forEach((d) => {
         out += `<circle cx="${x}" cy="${yOf(Math.min(d, top))}" r="1.5"

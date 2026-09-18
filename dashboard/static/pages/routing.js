@@ -250,7 +250,7 @@ function grid() {
       const calls = c.calls[armName] || [];
       const call = calls[0];
       const x = padL + i * (cell + gap);
-      const colour = !call ? "var(--surface-2)" : call.correct ? "var(--good)" : "var(--critical)";
+      const colour = !call ? "var(--band)" : call.correct ? "var(--good)" : "var(--critical)";
       out += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="3.5" fill="${colour}"
         opacity="${call ? 0.85 : 0.35}"
         data-tip="<b>${armName}</b> <span class='k'>on decision ${i + 1}</span><br>
@@ -281,7 +281,7 @@ function live() {
     byTier.set(t, s);
   });
   const segs = [...byTier.entries()].map(([t, s]) => ({
-    label: t, value: s.n, colour: V.ARM_COLOUR[t] || "var(--surface-3)",
+    label: t, value: s.n, colour: V.ARM_COLOUR[t] || "var(--band)",
     tip: `<b>${t}</b>: ${s.n} decisions, ${(s.looks / s.n).toFixed(2)} looks each,
       median ${(s.ms / s.n).toFixed(0)} ms, accepted ${s.accepts}`,
   }));

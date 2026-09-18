@@ -77,7 +77,46 @@ function topbar(page) {
     </div>
     <span class="grow"></span>
     <span class="pill" id="tb-parts"></span>
-    <span class="pill"><span class="dot" id="tb-dot"></span><span id="tb-conn">connecting</span></span>`;
+    <span class="pill"><span class="dot" id="tb-dot"></span><span id="tb-conn">connecting</span></span>
+    <button class="pill theme-toggle" id="tb-theme" type="button"
+            title="Switch between the light and dark theme"
+            aria-label="Switch theme">${themeIcon()}</button>`;
+}
+
+/* ------------------------------------------------------------------- theme */
+
+/** What the page is showing right now, whether chosen or inherited. */
+function activeTheme() {
+  const chosen = document.documentElement.dataset.theme;
+  if (chosen === "light" || chosen === "dark") return chosen;
+  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function themeIcon() {
+  // A sun for the light theme it would switch TO, a moon for the dark one.
+  return activeTheme() === "dark"
+    ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" aria-hidden="true">
+         <circle cx="12" cy="12" r="4.2"/>
+         <path d="M12 2.6v2.2M12 19.2v2.2M2.6 12h2.2M19.2 12h2.2
+                  M5.4 5.4l1.6 1.6M17 17l1.6 1.6M18.6 5.4L17 7M7 17l-1.6 1.6"/>
+       </svg>`
+    : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+         <path d="M20.5 14.3A8.6 8.6 0 1 1 9.7 3.5a6.9 6.9 0 0 0 10.8 10.8Z"/>
+       </svg>`;
+}
+
+function flipTheme() {
+  const next = activeTheme() === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = next;
+  try {
+    localStorage.setItem("cell-theme", next);
+  } catch (e) { /* storage can be blocked; the choice just will not persist */ }
+  const button = V.$("tb-theme");
+  if (button) button.innerHTML = themeIcon();
+  // The 3D view builds its materials from the tokens, so it has to be told.
+  current?.retheme?.();
 }
 
 async function route() {
@@ -94,6 +133,7 @@ async function route() {
   document.title = `${page.meta.title} · Self-Correcting Production Cell`;
 
   V.$("topbar").innerHTML = topbar(page);
+  V.$("tb-theme")?.addEventListener("click", flipTheme);
   const body = V.$("body");
   body.innerHTML = page.render();
   body.scrollIntoView({ block: "start" });

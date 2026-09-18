@@ -224,14 +224,14 @@ export function heat(rowLabels, colLabels, matrix, opts = {}) {
       const t = v / hi;
       const x = padL + j * cell, y = padT + i * cell;
       const diag = i === j;
-      const colour = v === 0 ? "var(--surface-2)"
+      const colour = v === 0 ? "var(--band)"
         : diag ? `color-mix(in oklab, var(--good) ${18 + t * 74}%, var(--surface-1))`
                : `color-mix(in oklab, var(--critical) ${16 + t * 70}%, var(--surface-1))`;
       out += `<rect x="${x + 1}" y="${y + 1}" width="${cell - 2}" height="${cell - 2}" rx="7"
         fill="${colour}" stroke="var(--bg)" stroke-width="2"
         data-tip="${esc(opts.tip ? opts.tip(i, j, v) : `${r} → ${colLabels[j]}: <b>${v}</b>`)}"/>`;
       if (v > 0) out += `<text x="${x + cell / 2}" y="${y + cell / 2 + 4}" text-anchor="middle"
-        font-size="12" fill="${t > 0.45 ? "#ffffff" : "var(--text-secondary)"}" font-weight="600">${v}</text>`;
+        font-size="12" fill="${v === 0 ? "var(--text-primary)" : "var(--cell-ink)"}" font-weight="600">${v}</text>`;
     });
   });
   out += axisTitle(padL, h - 8, opts.xTitle ?? "");

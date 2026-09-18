@@ -190,7 +190,7 @@ function grid() {
     keys.forEach((k, j) => {
       const c = byKey.get(k);
       const x = padL + j * (cell + gap);
-      const colour = !c ? "var(--surface-2)" : c.correct ? "var(--good)" : "var(--critical)";
+      const colour = !c ? "var(--band)" : c.correct ? "var(--good)" : "var(--critical)";
       out += `<rect x="${x}" y="${y}" width="${cell}" height="${cell}" rx="8" fill="${colour}"
         opacity="${c ? 0.8 : 0.3}" stroke="var(--bg)" stroke-width="2"
         data-tip="<b>${V.esc(run.model)}</b><br>
@@ -351,7 +351,7 @@ function hard() {
       // stops at 60% rather than running to full strength, because past that the
       // white numeral on top drops under 4.5:1 and the cells it ruins are the
       // full-marks ones a reader looks at first.
-      const colour = got.correct === 0 ? "var(--surface-2)"
+      const colour = got.correct === 0 ? "var(--band)"
         : `color-mix(in oklab, var(--good) ${14 + t * 46}%, var(--surface-1))`;
       out += `<rect x="${x + 2}" y="${y + 2}" width="${cell - 4}" height="${cell - 4}" rx="8"
         fill="${colour}" stroke="var(--bg)" stroke-width="2"
@@ -359,7 +359,7 @@ function hard() {
           + `<b>${got.correct}/${got.n}</b><br>${FAMILY_NOTE[f] || ""}`)}"/>`;
       out += `<text x="${x + cell / 2}" y="${y + cell / 2 + 4.5}" text-anchor="middle"
         font-size="12.5" font-weight="600"
-        fill="${got.correct === 0 ? "var(--text-primary)" : "#ffffff"}"
+        fill="${got.correct === 0 ? "var(--text-primary)" : "var(--cell-ink)"}"
         >${got.correct}/${got.n}</text>`;
     });
     const tx = padL + fams.length * cell + 58;

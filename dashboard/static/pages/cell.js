@@ -96,6 +96,9 @@ export async function mount() {
 
 export function update() { draw(); }
 
+/** The viewport is a lit scene, not CSS, so the theme switch has to reach it. */
+export function retheme() { view?.retheme?.(); }
+
 export function unmount() {
   view?.dispose?.();
   view = null;

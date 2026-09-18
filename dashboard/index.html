@@ -7,8 +7,17 @@
 <meta name="description" content="Findings from a robotic seam welding cell that measures every part before it welds it.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600&family=IBM+Plex+Mono:wght@400;450;500;600&display=swap">
 <link rel="stylesheet" href="/static/theme.css">
+<script>
+  /* Applied before the stylesheet paints, so a reader who has chosen a theme
+     never sees the other one flash first. No choice stored means no attribute,
+     which leaves the page on the reader's system setting. */
+  try {
+    var t = localStorage.getItem("cell-theme");
+    if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+  } catch (e) { /* private window, blocked storage: fall through to system */ }
+</script>
 </head>
 <body>
 

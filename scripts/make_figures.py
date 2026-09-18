@@ -102,10 +102,11 @@ def main() -> int:
     if shoot(f"{args.api}/#/diagnosis", full, 1440, 3300):
         try:
             from PIL import Image
-            # The card's position on the page, measured rather than guessed; if
-            # the page grows another card above it this crop moves and the figure
-            # is visibly wrong, which is the failure mode worth having.
-            Image.open(full).crop((268, 2080, 1401, 3154)).save(OUT / "boundary_test.png")
+            # The card's position at a 1440 wide viewport, measured in the
+            # browser rather than guessed. If the page grows another card above
+            # it, this crop slides and the figure is visibly wrong, which is the
+            # failure mode worth having: a silently stale figure is worse.
+            Image.open(full).crop((268, 2129, 1401, 3278)).save(OUT / "boundary_test.png")
             print(f"  wrote {OUT / 'boundary_test.png'}")
         finally:
             full.unlink(missing_ok=True)
