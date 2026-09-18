@@ -157,15 +157,14 @@ function tiles() {
     tile("Camera looks per part", routed.looks_per_decision.toFixed(2), "good",
       `one is the least possible; the 120B took ${superb.looks_per_decision.toFixed(2)}`),
     tile("Parts welded blind", `${routed.blind_accepts}`, routed.blind_accepts ? "bad" : "good",
-      `of ${routed.should_look} decisions where the first view failed and a look was needed`),
+      `of ${routed.should_look} decisions where a look was needed`),
   ].join("");
   const p = ev.router.points;
   const hint = V.$("rt-accuracy-hint");
   if (p && hint) hint.insertAdjacentHTML("beforeend",
     ` ${p.n} decisions: ${p.replayed} replayed from the campaign and ${p.first_view} where a`
-    + ` part is seen first from one of its five angles. A look was needed on ${p.look_needed},`
-    + ` every one of them a view that failed to measure; on this capture set any view that`
-    + ` measures at all is good enough to weld on.`);
+    + ` part is seen first from one of its five angles. A look was needed on ${p.look_needed}:`
+    + ` views that failed to measure, or landed tens of millimetres out from a steep angle.`);
 }
 
 const tile = (label, value, tone, sub, unit = "") => `<div class="tile">
