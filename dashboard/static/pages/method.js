@@ -67,6 +67,14 @@ export function render() {
       </div>
 
       <div class="card w12">
+        <header><h2>Does this only work for welding?</h2></header>
+        <div class="hint">Worth answering plainly, because the honest answer is neither yes nor
+          the salesman's no. What generalises is the loop. What does not is every number in it.</div>
+        <div id="me-general"></div>
+        <footer id="me-general-meta"></footer>
+      </div>
+
+      <div class="card w12">
         <header><h2>One question per tier, chosen by how often it is asked</h2></header>
         <div class="hint">Not a cascade by difficulty. A cascade escalates when it is unsure, which
           means paying for the large model on exactly the cases where it is slowest. This picks the
@@ -81,6 +89,7 @@ export async function mount() {
   stages();
   truth(ev);
   limits();
+  generality();
   tiers(ev);
 }
 
@@ -124,6 +133,72 @@ function limits() {
       <div class="t" style="margin-top:0">${V.esc(a)}</div>
       <div class="d">${V.esc(b)}</div>
     </div>`).join("");
+}
+
+const MOVES = [
+  { n: 1, name: "Measure the part, not the program",
+    here: "Twenty stations along the corner where two folded edges meet.",
+    elsewhere: "Whatever the tool is about to touch, in the pose the part actually "
+             + "arrived in, at the place it will be touched rather than at a datum "
+             + "somewhere else on it." },
+  { n: 2, name: "Schedule the process to what was measured",
+    here: "Current, voltage and travel speed per station, from the gap measured there, "
+        + "and a refusal where one pass cannot bridge it.",
+    elsewhere: "The process parameter that the local condition decides, and the "
+             + "willingness to stop rather than run the process outside where it works." },
+  { n: 3, name: "Read the run to name the machine",
+    here: "Which is drifting, the press brake or the fixture, from how the seam moves "
+        + "at the bottom against the top.",
+    elsewhere: "Correcting every part hides the machine that made them wrong. Something "
+             + "has to look across parts rather than at one." },
+];
+
+const ELSEWHERE = [
+  ["Press braking", "The same springback this cell corrects for is measurable on the part "
+   + "the brake just made. Measure the achieved angle, correct the next bend. High-end "
+   + "brakes already do this with angle sensors, which is the strongest evidence the loop "
+   + "is the right shape."],
+  ["Self-pierce riveting", "Hole position moves with the same forming variation, and the "
+   + "die and force depend on the local stack thickness, which is a measurement rather than "
+   + "a lookup. Stage two is nearly identical; the feature is a point rather than a line."],
+  ["Adhesive and sealant dispensing", "The bead has to follow a flange that moved, and flow "
+   + "rate should follow the gap it is filling. This is the closest relative: the same three "
+   + "moves with the arc swapped for a nozzle."],
+  ["Deburring and linishing", "Contact force set from the local material condition rather "
+   + "than from a taught constant, and a refusal where there is more stock than one pass "
+   + "should take."],
+];
+
+function generality() {
+  V.$("me-general").innerHTML = `<div class="grid">
+    <div class="w5" style="min-width:0">
+      <div class="eyebrow">The loop, stated without the welding</div>
+      ${MOVES.map((m) => `
+        <div class="step">
+          <div class="n">${String(m.n).padStart(2, "0")}</div>
+          <div class="t">${V.esc(m.name)}</div>
+          <div class="d">${V.esc(m.elsewhere)}</div>
+          <div class="w"><b>Here:</b> ${V.esc(m.here)}</div>
+        </div>`).join("")}
+    </div>
+    <div class="w7" style="min-width:0">
+      <div class="eyebrow">Processes with the same shape</div>
+      ${ELSEWHERE.map(([a, b]) => `
+        <div class="step">
+          <div class="t" style="margin-top:0">${V.esc(a)}</div>
+          <div class="d">${V.esc(b)}</div>
+        </div>`).join("")}
+    </div>
+  </div>`;
+
+  V.$("me-general-meta").innerHTML =
+    `What carries across is the architecture and the discipline: measure before acting, decide
+     per station, refuse rather than guess, score everything against a truth fixed in advance,
+     and route the question by how often it is asked. What does not carry across is any number
+     on this dashboard. Each process needs its own feature to find, its own process model in
+     place of <b>weld_params</b>, its own defect vocabulary, and its own calibration.
+     Claiming otherwise would be the same mistake as quoting an accuracy figure measured on
+     exact depth, which is the thing the sensor study exists to stop.`;
 }
 
 function tiers(ev) {

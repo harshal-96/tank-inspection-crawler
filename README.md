@@ -316,6 +316,113 @@ One caveat worth stating: the trained model answers in about 4 s on a laptop GPU
 roughly 2.3 s for the 120B in the cloud. It is slower per call and available when the
 line is not, and it is asked once a shift, so the wall clock barely matters.
 
+### Where it stops working
+
+Every number above was measured on exact rendered depth, which makes them ceilings
+rather than results. A joint finder scored on perfect input has not been scored on
+anything, so the whole fifty-part campaign was run again at twenty-eight sensor
+degradations, twice over, and the error followed until it broke. The threshold was
+fixed before the sweep ran: the wire is 1.0 mm across, so a path further than that
+from the joint is not on the joint.
+
+The sensor model is not "add some Gaussian noise". It is the three things that
+decide this particular measurement: clustered specular dropout, because folded
+sheet steel returns nothing from a face angled away and does it in patches rather
+than speckle; flying pixels at depth discontinuities, which matter here more than
+anywhere because the discontinuity IS the joint; and range noise scaling with the
+square of distance, because disparity resolution is fixed in pixels.
+
+The result inverts the obvious intuition:
+
+| Failure mode | Holds to | Fails at |
+| --- | --- | --- |
+| Specular dropout | **90% of the frame gone** | never, across the sweep |
+| Flying pixels at the joint edge | **90%** | never, across the sweep |
+| Range accuracy at one metre | 1.0 mm | **2.0 mm** |
+
+The killer is accuracy, not missing data. The method shrugs off losing most of the
+frame and dies on two millimetres of range error.
+
+Chasing that turned up a bug and produced the one algorithmic change in this
+repository. The bug: the RANSAC inlier band for the face fits defaulted wider than
+the sheet is thick, so one plane could claim a panel's inner AND outer surface and
+put its offset between them, biasing the seam by about 1.4 mm. The change: a
+station used to fit its two lines from the few hundred points inside a thin slice,
+and a short segment constrains a line's ANGLE badly, which is then multiplied out
+to the vertex. But the faces are two continuous panels seen in tens of thousands of
+points, and a folded panel has one orientation. Only how far out it sits varies,
+because springback bows it. So each face is now fitted once from every point it
+has, with only its offset free as a low-order polynomial in height.
+
+What that bought, worst station on any part in brackets:
+
+| | Slices alone | Faces fitted once |
+| --- | --- | --- |
+| Clean | 0.673 mm (1.05) | 0.676 mm (1.03) |
+| Range noise 1.0 mm | 0.788 mm (1.89) | **0.690 mm (1.04)** |
+| 10% dropout | 0.686 mm (4.63) | **0.648 mm (1.00)** |
+| 90% dropout | 1.316 mm (9.22) | **0.655 mm (1.02)** |
+| Typical stereo camera | 2.652 mm (8.82) | **1.787 mm (3.67)** |
+
+The mean barely moves on clean data. The tail moves enormously, and the tail is
+what matters: a mean inside the wire diameter is perfectly compatible with one
+station five millimetres out, and one station five millimetres out is the
+burn-through.
+
+**What this does not show is that the method now survives a real camera.** At
+typical stereo noise it is still 1.79 mm against a 1.0 mm wire, and the range
+accuracy cliff did not move at all, because no estimator averages away a
+systematic accuracy limit. The honest reading is that the sweep says which sensor
+class the job needs, and it agrees with what production seam trackers actually
+use: laser line triangulation at a tenth of a millimetre, not general purpose
+stereo at a metre.
+
+### Welding where the joint is going to be
+
+The measurement is cold and the weld is not. Heat put into the bottom of the seam
+rotates both folded sides about their fold lines, so the top of the joint walks
+inward before the torch reaches it. The thermal model predicted this from the
+start, the number was computed and stored, and nothing used it: the path was
+driven to the cold measurement, which is where the joint used to be.
+
+Compensating is easy and proving it helps is not, because there is an obvious way
+to cheat: predict the distortion with the same model that produces it and the
+correction is exact by construction. So the cell compensates with nominal constants
+while the metal moves by perturbed ones, which is the situation a real machine is
+in.
+
+| Model error | Welding the cold measurement | Welding where it will be |
+| --- | --- | --- |
+| -40% | 0.330 mm | 0.216 mm |
+| nominal | 0.552 mm | **0.034 mm** |
+| +100% | 1.103 mm | 0.557 mm |
+
+Compensating beats not compensating from -40% to +100% model error. The curve is
+not symmetric and that asymmetry is the practical result: under-modelling leaves
+some of the walk behind and is bounded by the distortion itself, while
+over-modelling pushes the torch past the joint and is bounded by nothing. A cell
+unsure how hot its own weld runs should under-correct on purpose.
+
+### Does this only work for welding?
+
+The loop generalises and none of the numbers do. Stated without the welding it is
+three moves: measure the part rather than trusting the program, at the place the
+tool will touch it; schedule the process to what was measured, station by station,
+and refuse where the measurement says the process cannot work; and read the run
+rather than the part, because correcting every part hides the machine that made
+them wrong.
+
+Press braking is the closest case and the strongest evidence, since high-end
+brakes already close exactly this loop with angle sensors. Self-pierce riveting
+needs the same stage two, with the feature a point rather than a line and the die
+chosen from local stack thickness. Adhesive and sealant dispensing is nearly
+isomorphic: a bead following a flange that moved, with flow rate following the gap.
+
+What does not carry across is any number in this repository. Each process needs its
+own feature to find, its own process model in place of `cell/weld_params.py`, its
+own defect vocabulary and its own calibration. Claiming otherwise would be the same
+mistake as quoting an accuracy figure measured on exact depth.
+
 ### Reproducing all of it
 
 ```bash
@@ -338,6 +445,13 @@ python scripts/eval_drift_edge.py --base-only     # the untrained control
 
 # turn the faults this run found into cited corrective action briefs
 python scripts/raise_briefs.py
+
+# where the perception stops working, both arms
+python scripts/eval_robustness.py --no-refine --out data/robustness_slices.jsonl
+python scripts/eval_robustness.py --out data/robustness_refined.jsonl
+
+# whether welding where the joint will be beats welding where it was
+python scripts/eval_compensation.py
 ```
 
 Seam finding is geometric: two faces fitted from depth and intersected, walked along
