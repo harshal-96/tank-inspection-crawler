@@ -228,7 +228,12 @@ button:focus-visible, select:focus-visible, input:focus-visible {
 /* ---------------------------------------------------------------------- svg */
 
 svg.chart { display: block; width: 100%; overflow: visible; }
-svg text { font-family: var(--mono); fill: var(--text-muted); }
+/* :not([fill]) matters. A presentation attribute loses to any CSS rule, so the
+   plain `svg text` selector silently overrode every fill= a chart set inline, and
+   coloured numerals, series labels and the values printed on dark cells were all
+   rendering muted grey. One of them sat at 1.18:1 on its own background. */
+svg text:not([fill]) { font-family: var(--mono); fill: var(--text-muted); }
+svg text[fill] { font-family: var(--mono); }
 .gridline { stroke: var(--hair); stroke-width: 1; }
 .axis-label { font-size: 9.5px; fill: var(--text-muted); }
 

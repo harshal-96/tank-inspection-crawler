@@ -43,6 +43,7 @@ from cell.drift import (  # noqa: E402
     SCENARIOS,
     SYSTEM_PROMPT,
     build_stream,
+    parse_verdict,
     quiet_seed,
     trend,
     user_prompt,
@@ -64,11 +65,7 @@ def ask(rows: list[dict], model: str) -> dict:
     )
     raw = nebius.reply_text(response.choices[0].message)
     latency = (time.perf_counter() - started) * 1000
-    start, end = raw.find("{"), raw.rfind("}")
-    try:
-        data = json.loads(raw[start:end + 1])
-    except (ValueError, json.JSONDecodeError):
-        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:160]}
+    data = parse_verdict(raw, SCENARIOS)
     data["latency_ms"] = round(latency)
     return data
 

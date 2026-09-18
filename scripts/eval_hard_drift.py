@@ -23,6 +23,11 @@ Four arms are scored on the same cases:
   cloud_blind    the same Nemotron, boundary withheld, as the studies had it
   edge           the fine-tuned model, if its adapter is present
 
+Every arm is asked the same question with the same data and scored the same way.
+What is allowed to differ is the envelope, because which API options a model accepts
+is a property of its endpoint rather than of its judgment, and an arm marked * was
+called without the reasoning option its endpoint refuses.
+
 On the mixed family, naming EITHER genuine fault counts as correct. Both machines
 need touching and naming one of them sends a fitter somewhere useful; naming a
 cause that is not happening does not. Saying "none" to a run where two machines
@@ -44,11 +49,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from openai import BadRequestError  # noqa: E402
+
 from brain import nebius  # noqa: E402
 from cell.drift import (  # noqa: E402
     VISIBLE_RATIO,
     build_hard_case,
     discriminators,
+    parse_verdict,
     prompt_for,
     user_prompt,
 )
@@ -108,25 +116,49 @@ def is_correct(said: str | None, truth: str) -> bool:
     return said == truth
 
 
-def ask_cloud(rows: list[dict], model: str, tell_threshold: bool) -> tuple[str, float]:
+def elapsed(started: float) -> float:
+    return (time.perf_counter() - started) * 1000
+
+
+def ask_cloud(rows: list[dict], model: str,
+              tell_threshold: bool) -> tuple[str, float, str]:
+    """One diagnosis from a hosted model.
+
+    Two things vary between hosted models and only one of them may vary here.
+
+    The envelope may: which parameters a model accepts is a property of the endpoint,
+    not of its judgment. reasoning_effort "none" is what the rest of this project
+    sends, because Nemotron will otherwise spend its whole budget thinking out loud,
+    and gpt-oss rejects that outright with a 400. An earlier run of this script
+    recorded those refusals as 0 of 28 and very nearly published it, which would have
+    been a measurement of API compatibility wearing the label of diagnosis.
+
+    The question may not: the prompt, the data, the answer space and the scoring are
+    identical for every arm. Tuning those per model until each looks good is not a
+    benchmark, because nothing could come out of it except the shape of the tuning.
+
+    So the fallback below is one policy applied to every model rather than a branch
+    per model, and which path a call took is recorded so the report can say so.
+    """
     client = nebius.client().with_options(timeout=90.0)
     system = prompt_for(rows) + (THRESHOLD_NOTE if tell_threshold else "")
+    messages = [{"role": "system", "content": system},
+                {"role": "user", "content": user_prompt(rows) + stats_block(rows)}]
     started = time.perf_counter()
-    try:
-        response = client.chat.completions.create(
-            model=model, temperature=0.0, max_tokens=500, reasoning_effort="none",
-            messages=[{"role": "system", "content": system},
-                      {"role": "user", "content": user_prompt(rows) + stats_block(rows)}],
-        )
-    except Exception as exc:  # noqa: BLE001
-        return f"error: {type(exc).__name__}", (time.perf_counter() - started) * 1000
-    raw = nebius.reply_text(response.choices[0].message) or ""
-    ms = (time.perf_counter() - started) * 1000
-    start, end = raw.find("{"), raw.rfind("}")
-    try:
-        return str(json.loads(raw[start:end + 1]).get("cause")), ms
-    except (ValueError, json.JSONDecodeError):
-        return "unparsed", ms
+    for effort in ("none", None):
+        extra = {"reasoning_effort": effort} if effort else {}
+        try:
+            response = client.chat.completions.create(
+                model=model, temperature=0.0, max_tokens=500, messages=messages, **extra)
+        except BadRequestError as exc:
+            if effort and "reasoning_effort" in str(exc):
+                continue                      # the option, not the question
+            return f"error: {type(exc).__name__}", elapsed(started), "none"
+        except Exception as exc:  # noqa: BLE001
+            return f"error: {type(exc).__name__}", elapsed(started), "none"
+        raw = nebius.reply_text(response.choices[0].message) or ""
+        return parse_verdict(raw)["cause"], elapsed(started), effort or "default"
+    return "error: BadRequestError", elapsed(started), "none"
 
 
 def load_edge(base: str, adapter: str):
@@ -157,11 +189,7 @@ def ask_edge(rows: list[dict], tokenizer, model) -> tuple[str, float]:
                              pad_token_id=tokenizer.eos_token_id)
     ms = (time.perf_counter() - started) * 1000
     raw = tokenizer.decode(out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True)
-    start, end = raw.find("{"), raw.rfind("}")
-    try:
-        return str(json.loads(raw[start:end + 1]).get("cause")), ms
-    except (ValueError, json.JSONDecodeError):
-        return "unparsed", ms
+    return parse_verdict(raw)["cause"], ms
 
 
 def main() -> int:
@@ -169,6 +197,9 @@ def main() -> int:
     parser.add_argument("--per-family", type=int, default=4)
     parser.add_argument("--parts", type=int, default=30)
     parser.add_argument("--model", default=CLOUD_MODEL)
+    parser.add_argument("--models", nargs="*", default=None,
+                        help="Score several cloud models on the same cases. Each gets "
+                             "the threshold stated, which is the arm that did best.")
     parser.add_argument("--no-edge", action="store_true")
     parser.add_argument("--no-cloud", action="store_true")
     parser.add_argument("--out", default="data/hard_drift.jsonl")
@@ -204,10 +235,17 @@ def main() -> int:
         arms["rule"].append({**case, "said": said_rule,
                              "correct": is_correct(said_rule, truth), "ms": 0.0})
         if not args.no_cloud:
-            for arm, tell in (("cloud", True), ("cloud_blind", False)):
-                said, ms = ask_cloud(rows, args.model, tell)
-                arms[arm].append({**case, "said": said,
-                                  "correct": is_correct(said, truth), "ms": ms})
+            if args.models:
+                for model in args.models:
+                    said, ms, effort = ask_cloud(rows, model, True)
+                    arms[model.split("/")[-1][:20]].append(
+                        {**case, "said": said, "effort": effort,
+                         "correct": is_correct(said, truth), "ms": ms})
+            else:
+                for arm, tell in (("cloud", True), ("cloud_blind", False)):
+                    said, ms, effort = ask_cloud(rows, args.model, tell)
+                    arms[arm].append({**case, "said": said, "effort": effort,
+                                      "correct": is_correct(said, truth), "ms": ms})
         if edge is not None:
             said, ms = ask_edge(rows, *edge)
             arms["edge"].append({**case, "said": said,
@@ -230,8 +268,12 @@ def main() -> int:
             cells.append(f"{sum(1 for r in got if r['correct'])}/{len(got)}"
                          if got else "-")
         ms = statistics.median(r["ms"] for r in rows_) if rows_ else 0
+        # A model that refused the reasoning option was asked the same question
+        # without it. Flagged rather than hidden, because it is a real difference
+        # in how the arm was called.
+        fell_back = "  *" if any(r.get("effort") == "default" for r in rows_) else ""
         print(f"{arm:>12} {sum(1 for r in rows_ if r['correct']):>4}/{len(rows_):<3} "
-              + " ".join(f"{c:>14}" for c in cells) + f" {ms:>10.0f}")
+              + " ".join(f"{c:>14}" for c in cells) + f" {ms:>10.0f}{fell_back}")
         for r in rows_:
             records.append({k: v for k, v in r.items() if k != "rows"}
                            | {"arm": arm})

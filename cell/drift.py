@@ -23,6 +23,7 @@ whole seam gets the discriminator for free.
 
 from __future__ import annotations
 
+import json
 import math
 import random
 import statistics
@@ -114,6 +115,42 @@ Answer with JSON only:
 {"cause": "fixture" | "camera" | "press" | "none",
  "confidence": 0.0 to 1.0,
  "evidence": "one or two sentences naming the numbers that decided it"}"""
+
+
+# A reply that names something outside the four causes is not a wrong diagnosis,
+# it is a reply that did not follow the contract, and the two want counting
+# separately. The hard-case study caught a 120B answering "reference" twice, which
+# is a channel rather than a cause, and scored it as though the model had picked
+# the wrong machine. It had not; it had ignored the answer space.
+CAUSE_UNPARSED = "unparsed"
+CAUSE_OUT_OF_VOCABULARY = "out_of_vocabulary"
+
+
+def parse_verdict(raw: str, allowed: tuple[str, ...] = SCENARIOS_WITH_CAMERA) -> dict:
+    """Pull a diagnosis out of a reply, and refuse anything outside the answer space.
+
+    Returns the parsed object with "cause" set either to one of the allowed causes
+    or to a marker saying why it is not usable, so a caller can report the three
+    outcomes apart: right, wrong, and did not answer the question asked.
+    """
+    text = raw or ""
+    start, end = text.find("{"), text.rfind("}")
+    if start == -1 or end <= start:
+        return {"cause": CAUSE_UNPARSED, "confidence": 0.0, "evidence": text[:200]}
+    try:
+        data = json.loads(text[start:end + 1])
+    except (ValueError, json.JSONDecodeError):
+        return {"cause": CAUSE_UNPARSED, "confidence": 0.0, "evidence": text[:200]}
+    if not isinstance(data, dict):
+        return {"cause": CAUSE_UNPARSED, "confidence": 0.0, "evidence": text[:200]}
+
+    said = str(data.get("cause", "")).strip().lower()
+    if said not in allowed:
+        data["cause"] = CAUSE_OUT_OF_VOCABULARY
+        data["said_instead"] = said
+    else:
+        data["cause"] = said
+    return data
 
 
 def build_stream(parts: int, scenario: str, seed: int,

@@ -134,12 +134,17 @@ def plan_next_view(
     available_deg: list[float],
     model: Optional[str] = None,
     temperature: float = 0.0,
+    system_extra: str = "",
 ) -> ViewDecision:
     """Accept the measurement, or name the next angle to try.
 
     Raises on transport failure. A malformed or out-of-range reply is returned as a
     decision to accept, because a planner that cannot answer must not be allowed to
     hold the line indefinitely.
+
+    system_extra appends to the system prompt and is empty in the cell. It exists so
+    a study can vary the instruction while holding the call path fixed, which is the
+    only way a prompt can be compared against itself.
     """
     model = model or nebius.text_model()
     client = nebius.client()
@@ -151,7 +156,7 @@ def plan_next_view(
         max_tokens=MAX_TOKENS,
         reasoning_effort=REASONING_EFFORT,
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "system", "content": SYSTEM_PROMPT + system_extra},
             {"role": "user", "content": build_prompt(attempts, available_deg)},
         ],
     )

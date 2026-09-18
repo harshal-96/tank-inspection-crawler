@@ -45,13 +45,30 @@ export function render() {
       <div class="card w12">
         <header><h2>The disagreements, laid out rather than averaged</h2></header>
         <div class="hint">One column per decision, one row per arm. Green is a correct call, red a
-          wrong one. The block of red is what over-caution looks like when it is not averaged into
-          a percentage.</div>
+          wrong one. The block of red was read here as over-caution in larger models. The card
+          below shows that reading was wrong, and the fault was in the prompt.</div>
         <div id="rt-grid"></div>
         <div class="legend">
           <span><i style="background:var(--good)"></i>accepted, correctly</span>
           <span><i style="background:var(--critical)"></i>asked for another look that was not needed</span>
         </div>
+      </div>
+
+      <div class="card w12">
+        <header><h2>Not over-caution. An instruction with no number in it.</h2></header>
+        <div class="hint">The prompt these arms were given said to accept a single view only if
+          its signals were &ldquo;excellent&rdquo;, and never said what excellent meant. Every
+          part starts with exactly one view, so read literally that sentence asks for a second
+          look on every part in the set, which is what the larger models did. Here the same
+          decisions are put to the same models twice: the prompt as written, and the prompt with
+          one sentence added that gives the boundary a number, taken from what the cell already
+          treats as a good view rather than tuned against the answers.</div>
+        <div id="rt-prompt"></div>
+        <div class="legend">
+          <span><i style="background:var(--before)"></i>prompt as written</span>
+          <span><i style="background:var(--after)"></i>boundary stated</span>
+        </div>
+        <footer id="rt-prompt-meta"></footer>
       </div>
 
       <div class="card w6">
@@ -78,10 +95,62 @@ export async function mount() {
   accuracy();
   cost();
   grid();
+  promptAudit();
   live();
 }
 
 export function update() { live(); }
+
+
+/** The same decisions, with and without a number in the prompt. */
+function promptAudit() {
+  const host = V.$("rt-prompt");
+  const vp = ev.view_prompt;
+  const models = (vp && vp.available ? vp.models : [])
+    .filter((m) => m.as_written && m.stated);
+  if (!models.length) {
+    host.innerHTML = `<div class="empty">The prompt audit has not been run.</div>`;
+    return;
+  }
+  const n = models[0].as_written.n;
+  const w = 680, rowH = 46, padL = 210, padR = 78, padT = 30;
+  const h = padT + models.length * rowH + 34;
+  const xOf = (v) => padL + (v / n) * (w - padL - padR);
+
+  let out = V.gridX(padT - 10, h - 34, xOf,
+                    [0, n * 0.25, n * 0.5, n * 0.75, n], "", (v) => Math.round(v));
+  out += V.axisTitle(padL, padT - 16, `decisions called correctly, out of ${n}`);
+
+  models.forEach((m, i) => {
+    const y = padT + i * rowH + rowH / 2;
+    const a = xOf(m.as_written.correct), b = xOf(m.stated.correct);
+    const tip = `<b>${V.esc(m.name)}</b><br><span class='k'>as written</span> `
+      + `<b>${m.as_written.correct}/${m.as_written.n}</b><br>`
+      + `<span class='k'>boundary stated</span> <b>${m.stated.correct}/${m.stated.n}</b>`;
+    out += `<g data-tip="${V.esc(tip)}">
+      <rect x="${padL - 6}" y="${y - rowH / 2}" width="${w - padL - padR + 12}"
+        height="${rowH}" fill="transparent"/>
+      <text class="axis-label" x="${padL - 14}" y="${y + 3.5}" text-anchor="end"
+        font-size="10">${V.esc(m.name)}</text>
+      <line x1="${a}" y1="${y}" x2="${b}" y2="${y}" stroke="var(--hair)" stroke-width="2"/>
+      ${V.dot(a, y, 5, V.BEFORE)}
+      ${V.dot(b, y, 5, V.AFTER)}
+      <text x="${Math.max(a, b) + 14}" y="${y + 4}" font-size="11.5" font-weight="600"
+        fill="var(--text-secondary)">${m.as_written.correct} &rarr; ${m.stated.correct}</text>
+    </g>`;
+  });
+  V.paint(host, V.svg(w, h, out));
+
+  const moved = models.map((m) => m.stated.correct - m.as_written.correct);
+  const best = models[moved.indexOf(Math.max(...moved))];
+  V.$("rt-prompt-meta").innerHTML =
+    `One sentence moved <b>${V.esc(best.name)}</b> from <b>${best.as_written.correct}</b> to
+     <b>${best.stated.correct}</b> of ${n}. The routing decision stands, because the small model
+     is still the right one to run here and it was right for a reason worth keeping: it does not
+     need the boundary spelled out. But the explanation this page used to give, that larger
+     models are inherently more cautious, does not survive the test. They were obeying an
+     instruction, and the instruction had no number in it.`;
+}
 
 function arm(name) { return ev.router.arms.find((a) => a.arm === name); }
 

@@ -41,6 +41,7 @@ from brain import nebius  # noqa: E402
 from cell.drift import (  # noqa: E402
     SCENARIOS_WITH_CAMERA,
     build_stream,
+    parse_verdict,
     prompt_for,
     quiet_seed,
     user_prompt,
@@ -126,11 +127,7 @@ def ask(rows: list[dict], model: str, timeout_s: float = CALL_TIMEOUT_S) -> dict
             pass
 
     latency = (time.perf_counter() - started) * 1000
-    start, end = raw.find("{"), raw.rfind("}")
-    try:
-        data = json.loads(raw[start:end + 1])
-    except (ValueError, json.JSONDecodeError):
-        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:200]}
+    data = parse_verdict(raw)
     data["latency_ms"] = round(latency)
     return data
 
@@ -173,7 +170,8 @@ def run(model: str, parts: int, seeds: list[int]) -> dict:
 
     said = Counter(r["said"] for r in records)
     confusable = [r for r in records if r["scenario"] in CONFUSABLE]
-    errors = sum(1 for r in records if r["said"] in ("error", "unparsed"))
+    errors = sum(1 for r in records
+                 if r["said"] in ("error", "unparsed", "out_of_vocabulary"))
 
     # A reply nobody could parse is not a wrong answer, and scoring it as one
     # misrepresents the model rather than the harness. gpt-oss answered four cases
@@ -181,9 +179,9 @@ def run(model: str, parts: int, seeds: list[int]) -> dict:
     # published it at 4 of 16, which is a false claim about a model that was
     # correct every time it managed to speak. Both numbers are kept: the raw one
     # is what the cell would actually get, and the other is what the model knows.
-    answered = [r for r in records if r["said"] not in ("error", "unparsed")]
-    answered_confusable = [r for r in confusable
-                           if r["said"] not in ("error", "unparsed")]
+    unusable = ("error", "unparsed", "out_of_vocabulary")
+    answered = [r for r in records if r["said"] not in unusable]
+    answered_confusable = [r for r in confusable if r["said"] not in unusable]
     return {
         "model": model,
         "n": len(records),

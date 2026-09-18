@@ -155,18 +155,60 @@ decision points where the simulation knows the answer:
 | Nemotron 3 Super 120B | 0 of 39 | 39 |
 | Nemotron 3 Ultra 550B | 21 of 39 | 18 |
 
-The smallest model in the family is the most correct one for this decision. The larger
-ones are not more careful; they are wrong in a direction that costs robot moves, and a
-look is a robot move rather than a line in a bill. Two things make that true, and both
-are properties of the cell rather than of the models: accepted views are fused with a
-median, so one bad view is outvoted before any model is consulted, and there was nothing
-for extra caution to find.
+The smallest model in the family is the most correct one for this decision, and on this
+part mix it should be the one that runs. That much holds. The explanation this file
+used to give for it does not.
 
-The first version of this evaluation compared each tier against the largest model and
-reported that the small one agreed with it zero percent of the time. That was a broken
-measurement. On a clean single view the small model says accept and the largest says
-look again, and against ground truth accepting is right. Treating the big model as the
-reference measured conformity, not quality.
+**The larger models were not being over-cautious. They were obeying the prompt.** The
+prompt said:
+
+> Accept a single view only if its signals are excellent and no other view is available.
+
+Every part in the campaign starts with exactly one view, and "excellent" is never
+defined anywhere in the prompt. Read literally, that sentence instructs a model to ask
+for a second look on every part in the set, which is precisely what Super did, 39 times
+out of 39. Scoring that as a judgment failure was scoring obedience to an instruction
+with no number in it.
+
+Putting the same decisions to the same models with one sentence added, giving the
+boundary a number taken from what the cell already treats as a good view rather than
+tuned against the answers:
+
+| Model | Prompt as written | Boundary stated |
+| --- | --- | --- |
+| Nemotron 3 Super 120B | 0 of 39 | **20 of 39** |
+| Nemotron 3.5 Lightning | 1 of 39 | **39 of 39** |
+| Nemotron 3 Nano 30B | 33 of 39 | **39 of 39** |
+
+The left column reproduces the routing study to the decision: 0 of 39 and 1 of 39 are
+exactly what that table reports, because this runs the same cases through the same
+planner and scores them the same way. Only the sentence under test changes. The first
+version of this script did not do that. It rebuilt the cases and the call by hand, and
+returned 18 of 20 for Lightning against the study's 1 of 39, which was a difference
+between two harnesses rather than between two prompts. A number that disagrees with the
+thing it is meant to explain is not a finding, it is a bug, and it was one.
+
+So the routing decision survives and its justification changes. The small model is still
+the right one to run here, and for a reason worth keeping: it reaches the correct call
+without needing the boundary spelled out, which is the behaviour you want from the model
+that answers every part. But "large models are inherently more cautious" was a story
+told about a prompt defect. Every model in the family improves once the boundary has a
+number, and two of them go to full marks, which is not what a difference in caution
+looks like. A reader entitled to the first table is entitled to this one.
+
+Two properties of the cell also make the small model's answer safe rather than lucky:
+accepted views are fused with a median, so one bad view is outvoted before any model is
+consulted, and on this part mix there was nothing for a second look to find.
+
+This is the second time this evaluation has been wrong about why. The first version
+compared each tier against the largest model and reported that the small one agreed with
+it zero percent of the time, which measured conformity rather than quality. Both errors
+had the same shape: a number was produced, and the explanation attached to it was never
+itself tested.
+
+```bash
+python scripts/eval_view_prompt.py --cases 20
+```
 
 Where the sizes DO separate is the other job. Asked to read thirty parts of measurements
 and say whether a press or a fixture is drifting, the small models answer "press" every
@@ -260,8 +302,8 @@ this measure. An earlier run showed a large gap, and that gap closed when three 
 were fixed in the capture: a camera near plane clipping the corner out of every depth
 image, an end stop standing on the seam, and a sheet thickness no press could fold.
 Those fixes made the single fixed view good. What the loop demonstrably still does is
-refuse bad evidence, and what routing does is stop paying a large model to be cautious
-about parts that were never in doubt.
+refuse bad evidence, and what routing does is stop paying a large model to answer a
+question the small one already answers correctly.
 
 ### What the arc does to the joint
 
@@ -492,7 +534,15 @@ generated away from the same held-out seeds.
 | --- | --- | --- | --- |
 | Nemotron 3 Super 120B, seam only | Token Factory | 8 of 16 | 4 of 8 |
 | Nemotron 3 Super 120B, with reference | Token Factory | 14 of 16 | 6 of 8 |
-| **Qwen3-1.7B + LoRA, with reference** | **the cell's own GPU** | **16 of 16** | **8 of 8** |
+| Qwen3-1.7B + LoRA, with reference | the cell's own GPU | 16 of 16 | 8 of 8 |
+
+**That 16 of 16 does not mean what it looks like, and the row is left unbolded for
+that reason.** It was measured on a test set with no hard case in it. Every run in
+it sits at least 0.58 away from the decision boundary and most sit one to two away,
+so the answer is recoverable by comparing two numbers to a threshold. Four lines of
+arithmetic with no model in them also score 16 of 16 on that set, in zero
+milliseconds. A score a ruler can match is not evidence of diagnosis, and the
+section below is the test built to find that out.
 
 The three-cause result earlier in this file is kept rather than replaced. Those
 models were scored on that question, and restating their numbers against a harder
@@ -508,14 +558,81 @@ That figure took two goes to measure. The first run reported 17 s, which was the
 measurement rather than the model: the latencies fell monotonically from 39 s to
 9 s across the run, which is a laptop GPU starting at a low clock and ramping. A
 throwaway inference before timing, which is ordinary practice for GPU benchmarking,
-brought the median to 5.7 s with the scores unchanged at 16 of 16.
+brought the median to 5.7 s with the scores unchanged.
 
 Worth being precise about where this runs, because it is the one part of the project
 that does not run on Nebius. The LoRA was trained on Token Factory and the base is
 pulled from Hugging Face; the merged adapter then runs on the workstation beside the
 cell. Everything it is compared against is a Token Factory API call. "Trained on
-Nebius, runs at the edge" is the accurate description, and the 16 of 16 should not be
-read as a Token Factory number.
+Nebius, runs at the edge" is the accurate description, and no edge score in this file
+should be read as a Token Factory number.
+
+### The test the answer key passes, and what replaces it
+
+Every drift score above it is measured on cases that are not hard. The runs were
+generated by injecting a fault and checking it showed, so the closest one sits 0.58
+away from the decision boundary and there is no marginal case anywhere in the set.
+That has two consequences worth stating plainly. A fixed rule cannot fail on it: the
+boundary written out as four lines of arithmetic scores 16 of 16 in zero
+milliseconds. And the differences between models on it were largely differences in
+how well each guessed a boundary the prompt never named, which is why stating the
+boundary moved a frontier model from 9 of 16 to 16 of 16.
+
+So a second set was built where a ruler and a diagnostician come apart. Cases are
+generated by rejection sampling until they land in a chosen band, in five families:
+
+| Family | What it is |
+| --- | --- |
+| `clear` | a fault well past the threshold, kept as a control |
+| `marginal` | a real fault whose trend does **not** clear the threshold |
+| `lucky_noise` | nothing injected, but scatter pushes a channel over the line |
+| `subtle_camera` | a camera creeping near the line rather than far past it |
+| `mixed` | a press and a fixture going out together |
+
+On `mixed`, naming either genuine fault counts. Both machines need touching and
+naming one sends a fitter somewhere useful; naming a cause that is not happening
+does not.
+
+| Arm | Total | clear | marginal | lucky noise | subtle camera | mixed |
+| --- | --- | --- | --- | --- | --- | --- |
+| The threshold as arithmetic | 13 of 28 | 8/8 | 3/8 | 0/4 | 2/4 | 0/4 |
+| Nemotron 120B, threshold stated | **18 of 28** | 8/8 | 6/8 | 0/4 | 0/4 | 4/4 |
+| Nemotron 120B, threshold withheld | 15 of 28 | 6/8 | 2/8 | 3/4 | 0/4 | 4/4 |
+| Qwen3-1.7B + LoRA at the edge | 16 of 28 | 8/8 | 0/8 | 4/4 | 0/4 | 4/4 |
+
+Three things fall out of that table, and only one of them is flattering.
+
+**The fine-tuned model's 16 of 16 was an artefact of the easy set.** Here it answers
+"none" to all eight marginal cases and all four subtle camera cases. It learned the
+threshold and nothing past it, which is exactly the behaviour the easy set cannot
+distinguish from diagnosis. It is still the right thing to run for the clear cases
+it was built for, at the edge, without a network. It is not a better diagnostician
+than the model it was distilled from.
+
+**The 120B does earn its place, by a margin the easy set could not show.** 18 of 28
+against 13 for the rule, and the gap is where a shop loses money: 6 of 8 marginal
+faults caught against the rule's 3, and 4 of 4 on runs with two machines drifting
+where the rule scores 0, because a rule that sees two channels moving has no branch
+for it and falls through to "nothing wrong".
+
+**Nobody passes subtle camera, and stating the threshold makes noise worse.** 0 of 4
+for all three model arms. And the arm told the boundary scored 0 of 4 on lucky noise
+where the arm not told it scored 3 of 4: naming a number invites the model to apply
+it mechanically and call scatter a fault. Both are open, both are reported, and
+neither is fixed by a larger model.
+
+One implementation note that belongs here rather than in a commit message. On these
+runs the 120B twice answered `reference`, which is a column in the data and not one
+of the four causes it was asked to choose between. Scored by string comparison that
+is simply wrong; scored honestly it is a different failure, a model answering a
+question nobody asked. Every evaluation in this repository now routes replies through
+one validator that rejects anything outside the answer space and records it as
+`out_of_vocabulary`, so an unparseable reply, a refusal, and an invented category are
+three distinct outcomes rather than all silently counted as a wrong diagnosis.
+
+```bash
+python scripts/eval_hard_drift.py --per-family 4
+```
 
 ### Reproducing all of it
 

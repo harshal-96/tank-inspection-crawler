@@ -569,6 +569,8 @@ def evidence_one(study: str) -> dict[str, Any]:
         "router": evidence.router_study,
         "drift": evidence.drift_study,
         "inspection": evidence.inspection_study,
+        "hard": evidence.hard_study,
+        "view_prompt": evidence.view_prompt_study,
     }
     if study not in studies:
         raise HTTPException(status_code=404, detail=f"no study named {study!r}")

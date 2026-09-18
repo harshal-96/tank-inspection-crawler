@@ -39,6 +39,7 @@ from cell.drift import (  # noqa: E402
     SCENARIOS,
     SCENARIOS_WITH_CAMERA,
     build_stream,
+    parse_verdict,
     prompt_for,
     quiet_seed,
     trend,
@@ -102,11 +103,7 @@ def ask(tokenizer, model, rows: list[dict]) -> dict:
     raw = tokenizer.decode(generated[0][inputs["input_ids"].shape[1]:],
                            skip_special_tokens=True)
 
-    start, end = raw.find("{"), raw.rfind("}")
-    try:
-        data = json.loads(raw[start:end + 1])
-    except (ValueError, json.JSONDecodeError):
-        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:160]}
+    data = parse_verdict(raw)
     data["latency_ms"] = round(latency)
     return data
 
