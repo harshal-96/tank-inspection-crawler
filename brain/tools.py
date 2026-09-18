@@ -14,7 +14,8 @@ from typing import Any, Callable, Optional
 
 from sqlmodel import Session, select
 
-from service.models import Action, Decision, Inspection, Measurement, Part, Verdict
+from brain import diagnosis
+from service.models import Action, Decision, Inspection, Measurement, Part, SeamTrack, Verdict
 from service.stats import compute_stats, drift_signal
 
 TOOL_SCHEMAS: list[dict[str, Any]] = [
@@ -85,6 +86,26 @@ TOOL_SCHEMAS: list[dict[str, Any]] = [
             "parameters": {
                 "type": "object",
                 "properties": {"window": {"type": "integer", "description": "Default 20"}},
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "diagnose_drift",
+            "description": (
+                "Which machine is going out of adjustment, from the seams the cell "
+                "tracked on the most recent parts: the press brake (the top of the "
+                "seam walks while the bottom stays), the fixture (the whole seam "
+                "shifts together), or nothing. A model answers from the fitted "
+                "numbers and the arithmetic rule answers beside it; if they "
+                "disagree, say so. Call this for any question about what is "
+                "drifting or which machine to check."
+            ),
+            "parameters": {
+                "type": "object",
+                "properties": {"window": {"type": "integer",
+                                          "description": "Recent parts to read, default 30"}},
             },
         },
     },
@@ -324,6 +345,16 @@ def get_drift(session: Session, window: int = 20) -> dict[str, Any]:
     }
 
 
+def diagnose_drift(session: Session, window: int = 30) -> dict[str, Any]:
+    """The once-a-shift question, asked of the model the study picked."""
+    window = max(1, min(int(window), 200))
+    tracks = session.exec(
+        select(SeamTrack).order_by(SeamTrack.ts.desc()).limit(window)).all()
+    rows = diagnosis.rows_from_tracks(
+        [{"path": t.path} for t in reversed(tracks)])
+    return diagnosis.diagnose(rows)
+
+
 def list_defects(session: Session, limit: int = 10) -> dict[str, Any]:
     limit = max(1, min(int(limit), 50))
     rows = list(
@@ -441,6 +472,7 @@ REGISTRY: dict[str, Callable[..., dict[str, Any]]] = {
     "get_recent_parts": get_recent_parts,
     "get_part_detail": get_part_detail,
     "get_drift": get_drift,
+    "diagnose_drift": diagnose_drift,
     "list_defects": list_defects,
     "record_decision": record_decision,
     "look_up_standard": look_up_standard,

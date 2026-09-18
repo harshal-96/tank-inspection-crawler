@@ -75,6 +75,8 @@ the conversation, and never do arithmetic yourself. If a tool did not give you a
 number, say you do not have it.
 - Prefer one good tool call over several. Start with get_cell_status for general \
 questions.
+- For which machine is drifting or what to adjust, call diagnose_drift: it names the \
+press, the fixture or nothing from the tracked seams, with the arithmetic rule beside it.
 - If you recommend anything, you MUST also log it with record_decision in the same \
 reply. Saying it in prose is not enough: only a recorded decision reaches the \
 operator's queue, so an unlogged recommendation is lost. Gather evidence first, then \
@@ -97,7 +99,7 @@ REPORT_PROMPT = """Write the end-of-shift report for this cell.
 
 Gather what you need with the tools first. Then write it as short prose in Markdown \
 under 250 words, with these sections as level-3 headings: Output, Accuracy, Drift, \
-Actions.
+Actions. For Drift, call diagnose_drift and name the machine it points at, or say nothing is.
 
 State numbers plainly with units. If something needs a human, say so and say why. Do \
 not invent anything the tools did not give you, and do not pad."""

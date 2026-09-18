@@ -53,11 +53,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from brain import nebius  # noqa: E402
 from cell.drift import (  # noqa: E402
     THRESHOLD_NOTE,
-    VISIBLE_RATIO,
     build_hard_case,
-    discriminators,
     parse_verdict,
     prompt_for,
+    rule,
     stats_block,
     user_prompt,
 )
@@ -74,21 +73,6 @@ PLAN = [
     ("subtle_camera", "camera"),
     ("mixed", "mixed"),
 ]
-
-def rule(rows: list[dict]) -> str:
-    """The whole diagnosis as arithmetic, exactly as a threshold would do it."""
-    d = discriminators(rows)
-    tilt = d["tilt_ratio"] >= VISIBLE_RATIO
-    shift = d["shift_ratio"] >= VISIBLE_RATIO
-    ref = d.get("reference_ratio", 0.0) >= VISIBLE_RATIO
-    if ref:
-        return "camera"
-    if tilt and not shift:
-        return "press"
-    if shift and not tilt:
-        return "fixture"
-    return "none"
-
 
 def is_correct(said: str | None, truth: str) -> bool:
     """Mixed runs accept either real fault; everything else is exact."""

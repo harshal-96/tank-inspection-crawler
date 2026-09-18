@@ -492,3 +492,18 @@ def stats_block(rows: list[dict]) -> str:
         lines.append(f"  reference  {d['reference_slope']:+.4f} mm/part   "
                      f"{d['reference_ratio']:5.2f} times scatter")
     return "\n".join(lines)
+
+
+def rule(rows: list[dict]) -> str:
+    """The whole diagnosis as arithmetic, exactly as a threshold would do it."""
+    d = discriminators(rows)
+    tilt = d["tilt_ratio"] >= VISIBLE_RATIO
+    shift = d["shift_ratio"] >= VISIBLE_RATIO
+    ref = d.get("reference_ratio", 0.0) >= VISIBLE_RATIO
+    if ref:
+        return "camera"
+    if tilt and not shift:
+        return "press"
+    if shift and not tilt:
+        return "fixture"
+    return "none"
