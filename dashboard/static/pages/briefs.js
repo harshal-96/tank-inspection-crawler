@@ -1,6 +1,6 @@
 /* What to do about the faults the cell found, with the sources it read.
  *
- * The cell can say the joint opened to 5.00 mm at one station on 2 mm sheet. It
+ * The cell can say the joint opened to 5.00 mm at one point on 2 mm sheet. It
  * cannot say what to do about that, because the answer is not in the measurement:
  * it is in a welding code or a machine handbook, it changes, and a model's
  * recollection of it is the least reliable thing in the building. So the fault
@@ -20,7 +20,7 @@ export const meta = {
 };
 
 const TRIGGER_LABEL = {
-  gap: "raised by a refused station",
+  gap: "raised by a refused point",
   drift: "raised by the shift diagnosis",
   defect: "raised by the post-weld eye",
   supervisor: "asked for by an operator",

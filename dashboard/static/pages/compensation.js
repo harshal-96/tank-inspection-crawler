@@ -34,7 +34,7 @@ export function render() {
         <div class="legend">
           <span><i class="line" style="background:var(--before)"></i>welding the cold measurement</span>
           <span><i class="line" style="background:var(--after)"></i>welding where the joint will be</span>
-          <span><i class="line" style="background:var(--warning)"></i>worst station, compensated</span>
+          <span><i class="line" style="background:var(--warning)"></i>worst point, compensated</span>
         </div>
         <footer id="cp-verdict"></footer>
       </div>
@@ -53,7 +53,7 @@ export function render() {
 
 const SHAPE = [
   ["Under-modelled", "The correction is too small, so some of the walk survives and the torch "
-   + "lands behind the joint. The residual is bounded by the distortion itself, which is why "
+   + "lands behind the joint. What is left is bounded by the distortion itself, which is why "
    + "this side of the curve has no cliff: at worst you are back to not compensating."],
   ["Over-modelled", "The correction overshoots and pushes the torch past the joint, and now the "
    + "error is the correction rather than the distortion. Nothing bounds it. This is the side "
@@ -139,7 +139,7 @@ function curve(c) {
       `data-tip="<b>${(r.model_error * 100).toFixed(0)}% model error</b><br>
         <span class='k'>welding the cold measurement</span> <b>${V.fmt(r.uncompensated_mm, 3)} mm</b><br>
         <span class='k'>compensated</span> <b>${V.fmt(r.compensated_mm, 3)} mm</b><br>
-        <span class='k'>worst station</span> <b>${V.fmt(r.worst_compensated_mm, 2)} mm</b><br>
+        <span class='k'>worst point</span> <b>${V.fmt(r.worst_compensated_mm, 2)} mm</b><br>
         ${r.helped ? "compensating helped here" : "<b>compensating made it worse here</b>"}"`);
     out += V.dot(xOf(r.model_error), yOf(r.uncompensated_mm), 2.6, "var(--before)");
   });
@@ -165,7 +165,7 @@ function table(c) {
   V.$("cp-table").innerHTML = `<table>
     <thead><tr><th>Model error</th><th class="num">Welding the cold measurement</th>
       <th class="num">Welding where it will be</th><th class="num">Change</th>
-      <th class="num">Worst station</th><th>Verdict</th></tr></thead>
+      <th class="num">Worst point</th><th>Verdict</th></tr></thead>
     <tbody>${c.curve.map((r) => `<tr>
       <td class="mono">${(r.model_error * 100).toFixed(0)}%</td>
       <td class="num">${V.fmt(r.uncompensated_mm, 3)}</td>

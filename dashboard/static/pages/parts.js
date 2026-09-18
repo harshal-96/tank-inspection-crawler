@@ -48,7 +48,7 @@ export function render() {
         <div class="legend">
           <span><i style="background:var(--before)"></i>taught path miss, mm</span>
           <span><i class="line" style="background:var(--after)"></i>tracked error, mm (right scale)</span>
-          <span><i style="background:var(--warning)"></i>a station the cell refused to weld</span>
+          <span><i style="background:var(--warning)"></i>a point the cell refused to weld</span>
         </div>
       </div>
 
@@ -127,7 +127,7 @@ function profile() {
   out += V.axisTitle(padL - 36, padT - 6, "mm");
   out += V.axisTitle(padL, h - 6, "part number, in build order");
   V.paint(V.$("pt-profile"), V.svg(w, h, out));
-  V.$("pt-count").textContent = `${rows.length} parts · ${rows.length * 20} stations measured`;
+  V.$("pt-count").textContent = `${rows.length} parts · ${rows.length * 20} points measured`;
 }
 
 function tipFor(s) {
@@ -137,7 +137,7 @@ function tipFor(s) {
     <span class="k">tracked to</span> <b>${V.fmt(t.error_mm, 2)} mm</b><br>
     <span class="k">seam bows</span> <b>${V.fmt(t.seam_bow_mm, 2)} mm</b><br>
     <span class="k">widest gap</span> <b>${V.fmt(t.gap_mm_max, 2)} mm</b>
-    ${sch?.refused_stations ? `<br><span class="k">refused</span> <b>${sch.refused_stations}</b> <span class="k">stations</span>` : ""}
+    ${sch?.refused_stations ? `<br><span class="k">refused</span> <b>${sch.refused_stations}</b> <span class="k">points</span>` : ""}
     ${ins ? `<br><span class="k">bead</span> <b>${ins.verdict}</b>` : ""}`);
 }
 
@@ -194,16 +194,16 @@ function detail() {
       <table class="plain"><tbody>
         ${kv("Taught path off by", `${V.fmt(t.taught_miss_mm, 2)} mm`)}
         ${kv("Tracked to", `${V.fmt(t.error_mm, 3)} mm`)}
-        ${kv("Worst station", `${V.fmt(t.worst_station_mm, 2)} mm`)}
+        ${kv("Worst point", `${V.fmt(t.worst_station_mm, 2)} mm`)}
         ${kv("Seam bow", `${V.fmt(t.seam_bow_mm, 2)} mm`)}
-        ${kv("Stations", `${t.stations_measured} of ${t.stations_asked}`)}
+        ${kv("Points", `${t.stations_measured} of ${t.stations_asked}`)}
         ${m ? kv("Corner at", `${m.detected_x.toFixed(4)}, ${m.detected_y.toFixed(4)} m`) : ""}
       </tbody></table>
     </div>
     <div class="w3">
       ${sch ? `<table class="plain"><tbody>
-        ${kv("Weldable", `${sch.weldable_stations} stations`)}
-        ${kv("Refused", `${sch.refused_stations} stations`)}
+        ${kv("Weldable", `${sch.weldable_stations} points`)}
+        ${kv("Refused", `${sch.refused_stations} points`)}
         ${kv("Travel", `${V.fmt(sch.travel_mm_s_min, 1)} to ${V.fmt(sch.travel_mm_s_max, 1)} mm/s`)}
         ${kv("Hottest", `${V.fmt(sch.heat_j_per_mm_max, 0)} J/mm`)}
         ${kv("Gap", `mean ${V.fmt(t.gap_mm_mean, 2)}, worst ${V.fmt(t.gap_mm_max, 2)} mm`)}
@@ -214,7 +214,7 @@ function detail() {
       ${d ? `<table class="plain"><tbody>
         ${kv("Looks", d.after_looks)}
         ${kv("Model", (d.model || "").split("/").pop())}
-        ${kv("Tier", d.tier || "fixed")}
+        ${kv("Model size", d.tier || "fixed")}
         ${kv("Verdict", d.accept ? "accept" : "look again")}
         ${kv("Latency", `${V.fmt(d.latency_ms, 0)} ms`)}
         ${kv("Routed because", d.route_why || "–")}

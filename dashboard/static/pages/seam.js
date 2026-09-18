@@ -1,4 +1,4 @@
-/* The seam study: fifty parts, twenty stations each, and what happened at each one. */
+/* The seam study: fifty parts, twenty points each, and what happened at each one. */
 
 import * as V from "../viz.js";
 import { loadEvidence, refreshLive, state, chosen, choose } from "../store.js";
@@ -26,13 +26,13 @@ export function render() {
       <div class="tiles" id="sm-tiles"></div>
 
       <div class="card w8">
-        <header><h2>Station error, part by part</h2></header>
-        <div class="hint">Each column is a part; each mark is one of its twenty stations. The dark
-          band is where the middle half of that part's stations landed.</div>
+        <header><h2>Point error, part by part</h2></header>
+        <div class="hint">Each column is a part; each mark is one of its twenty points. The dark
+          band is where the middle half of that part's points landed.</div>
         <div id="sm-strip"></div>
         <div class="legend">
           <span><i class="line" style="background:var(--series-1)"></i>the part's mean</span>
-          <span><i style="background:var(--warning)"></i>a station over 1 mm</span>
+          <span><i style="background:var(--warning)"></i>a point over 1 mm</span>
         </div>
       </div>
 
@@ -47,7 +47,7 @@ export function render() {
 
       <div class="card w12">
         <header>
-          <h2>Station detail</h2>
+          <h2>Point detail</h2>
           <span class="grow"></span>
           <select id="sm-part"></select>
         </header>
@@ -68,7 +68,7 @@ export function render() {
       <div class="card w6">
         <header><h2>Where the joint opens too far to weld</h2></header>
         <div class="hint">A gap past 1.6 times the sheet cannot be bridged in one pass without
-          backing. The cell refuses those stations rather than laying a bead it cannot hold.</div>
+          backing. The cell refuses those points rather than laying a bead it cannot hold.</div>
         <div id="sm-refused"></div>
         <footer id="sm-refused-meta"></footer>
       </div>
@@ -106,18 +106,18 @@ function tiles() {
   const perception = s.perception_ms || {};
   V.$("sm-tiles").innerHTML = [
     tile("Tracked to", V.fmt(s.tracked.mean_mm, 3), "after",
-      `mean over ${s.stations_measured.toLocaleString()} stations`, "mm"),
+      `mean over ${s.stations_measured.toLocaleString()} points`, "mm"),
     tile("A taught path misses by", V.fmt(s.taught.mean_mm, 1), "before",
       `worst part ${V.fmt(s.taught.max_mm, 1)} mm`, "mm"),
-    tile("Parts under 1 mm, every station", `${s.tracked.sub_mm_parts}/${s.n_parts}`, "good",
-      `worst single station ${V.fmt(s.tracked.worst_station_mm, 2)} mm`),
+    tile("Parts under 1 mm, every point", `${s.tracked.sub_mm_parts}/${s.n_parts}`, "good",
+      `worst single point ${V.fmt(s.tracked.worst_station_mm, 2)} mm`),
     tile("The seam's own bow", V.fmt(s.bow.mean_mm, 2), "",
       `worst ${V.fmt(s.bow.max_mm, 2)} mm, and no straight path removes it`, "mm"),
     perception.median
       ? tile("Depth frame to weld path", V.fmt(perception.median, 0), "",
           `median, worst ${V.fmt(perception.max, 0)} ms, on the cell's own CPU`, "ms")
       : "",
-    tile("Stations refused", String(s.refused_stations), s.refused_stations ? "warn" : "good",
+    tile("Points refused", String(s.refused_stations), s.refused_stations ? "warn" : "good",
       `of ${s.stations_measured.toLocaleString()}, where the joint was too open to bridge`),
   ].filter(Boolean).join("");
 }
@@ -143,7 +143,7 @@ function strip() {
 
   parts.forEach((p, i) => {
     const x = padL + i * cw + cw / 2;
-    // Per-station errors live on the live seam rows; fall back to the summary box.
+    // Per-point errors live on the live seam rows; fall back to the summary box.
     const track = live?.seams.find((s) => s.part_id === p.trial + 1);
     const devs = track ? deviations(track.path || []).map(Math.abs) : null;
     const lo = p.mean_mm - (p.max_mm - p.mean_mm) * 0.6;
@@ -158,10 +158,10 @@ function strip() {
     out += `<circle cx="${x}" cy="${yOf(p.mean_mm)}" r="${Math.min(3.1, Math.max(2, cw * 0.28))}"
       fill="var(--series-1)" stroke="var(--surface-1)" stroke-width="1.2"
       data-tip="<b>part ${p.trial}</b><br><span class='k'>mean</span> <b>${V.fmt(p.mean_mm, 3)} mm</b><br>
-        <span class='k'>worst station</span> <b>${V.fmt(p.max_mm, 2)} mm</b><br>
+        <span class='k'>worst point</span> <b>${V.fmt(p.max_mm, 2)} mm</b><br>
         <span class='k'>bow</span> <b>${V.fmt(p.bow_mm, 2)} mm</b><br>
         <span class='k'>taught path would miss</span> <b>${V.fmt(p.taught_miss_mm, 1)} mm</b>
-        ${p.refused ? `<br><span class='k'>refused</span> <b>${p.refused}</b> <span class='k'>stations</span>` : ""}"/>`;
+        ${p.refused ? `<br><span class='k'>refused</span> <b>${p.refused}</b> <span class='k'>points</span>` : ""}"/>`;
   });
   out += V.axisTitle(padL, h - 5, "part number, in the order they were welded");
   out += V.axisTitle(padL - 30, padT - 4, "mm");
@@ -208,7 +208,7 @@ function decomp() {
       note: "no straight corrected line removes this",
       tip: `the corner is curved by <b>${V.fmt(s.bow.mean_mm, 2)} mm</b> on average, <b>${V.fmt(s.bow.max_mm, 2)} mm</b> at worst` },
     { label: "everything else", value: Math.max(0, s.tracked.mean_mm - s.bow.mean_mm),
-      colour: "var(--after)", note: "measurement, fit and station spacing",
+      colour: "var(--after)", note: "measurement, fit and point spacing",
       tip: `what the measurement itself contributes: <b>${V.fmt(Math.max(0, s.tracked.mean_mm - s.bow.mean_mm), 2)} mm</b>` },
   ];
   rows.forEach((r, i) => {
@@ -238,17 +238,17 @@ function refused() {
   s.parts.forEach((p) => counts.set(p.refused, (counts.get(p.refused) || 0) + 1));
   const keys = [...counts.keys()].sort((a, b) => a - b);
   const rows = keys.map((k) => ({
-    label: k === 0 ? "no refusals" : `${k} station${k > 1 ? "s" : ""} refused`,
+    label: k === 0 ? "no refusals" : `${k} point${k > 1 ? "s" : ""} refused`,
     value: counts.get(k),
     display: `${counts.get(k)} parts`,
     colour: k === 0 ? V.GOOD : k <= 1 ? V.WARN : V.BAD,
-    tip: `<b>${counts.get(k)}</b> parts had <b>${k}</b> station${k === 1 ? "" : "s"} where the joint was too open to weld in one pass`,
+    tip: `<b>${counts.get(k)}</b> parts had <b>${k}</b> point${k === 1 ? "" : "s"} where the joint was too open to weld in one pass`,
   }));
   V.paint(V.$("sm-refused"), V.ranked(rows, { width: 400, rowH: 32, padL: 132 }));
   const clean = counts.get(0) || 0;
   V.$("sm-refused-meta").innerHTML =
-    `<b>${s.refused_stations}</b> of <b>${s.stations_measured.toLocaleString()}</b> stations refused across the run,
-     on <b>${s.n_parts - clean}</b> parts. A refused station means the gap there is wider than one pass can bridge, so the fit-up needs correcting at the press.`;
+    `<b>${s.refused_stations}</b> of <b>${s.stations_measured.toLocaleString()}</b> points refused across the run,
+     on <b>${s.n_parts - clean}</b> parts. A refused point means the gap there is wider than one pass can bridge, so the fit-up needs correcting at the press.`;
 }
 
 function locating() {
@@ -310,12 +310,12 @@ function detail() {
   out += V.line(path.map((p, i) => `${xOf(dev[i])},${yOf(p.along_mm)}`).join(" "), "var(--series-1)", 2);
   path.forEach((p, i) => {
     out += V.dot(xOf(dev[i]), yOf(p.along_mm), 3, "var(--series-1)",
-      `data-tip="<b>${p.along_mm.toFixed(0)} mm</b> up the seam<br><span class='k'>off the chord by</span> <b>${V.fmt(dev[i], 2)} mm</b>"`);
+      `data-tip="<b>${p.along_mm.toFixed(0)} mm</b> up the seam<br><span class='k'>off the straight line by</span> <b>${V.fmt(dev[i], 2)} mm</b>"`);
   });
-  out += V.axisTitle(padX, 11, "mm off the seam's own chord");
+  out += V.axisTitle(padX, 11, "mm off the straight line between the seam's ends");
   V.paint(V.$("sm-path"), V.svg(W, H, out));
 
-  // --- how open the joint is at each station
+  // --- how open the joint is at each point
   const stations = (sch && sch.stations) || [];
   out = "";
   if (stations.length) {
@@ -367,7 +367,7 @@ function detail() {
   bits.push(`a taught path would have missed by <b>${V.fmt(t.taught_miss_mm, 1)} mm</b>`);
   bits.push(`the seam bows <b>${V.fmt(t.seam_bow_mm, 2)} mm</b>`);
   if (sch) {
-    bits.push(`<b>${sch.weldable_stations}</b> stations weldable, <b>${sch.refused_stations}</b> refused`);
+    bits.push(`<b>${sch.weldable_stations}</b> points weldable, <b>${sch.refused_stations}</b> refused`);
     bits.push(`travel <b>${V.fmt(sch.travel_mm_s_min, 1)}</b> mm/s upward, hottest <b>${V.fmt(sch.heat_j_per_mm_max, 0)}</b> J/mm`);
     if (sch.predicted_drift_mm) {
       bits.push(`the arc is expected to walk the corner <b>${V.fmt(sch.predicted_drift_mm, 2)} mm</b> while welding`);

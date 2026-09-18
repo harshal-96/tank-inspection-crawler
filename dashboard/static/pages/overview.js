@@ -37,7 +37,7 @@ function liveBand() {
   ];
   if (seam && seam.error_mm != null) {
     bits.push(["its seam, measured", `${V.fmt(seam.error_mm, 2)} mm over `
-      + `${seam.stations_measured} stations`]);
+      + `${seam.stations_measured} points`]);
   }
   if (slot.inspection) {
     bits.push(["post-weld", V.esc(slot.inspection.verdict)]);
@@ -506,7 +506,7 @@ function tiles(ev) {
     value: V.fmt(s.tracked.mean_mm, 3), unit: "mm",
     tone: "after",
     delta: ratio ? `${ratio.toFixed(0)}× better` : null,
-    sub: `mean over ${s.stations_measured.toLocaleString()} measured stations, ${s.n_parts} parts`,
+    sub: `mean over ${s.stations_measured.toLocaleString()} measured points, ${s.n_parts} parts`,
     spark: V.spark(parts.map((p) => p.mean_mm), "var(--after)"),
   }));
   html.push(tile({
@@ -517,10 +517,10 @@ function tiles(ev) {
     spark: V.spark(parts.map((p) => p.taught_miss_mm), "var(--before)"),
   }));
   html.push(tile({
-    label: "Parts under 1 mm, every station",
+    label: "Parts under 1 mm, every point",
     value: `${s.tracked.sub_mm_parts}/${s.n_parts}`,
     tone: s.tracked.sub_mm_parts / s.n_parts > 0.8 ? "good" : "warn",
-    sub: `worst single station ${V.fmt(s.tracked.worst_station_mm, 2)} mm`,
+    sub: `worst single point ${V.fmt(s.tracked.worst_station_mm, 2)} mm`,
     spark: V.spark(parts.map((p) => p.max_mm), "var(--series-1)"),
   }));
   html.push(tile({
@@ -552,7 +552,7 @@ function tiles(ev) {
       tone: "warn",
       delta: rule ? `vs ${V.pct(rule.rate)} for a fixed rule` : null,
       sub: `${best.label}, on ${hard.cases} cases built to sit on the decision `
-         + `boundary. Only ${sig} arms beat the rule by a margin that survives a `
+         + `boundary. Only ${sig} models beat the rule by a margin that survives a `
          + `paired test. Nothing is close to answering it.`,
     }));
   }
@@ -586,7 +586,7 @@ function dumbbell(ev) {
       tip: `<b>part ${p.trial}</b><br>
         <span class="k">taught path misses</span> <b>${V.fmt(p.taught_miss_mm, 2)} mm</b><br>
         <span class="k">tracked to</span> <b>${V.fmt(p.mean_mm, 3)} mm</b>
-        <span class="k">(worst station ${V.fmt(p.max_mm, 2)} mm)</span><br>
+        <span class="k">(worst point ${V.fmt(p.max_mm, 2)} mm)</span><br>
         <span class="k">seam bows</span> <b>${V.fmt(p.bow_mm, 2)} mm</b> <span class="k">off its own straight line</span>`,
     }));
   V.paint(V.$("ov-dumbbell"), V.dumbbell(rows, { width: 700, rowH: 11 }));
@@ -599,7 +599,7 @@ function hist(ev) {
     width: 420, height: 210, bins: 14, max: 1.2,
     colour: "var(--series-1)", unit: "mm", noun: "parts",
     mark: 1.0, markLabel: "wire ø", markColour: "var(--warning)",
-    xTitle: "mean station error, mm",
+    xTitle: "mean point error, mm",
   }));
   const s = ev.seam;
   V.$("ov-hist-meta").innerHTML =
@@ -611,13 +611,13 @@ function hist(ev) {
 
 function studies(ev) {
   const rows = [
-    ["Seam tracking", `${ev.seam.n_parts} parts × ${ev.seam.stations_per_part} stations`,
+    ["Seam tracking", `${ev.seam.n_parts} parts × ${ev.seam.stations_per_part} points`,
      "the seam's true position, known from the part it was folded into",
      `${V.fmt(ev.seam.taught.mean_mm, 1)} mm → ${V.fmt(ev.seam.tracked.mean_mm, 3)} mm`, "good", "#/seam"],
     ["Joint locating", `${ev.locating.n_parts} parts, blind / one look / routed`,
      "the corner's true coordinates in the cell",
      `${V.fmt(ev.locating.blind.mean_mm, 1)} mm → ${V.fmt(ev.locating.routed.mean_mm, 2)} mm`, "good", "#/seam"],
-    ["Look-again routing", ev.router.available ? `${ev.router.arms[0].n} decisions × 5 arms` : "–",
+    ["Look-again routing", ev.router.available ? `${ev.router.arms[0].n} decisions × 5 models` : "–",
      "whether a second look actually improved the fit",
      ev.router.available ? `routed ${ev.router.arms[0].correct}/${ev.router.arms[0].n}, Super ${ev.router.arms.find((a) => a.arm === "super").correct}/${ev.router.arms[0].n}` : "–",
      "good", "#/routing"],
@@ -639,7 +639,7 @@ function studies(ev) {
       "bad", "#/budget"]);
   }
   if (ev.confound && ev.confound.available) {
-    rows.push(["Camera against fixture", "4 causes \u00d7 4 runs \u00d7 2 arms",
+    rows.push(["Camera against fixture", "4 causes \u00d7 4 runs, with and without the marker",
       "the injected fault, with and without a reference feature",
       `${ev.confound.arms[0].correct}/${ev.confound.arms[0].n} \u2192 `
       + `${ev.confound.arms[1].correct}/${ev.confound.arms[1].n} with the instrument`,
@@ -649,7 +649,7 @@ function studies(ev) {
   const untrainedRun = (ev.drift.edge || []).find((r) => r.tier === "edge_base");
   if (trainedRun) {
     rows.push(["Trained diagnosis, at the edge",
-      `600 simulated runs, ${trainedRun.n} held out`,
+      `600 simulated runs, ${trainedRun.n} never trained on`,
       "the same injected faults, on seeds the training set excluded",
       untrainedRun
         ? `${untrainedRun.correct}/${untrainedRun.n} untrained → ${trainedRun.correct}/${trainedRun.n} trained`
@@ -663,7 +663,7 @@ function studies(ev) {
     const rule = ev.hard.arms.find((a) => a.label.includes("threshold as arithmetic"));
     const edge = ev.hard.arms.find((a) => a.label.includes("on the cell"));
     rows.push(["The same diagnosis, on hard cases",
-      `${ev.hard.arms.length} arms × ${ev.hard.cases} cases, passes pooled`,
+      `${ev.hard.arms.length} contenders × ${ev.hard.cases} cases, passes pooled`,
       "cases sampled onto the decision boundary, where a fixed rule fails",
       `best ${V.pct(best.rate)}, a fixed rule ${rule ? V.pct(rule.rate) : "–"}`
       + (edge ? `, the edge model ${V.pct(edge.rate)}` : "")

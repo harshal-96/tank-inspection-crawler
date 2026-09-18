@@ -121,7 +121,7 @@ LASER_PROFILER_MM = 0.1
 def _shared(tracking_mm: float, tracking_note: str, thermal_mm: float,
             thermal_note: str,
             tracking_source: Source = "measured here",
-            tracking_cite: str = "seam campaign, 50 parts x 20 stations") -> list[Term]:
+            tracking_cite: str = "seam campaign, 50 parts x 20 measured points") -> list[Term]:
     return [
         Term("Seam tracking", tracking_mm, "random", tracking_source, True,
              tracking_note, tracking_cite),
@@ -129,7 +129,7 @@ def _shared(tracking_mm: float, tracking_note: str, thermal_mm: float,
              "Relates what the camera sees to where the arm goes. The same offset on "
              "every part, so measuring more parts does not average it away, and this "
              "cell has no way to detect it drifting without a reference feature.",
-             "typical residual 0.7 to 1.0 mm after calibration on an industrial arm"),
+             "typically 0.7 to 1.0 mm left after calibration on an industrial arm"),
         Term("Robot repeatability", ROBOT_REPEATABILITY_MM, "random", "specification", False,
              "What the arm does when told to go to the same point twice. Small enough "
              "on a welding class machine to be the least of the worries here.",
@@ -149,7 +149,7 @@ def budgets() -> list[Budget]:
             Term("Seam tracking", TRACKING_CLEAN_MM, "random", "measured here", True,
                  "The number this repository quotes most often, and the only term in "
                  "this column. Correct about the tracker and incomplete about the cell.",
-                 "seam campaign, 50 parts x 20 stations"),
+                 "seam campaign, 50 parts x 20 measured points"),
         ]),
         Budget("Perfect sensor, nothing compensated", _shared(
             TRACKING_CLEAN_MM,
@@ -161,7 +161,7 @@ def budgets() -> list[Budget]:
         Budget("Typical stereo camera, compensated", _shared(
             TRACKING_STEREO_MM,
             "The same campaign through a stereo sensor at a metre: 2.5 mm range noise, "
-            "10 percent specular dropout, flying pixels at the joint.",
+            "10 percent of the frame lost to the shiny sheet, false points at the joint edge.",
             THERMAL_COMPENSATED_MM,
             "Compensated at nominal, welding where the joint will be rather than where "
             "it was.")),

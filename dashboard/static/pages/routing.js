@@ -26,25 +26,25 @@ export function render() {
 
     <div class="grid">
       <div class="card w7">
-        <header><h2>How often each arm made the right call</h2></header>
+        <header><h2>How often each model made the right call</h2></header>
         <div class="hint">On this part mix the first look was always good enough, so the correct
-          call was always to accept. An arm that asks for a second look is spending cycle time to
+          call was always to accept. A model that asks for a second look is spending cycle time to
           buy nothing.</div>
         <div id="rt-accuracy"></div>
       </div>
 
       <div class="card w5">
         <header><h2>Looks per part against wall-clock</h2></header>
-        <div class="hint">Every mark is one arm. Down and left is better: fewer looks, less time.
-          Each arm is labelled directly, so the position carries the reading and colour only
+        <div class="hint">Every mark is one model. Down and left is better: fewer looks, less time.
+          Each model is labelled directly, so the position carries the reading and colour only
           confirms it.</div>
         <div id="rt-cost"></div>
         <footer id="rt-cost-meta"></footer>
       </div>
 
       <div class="card w12">
-        <header><h2>Every decision, arm by arm</h2></header>
-        <div class="hint">One column per decision, one row per arm. Green is a correct call, red a
+        <header><h2>Every decision, model by model</h2></header>
+        <div class="hint">One column per decision, one row per model. Green is a correct call, red a
           wrong one. The block of red was read here as over-caution in larger models. The card
           below shows that reading was wrong, and the fault was in the prompt.</div>
         <div id="rt-grid"></div>
@@ -56,7 +56,7 @@ export function render() {
 
       <div class="card w12">
         <header><h2>The same decisions, with the boundary given a number</h2></header>
-        <div class="hint">The prompt these arms were given said to accept a single view only if
+        <div class="hint">The prompt these models were given said to accept a single view only if
           its signals were &ldquo;excellent&rdquo;, and never said what excellent meant. Every
           part starts with exactly one view, so read literally that sentence asks for a second
           look on every part in the set, which is what the larger models did. Here the same
@@ -80,8 +80,7 @@ export function render() {
 
       <div class="card w6">
         <header><h2>What the model said, in its own words</h2></header>
-        <div class="hint">What each model said, in its own words. A verdict with no reasoning attached
-          cannot be checked by anyone.</div>
+        <div class="hint">What each model said, in its own words. A verdict with no reasoning attached cannot be checked by anyone. The signal names in the quotes: included_angle_deg is the angle between the two fitted faces, square is 90; inlier_balance is how evenly both faces were seen, 1 is perfectly even; the fit RMS values are how far each face strayed from a flat plane, in millimetres; path_length_mm is how much of the joint the view covered.</div>
         <div id="rt-reasons"></div>
       </div>
     </div>`;
@@ -159,10 +158,10 @@ function tiles() {
   const saved = ultra.total_latency_s - routed.total_latency_s;
   V.$("rt-tiles").innerHTML = [
     tile("Routed, correct calls", `${routed.correct}/${routed.n}`, "after",
-      `${V.pct(routed.accuracy, 1)} against ground truth`),
+      `${V.pct(routed.accuracy, 1)} against the known answer`),
     tile("Looks per decision", routed.looks_per_decision.toFixed(2), "good",
       `the floor is 1.00, Super sat at ${superb.looks_per_decision.toFixed(2)}`),
-    tile("Wall clock for the run", `${routed.total_latency_s.toFixed(0)}`, "after",
+    tile("Time for the run", `${routed.total_latency_s.toFixed(0)}`, "after",
       `seconds, against ${ultra.total_latency_s.toFixed(0)} s on the largest model`, "s"),
     tile("Time the routing saved", `${saved.toFixed(0)}`, "good",
       `${V.pct(saved / ultra.total_latency_s, 0)} of the largest model's run`, "s"),
@@ -227,9 +226,8 @@ function cost() {
 
   const routed = arm("routed"), ultra = arm("ultra");
   V.$("rt-cost-meta").innerHTML =
-    `The routed arm sits in the bottom left: <b>${routed.looks_per_decision.toFixed(2)}</b> looks per part
-     in <b>${routed.total_latency_s.toFixed(0)} s</b>, and it was right more often than the arm that
-     cost <b>${ultra.total_latency_s.toFixed(0)} s</b>.`;
+    `Routing sits in the bottom left: <b>${routed.looks_per_decision.toFixed(2)}</b> looks per part
+     in <b>${routed.total_latency_s.toFixed(0)} s</b>, and it was right more often than the model that cost <b>${ultra.total_latency_s.toFixed(0)} s</b>.`;
 }
 
 function grid() {
@@ -303,7 +301,7 @@ function live() {
 
   V.$("rt-live-meta").innerHTML =
     `Every row carries the model that answered and why it was picked, so a decision can be
-     traced back to the tier that made it.`;
+     traced back to the model size that made it.`;
 
   const reasons = rows.slice(0, 6);
   V.$("rt-reasons").innerHTML = reasons.map((d) => `

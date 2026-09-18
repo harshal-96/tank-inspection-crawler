@@ -29,8 +29,7 @@ export function render() {
       <div class="card w12">
         <header><h2>The chain, under four sets of assumptions</h2></header>
         <div class="hint">Systematic terms add, because an offset that is the same on every
-          part is not averaged away by making more parts. Independent random terms combine in
-          quadrature. Whether a term is systematic or random decides how much it ends up mattering.</div>
+          part is not averaged away by making more parts. Independent random errors partly cancel each other out, so they add up more slowly, as the square root of the sum of their squares. Whether a term is systematic or random decides how much it ends up mattering.</div>
         <div id="bg-chain"></div>
         <div class="legend">
           <span><i style="background:var(--series-1)"></i>measured in this repository</span>
@@ -147,7 +146,7 @@ function chain(b) {
       ${V.fmt(budget.total_mm, 2)} mm</text>`;
     out += `<text x="${padL}" y="${y + 56}" font-size="10.5" fill="var(--text-muted)"
       font-family="var(--sans)">${V.fmt(budget.systematic_mm, 2)} mm systematic, adds
-      &#183; ${V.fmt(budget.random_mm, 2)} mm random, in quadrature</text>`;
+      &#183; ${V.fmt(budget.random_mm, 2)} mm random, partly cancelling</text>`;
   });
   V.paint(V.$("bg-chain"), V.svg(w, h, out));
 }

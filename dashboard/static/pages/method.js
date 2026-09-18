@@ -16,17 +16,17 @@ const STAGES = [
     why: "A camera on the wrist has to be recalibrated against every pose, and the torch gets in front of it.",
     out: "one frame" },
   { n: 2, name: "Fit", what: "The two folded faces are fitted as planes and intersected; the line they share is the joint.",
-    why: "Geometry, not a learned keypoint. It gives a line with a residual you can read, so failure is visible rather than silent.",
+    why: "Geometry, not a learned keypoint. It gives a line with an error you can read, so failure is visible rather than silent.",
     out: "a joint line and its fit quality" },
   { n: 3, name: "Judge", what: "A small model reads the fit signals and says whether this is good enough to weld on.",
     why: "The question is cheap and asked once a part, so it goes to the smallest model that can answer it.",
     out: "accept, or take another look" },
-  { n: 4, name: "Track", what: "Twenty stations are cut along the seam and each is located on its own.",
+  { n: 4, name: "Track", what: "Twenty points are cut along the seam and each is located on its own.",
     why: "The seam is not straight. A single corrected point still leaves the bow.",
     out: "a path, not an offset" },
-  { n: 5, name: "Schedule", what: "Each station gets its own current, voltage and travel speed from the gap measured there.",
+  { n: 5, name: "Schedule", what: "Each point gets its own current, voltage and travel speed from the gap measured there.",
     why: "A gap needs less current and slower travel, not more heat. Past 1.6 times the sheet, one pass cannot bridge it.",
-    out: "per-station weld parameters, or a refusal" },
+    out: "per-point weld parameters, or a refusal" },
   { n: 6, name: "Predict", what: "Shrinkage and angular distortion from the heat about to go in are carried forward.",
     why: "The arc moves the joint ahead of itself. Measuring before the weld and ignoring that is measuring the wrong part.",
     out: "expected drift along the seam" },
@@ -55,7 +55,7 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>Ground truth, per study</h2></header>
+        <header><h2>The correct answer, per study</h2></header>
         <div class="hint">Every number on this dashboard means something only because the correct answer
           was fixed before the model was asked.</div>
         <div id="me-truth"></div>
@@ -75,10 +75,10 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>One question per tier, chosen by how often it is asked</h2></header>
+        <header><h2>One question per model size, chosen by how often it is asked</h2></header>
         <div class="hint">Not a cascade by difficulty. A cascade escalates when it is unsure, which
           means paying for the large model on exactly the cases where it is slowest. This picks the
-          tier by what the question is worth, and the routing study is the test of whether that holds.</div>
+          model size by what the question is worth, and the routing study is the test of whether that holds.</div>
         <div id="me-tiers"></div>
       </div>
     </div>`;
@@ -107,10 +107,10 @@ function stages() {
 function truth(ev) {
   const rows = [
     ["Seam tracking", "the seam's position in the part that was folded, known exactly",
-     `${ev.seam.n_parts} parts × ${ev.seam.stations_per_part} stations`],
+     `${ev.seam.n_parts} parts × ${ev.seam.stations_per_part} points`],
     ["Joint locating", "the corner's coordinates in the cell", `${ev.locating.n_parts} parts, three policies`],
     ["Look-again routing", "whether a second look measurably improved the fit",
-     ev.router.available ? `${ev.router.arms[0].n} decisions × 5 arms` : "–"],
+     ev.router.available ? `${ev.router.arms[0].n} decisions × 5 models` : "–"],
     ["Drift diagnosis", "the fault injected into the run, with a control that was verified flat first",
      ev.drift.available ? `${ev.drift.runs[0].n} runs × ${ev.drift.runs.length} models` : "–"],
     ["Post-weld inspection", "the defect injected into the bead on purpose", `${ev.inspection.n} beads`],
@@ -123,7 +123,7 @@ function truth(ev) {
 
 function limits() {
   const rows = [
-    ["It runs in simulation", "The depth, the normals and the mask come from a rendered cell, not a real sensor. Real depth is noisier at a bright arc and on a specular sheet, and that noise lands directly on the plane fits."],
+    ["It runs in simulation", "The depth, the normals and the mask come from a rendered cell, not a real sensor. Real depth is noisier at a bright arc and on a shiny sheet, and that noise lands directly on the plane fits."],
     ["The arc is modelled, not struck", "Shrinkage and angular distortion come from a calibrated model of heat input, not from a thermocouple. The numbers are the right shape and the right order; they are not a measurement of this joint."],
     ["The defects are injected", "That is what makes the inspection score meaningful, and it also means the defect population is the one that was written, not the one a real line produces."],
     ["Fifty parts is a run, not a process", "It is enough to show the correction holds and enough to see drift. It is not enough to quote a capability index."],
@@ -137,12 +137,12 @@ function limits() {
 
 const MOVES = [
   { n: 1, name: "Measure the part, not the program",
-    here: "Twenty stations along the corner where two folded edges meet.",
+    here: "Twenty points along the corner where two folded edges meet.",
     elsewhere: "Whatever the tool is about to touch, in the pose the part actually "
              + "arrived in, at the place it will be touched rather than at a datum "
              + "somewhere else on it." },
   { n: 2, name: "Schedule the process to what was measured",
-    here: "Current, voltage and travel speed per station, from the gap measured there, "
+    here: "Current, voltage and travel speed per point, from the gap measured there, "
         + "and a refusal where one pass cannot bridge it.",
     elsewhere: "The process parameter that the local condition decides, and the "
              + "willingness to stop rather than run the process outside where it works." },
@@ -193,7 +193,7 @@ function generality() {
 
   V.$("me-general-meta").innerHTML =
     `What carries across is the architecture: measure before acting, decide
-     per station, refuse rather than guess, score everything against a truth fixed in advance,
+     per point, refuse rather than guess, score everything against a truth fixed in advance,
      and route the question by how often it is asked. What does not carry across is any number
      on this dashboard. Each process needs its own feature to find, its own process model in
      place of <b>weld_params</b>, its own defect vocabulary, and its own calibration.`;
@@ -203,19 +203,19 @@ function tiers(ev) {
   const rows = [
     { tier: "nano", question: "Is this measurement good enough to weld on?",
       cadence: "once per part", evidence: ev.router.available
-        ? `${ev.router.arms.find((a) => a.arm === "nano").correct}/${ev.router.arms[0].n} correct against ground truth` : "" },
+        ? `${ev.router.arms.find((a) => a.arm === "nano").correct}/${ev.router.arms[0].n} correct against the known answer` : "" },
     { tier: "lightning", question: "Held in reserve for the same question under load",
       cadence: "as needed", evidence: ev.router.available
         ? `${ev.router.arms.find((a) => a.arm === "lightning").correct}/${ev.router.arms[0].n} on the accept call, too cautious` : "" },
     { tier: "super", question: "What is going out of adjustment across this run?",
       cadence: "once per shift", evidence: ev.drift.available
         ? `${ev.drift.runs.find((r) => r.tier === "super").correct}/12 causes named, and it improves when the fault gets stronger` : "" },
-    { tier: "ultra", question: "Reserved for a disagreement worth the wall clock",
+    { tier: "ultra", question: "Reserved for a disagreement worth the time",
       cadence: "rare", evidence: ev.router.available
         ? `${ev.router.arms.find((a) => a.arm === "ultra").correct}/${ev.router.arms[0].n} on the accept call at ${ev.router.arms.find((a) => a.arm === "ultra").total_latency_s.toFixed(0)} s` : "" },
   ];
   V.$("me-tiers").innerHTML = `<table>
-    <thead><tr><th>Tier</th><th>The question it owns</th><th>How often it is asked</th><th>What the study found</th></tr></thead>
+    <thead><tr><th>Model size</th><th>The question it owns</th><th>How often it is asked</th><th>What the study found</th></tr></thead>
     <tbody>${rows.map((r) => `<tr>
       <td><span class="badge ${V.ARM_CLASS[r.tier]}">${V.esc(r.tier)}</span></td>
       <td>${V.esc(r.question)}</td>

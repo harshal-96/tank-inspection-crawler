@@ -13,7 +13,7 @@ export const meta = {
 
 const PROMPTS = [
   "Is the press drifting, or is it the fixture?",
-  "Which parts refused a station, and how open was the joint there?",
+  "Which parts refused a point, and how open was the joint there?",
   "Give me a shift report.",
   "How far off would a taught path have been on the worst part?",
   "Has the inspection missed anything I should be worried about?",
@@ -153,7 +153,7 @@ function runState() {
     ["Parts through the cell", s.parts_total, `${live.seams.length} with a tracked seam`],
     ["Correction", `${V.fmt(s.correction.mean_mm, 2)} mm`,
       `median ${V.fmt(s.correction.median_mm, 2)}, p95 ${V.fmt(s.correction.p95_mm, 2)}, none over 3 mm`],
-    ["Stations refused", refused, `out of ${live.schedules.length * 20} scheduled`],
+    ["Points refused", refused, `out of ${live.schedules.length * 20} scheduled`],
     ["Looks spent", looks, `${(looks / Math.max(1, live.decisions.length)).toFixed(2)} per part`],
     ["Inspection", V.pct(s.inspection.accuracy),
       `${s.inspection.true_pass} clean, ${s.inspection.true_defect} caught, ${s.inspection.false_defect} false alarms`],

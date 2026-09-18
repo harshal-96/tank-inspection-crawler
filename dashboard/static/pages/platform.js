@@ -22,7 +22,7 @@ const ROWS = [
     platform: "Nebius Token Factory",
     model: "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
     cadence: "once per part",
-    why: "measured right on 34 of 39 calls against ground truth, at 1.10 looks per part",
+    why: "measured right on 34 of 39 calls against the known answer, at 1.10 looks per part",
     tone: "s1",
   },
   {
@@ -42,11 +42,11 @@ const ROWS = [
     tone: "s3",
   },
   {
-    job: "Reserved for a disagreement worth the wall clock",
+    job: "Reserved for a disagreement worth the time",
     platform: "Nebius Token Factory",
     model: "nvidia/Nemotron-3-Ultra-550b-a55b",
     cadence: "rare",
-    why: "111 s for the same 39 calls the routed arm answered in 55 s, and less accurately",
+    why: "111 s for the same 39 calls routing answered in 55 s, and less accurately",
     tone: "s4",
   },
   {
@@ -68,9 +68,9 @@ const ROWS = [
   {
     job: "Naming which machine is drifting, without a network",
     platform: "trained on Token Factory, runs on the cell's own GPU",
-    model: "Qwen3-1.7B + LoRA adapter",
+    model: "Qwen3 1.7B, fine-tuned",
     cadence: "once per shift, offline",
-    why: "12 of 12 on the held-out cases, against 8 of 12 for the 120B it replaces",
+    why: "12 of 12 on cases the training never saw, against 8 of 12 for the 120B it replaces",
     tone: "s5",
   },
   {
@@ -179,7 +179,7 @@ function tiles(ev) {
     tile("Tokens through Token Factory", tokens.toLocaleString(), "",
       "on the view-planning decisions alone"),
     tile("Trained on Token Factory", "1", "after",
-      "a LoRA adapter that now runs without a network"),
+      "a small fine-tuned model that now runs without a network"),
     tile("Cited briefs raised", String(briefs), "",
       "each one read from the source document, not its snippet"),
   ].join("");
@@ -230,5 +230,5 @@ function time(ev) {
   V.paint(V.$("pf-time"), V.ranked(rows, { width: 440, rowH: 36, padL: 176 }));
   V.$("pf-time-meta").innerHTML =
     `The routing is worth <b>${(ultra.total_latency_s - routed.total_latency_s).toFixed(0)} s</b>
-     across fifty parts, The shift-level question is asked once, so its wall clock barely registers.`;
+     across fifty parts, The shift-level question is asked once, so its time barely registers.`;
 }

@@ -119,9 +119,9 @@ function chips(slot) {
   const cards = [];
   if (t) {
     cards.push(glass("Seam found to", V.fmt(t.error_mm, 2) + " mm",
-      `worst station ${V.fmt(t.worst_station_mm, 2)} mm`, "var(--after)"));
+      `worst point ${V.fmt(t.worst_station_mm, 2)} mm`, "var(--after)"));
     cards.push(glass("Taught path misses", V.fmt(t.taught_miss_mm, 1) + " mm",
-      `${t.stations_measured}/${t.stations_asked} stations measured`, "var(--before)"));
+      `${t.stations_measured}/${t.stations_asked} points measured`, "var(--before)"));
   }
   if (s) {
     cards.push(glass("Weld schedule", `${s.weldable_stations}/${s.weldable_stations + s.refused_stations}`,
@@ -158,7 +158,7 @@ function fixed(geo) {
     ${row("Looks at", `x ${aim[0].toFixed(3)} m, y ${aim[1].toFixed(3)} m`)}
     ${row("Returns", "colour, depth, surface normals and a semantic mask")}
     ${row("Used for", "two plane fits, intersected to give the joint line")}
-    ${row("Stations", "20 slices along the seam, each measured on its own")}
+    ${row("Points", "20 slices along the seam, each measured on its own")}
   </tbody></table>`;
 }
 
@@ -177,14 +177,14 @@ function partCard(slot) {
     <line class="gridline" x1="${pad}" y1="${h / 2}" x2="${w - pad}" y2="${h / 2}"/>
     ${V.line(pts, "var(--series-1)", 2)}
     ${dev.map((v, i) => V.dot(xOf(i), yOf(v), 2.6, "var(--series-1)",
-      `data-tip="station ${i + 1}: <b>${V.fmt(v, 2)} mm</b> off the straight line"`)).join("")}
-    ${V.axisTitle(pad, 12, `±${span.toFixed(1)} mm about the seam's own chord`)}`);
+      `data-tip="point ${i + 1}: <b>${V.fmt(v, 2)} mm</b> off the straight line"`)).join("")}
+    ${V.axisTitle(pad, 12, `±${span.toFixed(1)} mm off the straight line between the seam's ends`)}`);
 
   V.$("cell-part").innerHTML = `
     ${chart}
     <table class="plain" style="margin-top:10px"><tbody>
       ${row("Part", `#${t.part_id}`)}
-      ${row("Bow", `${V.fmt(t.seam_bow_mm, 2)} mm across the ${t.stations_measured} stations`)}
+      ${row("Bow", `${V.fmt(t.seam_bow_mm, 2)} mm across the ${t.stations_measured} points`)}
       ${row("Gap", `mean ${V.fmt(t.gap_mm_mean, 2)} mm, worst ${V.fmt(t.gap_mm_max, 2)} mm`)}
       ${m ? row("Corner", `x ${m.detected_x.toFixed(4)} m, y ${m.detected_y.toFixed(4)} m`) : ""}
       ${d ? row("Looks", `${d.after_looks}, decided by ${(d.model || "").split("/").pop()}`) : ""}
@@ -192,7 +192,7 @@ function partCard(slot) {
   V.bindTips(V.$("cell-part"));
 }
 
-/** How far each station sits off the straight line between the seam's own ends. */
+/** How far each point sits off the straight line between the seam's own ends. */
 export function deviations(path) {
   if (!path || path.length < 2) return (path || []).map(() => 0);
   const a = path[0], b = path[path.length - 1];

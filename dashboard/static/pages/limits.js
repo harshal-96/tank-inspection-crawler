@@ -19,7 +19,7 @@ export const meta = {
 
 const AXIS_TITLE = {
   axial: "Range noise",
-  dropout: "Specular dropout",
+  dropout: "Shiny surface dropout",
   flying: "Flying pixels at the joint edge",
 };
 
@@ -33,7 +33,7 @@ const AXIS_WHAT = {
   axial: "How far a reading sits from the truth at one metre. Triangulation error grows "
        + "with the square of distance, so a camera quoted at a single millimetre figure "
        + "with no range beside it has told you nothing.",
-  dropout: "How much of the frame comes back empty. Folded sheet steel is specular and "
+  dropout: "How much of the frame comes back empty. Folded sheet steel is shiny and "
          + "returns nothing from a face angled away, in patches rather than speckle, "
          + "because a whole region shares an orientation.",
   flying: "Pixels straddling a depth step report a range belonging to neither surface. "
@@ -57,12 +57,12 @@ export function render() {
       <div class="card w12">
         <header><h2>Each failure mode, taken until it breaks</h2></header>
         <div class="hint">One axis at a time, everything else clean, so each curve shows what
-          that one failure costs rather than a mixture. The pale line is the worst station on any part. It degrades far faster than the mean, and it is the one that burns through.</div>
+          that one failure costs rather than a mixture. The pale line is the worst point on any part. It degrades far faster than the mean, and it is the one that burns through.</div>
         <div id="lm-curves"></div>
         <div class="legend">
           <span><i class="line" style="background:var(--after)"></i>mean error, faces fitted from all their points</span>
           <span><i class="line" style="background:var(--before)"></i>mean error, slices alone</span>
-          <span><i class="line" style="background:var(--warning)"></i>worst station on any part</span>
+          <span><i class="line" style="background:var(--warning)"></i>worst point on any part</span>
           <span><i style="background:var(--critical)"></i>past the wire diameter</span>
         </div>
       </div>
@@ -152,7 +152,7 @@ function curve(axis, primary, secondary) {
   const lo = Math.min(...values), hi = Math.max(...values);
   const xOf = (v) => padL + ((v - lo) / Math.max(1e-9, hi - lo)) * (w - padL - padR);
 
-  // Log on the error axis: the mean and the worst station are an order apart and
+  // Log on the error axis: the mean and the worst point are an order apart and
   // a linear scale shows one of them as a flat line along the floor.
   const errs = [
     ...primary.map((r) => r.mean_mm), ...primary.map((r) => r.worst_mm),
@@ -194,9 +194,9 @@ function curve(axis, primary, secondary) {
     out += V.dot(xOf(row.value), yOf(row.mean_mm), 3.2, colour,
       `data-tip="<b>${AXIS_UNIT[axis] ? AXIS_UNIT[axis](row.value) : row.value}</b><br>
         <span class='k'>mean</span> <b>${V.fmt(row.mean_mm, 3)} mm</b><br>
-        <span class='k'>worst station</span> <b>${V.fmt(row.worst_mm, 2)} mm</b><br>
+        <span class='k'>worst point</span> <b>${V.fmt(row.worst_mm, 2)} mm</b><br>
         <span class='k'>parts tracked</span> <b>${row.parts_tracked}</b><br>
-        <span class='k'>stations returned</span> <b>${V.pct(row.station_yield, 0)}</b>"`);
+        <span class='k'>points returned</span> <b>${V.pct(row.station_yield, 0)}</b>"`);
   });
 
   [lo, (lo + hi) / 2, hi].forEach((v) => {
@@ -221,7 +221,7 @@ function limits(r) {
 
   V.$("lm-limits").innerHTML = `<table>
     <thead><tr><th>Failure mode</th><th>Holds to</th><th>Fails at</th>
-      <th>Fails by</th><th class="num">Worst station when clean</th></tr></thead>
+      <th>Fails by</th><th class="num">Worst point when clean</th></tr></thead>
     <tbody>${rows}</tbody></table>`;
 
   const axial = best.limits.axial || {};
@@ -230,6 +230,16 @@ function limits(r) {
      <b>${axial.holds_to} mm</b> at a metre. A general purpose stereo depth camera is
      around 2.5 mm at that range, so this method does not run on one. Production seam trackers use laser line triangulation at a tenth of a millimetre. Losing most of the frame barely matters by comparison.`;
 }
+
+// The sensor presets are stored by their code names. A reader does not know
+// what "specular" means, so the rows say what each one is in plain words and
+// fall back to the code name only for a preset this map has not met.
+const SENSOR_LABEL = {
+  clean: "clean, no noise at all",
+  typical_stereo: "typical stereo camera",
+  harsh_specular: "harsh: shiny sheet, worst case",
+};
+const sensorName = (v) => SENSOR_LABEL[v] ?? String(v).replace(/_/g, " ");
 
 function named(r) {
   const refined = arm(r, "refined");
@@ -240,14 +250,14 @@ function named(r) {
   const rows = source.named.map((n) => {
     const before = (slices?.named || []).find((x) => x.value === n.value);
     return {
-      label: n.value.replace(/_/g, " "),
+      label: sensorName(n.value),
       value: n.mean_mm ?? 0,
       display: `${V.fmt(n.mean_mm, 2)} mm`,
       colour: n.weldable ? "var(--after)" : "var(--critical)",
-      tip: `<b>${n.value.replace(/_/g, " ")}</b><br>
+      tip: `<b>${sensorName(n.value)}</b><br>
         <span class='k'>mean</span> <b>${V.fmt(n.mean_mm, 3)} mm</b><br>
-        <span class='k'>worst station</span> <b>${V.fmt(n.worst_mm, 2)} mm</b><br>
-        <span class='k'>stations returned</span> <b>${V.pct(n.station_yield, 0)}</b>
+        <span class='k'>worst point</span> <b>${V.fmt(n.worst_mm, 2)} mm</b><br>
+        <span class='k'>points returned</span> <b>${V.pct(n.station_yield, 0)}</b>
         ${before && refined && before.mean_mm !== n.mean_mm
           ? `<br><span class='k'>slices alone gave</span> <b>${V.fmt(before.mean_mm, 2)} mm</b>` : ""}`,
     };
