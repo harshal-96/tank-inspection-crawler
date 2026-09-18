@@ -77,8 +77,9 @@ export function render() {
       <div class="card w12">
         <header><h2>One question per model size, chosen by how often it is asked</h2></header>
         <div class="hint">Not a cascade by difficulty. A cascade escalates when it is unsure, which
-          means paying for the large model on exactly the cases where it is slowest. This picks the
-          model size by what the question is worth, and the routing study is the test of whether that holds.</div>
+          means paying for the large model on exactly the cases where it is slowest, and here the
+          large model was measured to be no better at the per-part question. This picks the model
+          size by what the question is worth, and the routing study is the test of whether that holds.</div>
         <div id="me-tiers"></div>
       </div>
     </div>`;
