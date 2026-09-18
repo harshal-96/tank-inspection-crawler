@@ -32,7 +32,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | --- | --- | --- |
 | Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
 | Routing to the right model size | 88 of 89 for the smallest model, no part welded on a failed view | ground truth, not a larger model's opinion |
-| Post-weld inspection | 88% pass or defect on 50 beads, 39 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
+| Post-weld inspection | 91% pass or defect on 150 beads, 111 of 150 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
 | Which machine is drifting, on hard cases | **best model 72%, a fixed rule 56%** | cases sampled onto the decision boundary |
@@ -226,14 +226,14 @@ framing changed, and it changed for every model. Each cell is defects named righ
 the beads the model would judge:
 
 <!-- vision-variants:begin -->
-| | prompt as first written | told it is a rendering | told it is a rendering, shown the bead up close | and a hole defined apart from a pore |
-| --- | --- | --- | --- | --- |
-| **MiniMax-M3** | 1 of 1 judged, 49 declined; 0 missed | 34 of 50 judged; 9 missed | 37 of 50 judged; 4 missed | 39 of 50 judged; 6 missed |
-| Gemma 3 27B | 31 of 50 judged; 4 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 4 missed | 36 of 50 judged; 4 missed |
-| MiniCPM-V 4.5 | 31 of 50 judged; 19 missed | 31 of 50 judged; 19 missed | 31 of 50 judged; 14 missed | 31 of 50 judged; 19 missed |
-| Kimi K2.6 | 31 of 40 judged, 10 declined; 7 missed | 32 of 46 judged, 4 declined; 9 missed | 33 of 42 judged, 8 declined; 5 missed | 38 of 45 judged, 5 declined; 4 missed |
-| DeepSeek V4.1 Flash | 17 of 26 judged, 24 declined; 1 missed | 35 of 50 judged; 3 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 3 missed |
-| GLM-5.3 Flash | 12 of 21 judged, 29 declined; 2 missed | 35 of 49 judged, 1 declined; 3 missed | 33 of 44 judged, 6 declined; 3 missed | 36 of 46 judged, 4 declined; 4 missed |
+| | prompt as first written | told it is a rendering | told it is a rendering, shown the bead up close | and a hole defined apart from a pore | and the hole drawn as a hole, on 150 beads |
+| --- | --- | --- | --- | --- | --- |
+| **DeepSeek V4.1 Flash** | 17 of 26 judged, 24 declined; 1 missed | 35 of 50 judged; 3 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 3 missed | 111 of 150 judged; 14 missed |
+| Gemma 3 27B | 31 of 50 judged; 4 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 4 missed | 36 of 50 judged; 4 missed | 106 of 150 judged; 18 missed |
+| MiniCPM-V 4.5 | 31 of 50 judged; 19 missed | 31 of 50 judged; 19 missed | 31 of 50 judged; 14 missed | 31 of 50 judged; 19 missed | not run |
+| Kimi K2.6 | 31 of 40 judged, 10 declined; 7 missed | 32 of 46 judged, 4 declined; 9 missed | 33 of 42 judged, 8 declined; 5 missed | 38 of 45 judged, 5 declined; 4 missed | not run |
+| GLM-5.3 Flash | 12 of 21 judged, 29 declined; 2 missed | 35 of 49 judged, 1 declined; 3 missed | 33 of 44 judged, 6 declined; 3 missed | 36 of 46 judged, 4 declined; 4 missed | not run |
+| MiniMax-M3 | 1 of 1 judged, 49 declined; 0 missed | 34 of 50 judged; 9 missed | 37 of 50 judged; 4 missed | 39 of 50 judged; 6 missed | 117 of 150 judged; 20 missed |
 <!-- vision-variants:end -->
 
 Told the truth, nobody declines and every model improves. One more fault in the
@@ -242,30 +242,35 @@ burn-through "porosity". The simulator draws burn-through as one dark hole in an
 unbroken bead, and the definitions said porosity was "small dark rounded cavities", so
 the models were reading the picture correctly and being marked wrong for it. The
 definitions now separate one large hole where the bead is missing from several small
-pits, and the renderer now stops the bead either side of the hole. The fifty beads in
-this table are the earlier renders under the sharper definitions (the last column
-above); the same fifty parts have since been re-rendered with the corrected hole, and
-scoring on those is the next run. Under the prompt the cell now uses:
+pits, and the renderer now stops the bead either side of the hole. The fifty parts were
+re-rendered with the corrected hole and a hundred more rendered at a higher defect rate,
+150 beads with 91 defects, enough to tell apart three models that tied on fifty. The
+three were scored on them under the prompt the cell now uses:
 
 <!-- vision-beads:begin -->
 | | Beads judged | Named right | Pass/defect right | False alarms | Missed | Declined | Defect types named | Median time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **MiniMax-M3** | 50 of 50 | 39 | 44 | 0 | 6 | 0 | 4 | 2.5 s |
-| DeepSeek V4.1 Flash | 50 of 50 | 36 | 47 | 0 | 3 | 0 | 4 | 3.2 s |
-| Gemma 3 27B | 50 of 50 | 36 | 46 | 0 | 4 | 0 | 3 | 1.7 s |
-| MiniCPM-V 4.5 | 50 of 50 | 31 | 31 | 0 | 19 | 0 | 0 | 1.4 s |
-| GLM-5.3 Flash | 46 of 50 | 36 | 42 | 0 | 4 | 4 | 4 | 8.5 s |
-| Kimi K2.6 | 45 of 50 | 38 | 41 | 0 | 4 | 5 | 4 | 10.2 s |
+| **DeepSeek V4.1 Flash** | 150 of 150 | 111 | 136 | 0 | 14 | 0 | 4 | 3.2 s |
+| MiniMax-M3 | 150 of 150 | 117 | 130 | 0 | 20 | 0 | 5 | 2.8 s |
+| Gemma 3 27B | 150 of 150 | 106 | 131 | 1 | 18 | 0 | 5 | 1.9 s |
 <!-- vision-beads:end -->
 
-MiniMax-M3, DeepSeek V4.1 Flash and Gemma tie within the noise of fifty beads on every
-column; a paired test on the same beads separates none of them. The cell inspects with
-MiniMax-M3: the most defects named right, no false alarms, 2.5 seconds a bead. DeepSeek
-misses fewer bad parts, three against six, at a second longer per bead, and a shop that
-weighs a shipped defect above cycle time should take it; the difference is three beads
-and inside the noise. MiniCPM reaches 31 by calling every bead a pass and ships nineteen
-bad parts. A single accuracy figure cannot tell these apart, which is why every score in
-this repository is reported as more than one number.
+On fifty beads the three tied. On 150 they do not. On the pass-or-defect call, which
+is what the cell routes a part on, DeepSeek V4.1 Flash is right on six beads where
+MiniMax-M3 is wrong and never the reverse, a paired p of 0.031, and it ships 14 bad
+parts to MiniMax's 20 with no false alarms from either. MiniMax still names the defect
+best, 117 to 111, which is advice for the person who fixes it, not the gate. The cell
+inspects with DeepSeek V4.1 Flash, at 3.2 seconds a bead. The burn-through fix held:
+23 of 24 named right where every model had called it porosity.
+
+The larger set also showed the next render fault, the same way the first two were
+found, by reading the wrong answers. Every model calls a skip clean, 0 of 13, and calls
+an undercut a skip, because the heat-tint bands were drawn the full length of the joint
+whatever the bead did, so a gap in the bead never showed, and the undercut groove sat
+on the corner itself where it read as a break in the bead. The renderer now draws the
+tint only where a bead was laid, shows the bare joint in a gap, and puts the groove
+beside the bead on the plate; the beads scored here are the renders before that change,
+and the numbers for skip and undercut are the render's failure, not the models'.
 
 One thing the comparison had to be fair about: a reasoning model spends its output
 budget thinking before it answers, and under the 400 tokens the inspector sends it came

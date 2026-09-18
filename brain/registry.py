@@ -63,10 +63,10 @@ SIZES = (
 # Everything else the project calls, grouped by the job it does.
 VISION = (
     Model("minimax", "MiniMaxAI/MiniMax-M3", "MiniMax-M3", "undisclosed",
-          "Reads the finished weld bead: 37 of 50 named right, no false alarms, 2.5 s",
+          "Names the defect best, 117 of 150, but ships 20 bad parts to DeepSeek's 14",
           "MiniMax", aliases=("MiniMax-M3",)),
     Model("gemma", "google/gemma-3-27b-it", "Gemma 3 27B", "27B",
-          "The first inspector; ties with MiniMax once the prompt tells the truth, 1.8 s", "Google",
+          "The first inspector: 131 of 150 pass or defect, 18 missed, 1.9 s", "Google",
           aliases=("gemma-3-27b-it",)),
     Model("minicpm", "openbmb/MiniCPM-V-4_5", "MiniCPM-V 4.5", "8B",
           "Scored on the same beads as a second opinion", "OpenBMB",
@@ -94,7 +94,8 @@ FIELD = (
           aliases=("DeepSeek-V4-Pro",)),
     Model("deepseek_flash", "deepseek-ai/DeepSeek-V4.1-Flash", "DeepSeek V4.1 Flash",
           "undisclosed",
-          "Names the machine that slipped, once a shift: 45 of 64 on the boundary test",
+          "Judges the bead (136 of 150 pass or defect, 14 missed, none scrapped) and names "
+          "the machine that slipped once a shift (45 of 64 on the boundary test)",
           "DeepSeek", aliases=("DeepSeek-V4.1-Flash",)),
     Model("qwen397", "Qwen/Qwen3.5-397B-A17B", "Qwen3.5 397B", "397B-A17B",
           "Boundary test only", "Alibaba",

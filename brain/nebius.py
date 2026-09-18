@@ -35,10 +35,11 @@ DEFAULT_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 # for Nemotron-3-Nano-Omni is text-only. The vision default below is therefore a
 # non-NVIDIA model. See docs/nebius.md.
 DEFAULT_TEXT_MODEL = "nvidia/Nemotron-3_5-Lightning"
-# On the same fifty beads, under a prompt that tells the model the picture is
-# a rendering, MiniMax-M3, DeepSeek V4.1 Flash and Gemma 3 27B tie within noise.
-# MiniMax names the most defects right with no false alarms at 2.5 s a bead.
-DEFAULT_VISION_MODEL = "MiniMaxAI/MiniMax-M3"
+# On 50 beads MiniMax-M3, DeepSeek V4.1 Flash and Gemma 3 27B tied within
+# noise. On 150, on the pass-or-defect call the cell routes on, DeepSeek is
+# right on 6 beads where MiniMax is wrong and never the reverse (p 0.031), and
+# ships 14 bad parts to MiniMax's 20. MiniMax still names the defect best.
+DEFAULT_VISION_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash"
 
 # The OpenAPI spec caps the image_url string at this length.
 MAX_IMAGE_URL_CHARS = 13_981_514

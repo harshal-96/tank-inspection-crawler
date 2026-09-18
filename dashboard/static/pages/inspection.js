@@ -56,8 +56,8 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>Every model that will look at a bead, on the same fifty beads</h2></header>
-        <div class="hint">Each model that accepts a picture was given the same fifty photos and the
+        <header><h2>Every model that will look at a bead, on the same beads</h2></header>
+        <div class="hint">Each model that accepts a picture was given the same photos and the
           same question. A model may also refuse to judge a bead, which is neither right nor wrong:
           it is a part someone has to go and look at. Those are the grey squares.</div>
         <div id="in-vision"></div>
@@ -68,7 +68,7 @@ export function render() {
         <header><h2>Was it the model, or the prompt?</h2></header>
         <div class="hint">The first prompt called the picture a photograph and offered
           &ldquo;uncertain&rdquo; as a way out. The picture is a rendering, and the stronger
-          models said so and took the way out. The same fifty beads were run again under a
+          models said so and took the way out. The same beads were run again under a
           prompt that tells every model what it is looking at, then once more with the bead
           shown up close. Each model gets one row per prompt.</div>
         <div id="in-variants"></div>
@@ -263,7 +263,7 @@ function vision() {
   const w = 720, rowH = 74, padL = 190, padR = 24;
   const h = arms.length * rowH + 44;
   const track = w - padL - padR;
-  let out = V.axisTitle(padL, 16, "fifty beads: clean called clean, defect caught, "
+  let out = V.axisTitle(padL, 16, `${arms[0].n} beads: clean called clean, defect caught, `
                                   + "false alarm, missed, declined to judge");
 
   arms.forEach((a, i) => {

@@ -44,9 +44,9 @@ const ROWS = [
   {
     job: "Judging the finished bead",
     platform: "Nebius Token Factory",
-    model: "MiniMaxAI/MiniMax-M3",
+    model: "deepseek-ai/DeepSeek-V4.1-Flash",
     cadence: "once per part",
-    why: "ties with DeepSeek V4.1 Flash and Gemma 3 27B on the fifty beads once the prompt says the picture is a rendering; most defects named right, no false alarms, 2.5 s a bead",
+    why: "on 150 beads, right on the pass-or-defect call 136 times with no false alarms; beats MiniMax-M3 on it at p 0.031 and ships 14 bad parts to its 20; 3.2 s a bead",
     tone: "",
   },
   {
