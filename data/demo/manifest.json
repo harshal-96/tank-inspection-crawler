@@ -194,27 +194,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0001.png",
-     "depth": "scans/distance_to_image_plane_0001.npy.gz"
+     "depth": "scans/distance_to_image_plane_0001.npy.gz",
+     "normals": "scans/normals_0001.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0003.png",
-     "depth": "scans/distance_to_image_plane_0003.npy.gz"
+     "depth": "scans/distance_to_image_plane_0003.npy.gz",
+     "normals": "scans/normals_0003.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0005.png",
-     "depth": "scans/distance_to_image_plane_0005.npy.gz"
+     "depth": "scans/distance_to_image_plane_0005.npy.gz",
+     "normals": "scans/normals_0005.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0007.png",
-     "depth": "scans/distance_to_image_plane_0007.npy.gz"
+     "depth": "scans/distance_to_image_plane_0007.npy.gz",
+     "normals": "scans/normals_0007.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0009.png",
-     "depth": "scans/distance_to_image_plane_0009.npy.gz"
+     "depth": "scans/distance_to_image_plane_0009.npy.gz",
+     "normals": "scans/normals_0009.png"
     }
    ],
    "bead_image": "beads/rgb_0009.png",
@@ -375,27 +380,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0011.png",
-     "depth": "scans/distance_to_image_plane_0011.npy.gz"
+     "depth": "scans/distance_to_image_plane_0011.npy.gz",
+     "normals": "scans/normals_0011.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0013.png",
-     "depth": "scans/distance_to_image_plane_0013.npy.gz"
+     "depth": "scans/distance_to_image_plane_0013.npy.gz",
+     "normals": "scans/normals_0013.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0015.png",
-     "depth": "scans/distance_to_image_plane_0015.npy.gz"
+     "depth": "scans/distance_to_image_plane_0015.npy.gz",
+     "normals": "scans/normals_0015.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0017.png",
-     "depth": "scans/distance_to_image_plane_0017.npy.gz"
+     "depth": "scans/distance_to_image_plane_0017.npy.gz",
+     "normals": "scans/normals_0017.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0019.png",
-     "depth": "scans/distance_to_image_plane_0019.npy.gz"
+     "depth": "scans/distance_to_image_plane_0019.npy.gz",
+     "normals": "scans/normals_0019.png"
     }
    ],
    "bead_image": "beads/rgb_0019.png",
@@ -556,27 +566,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0021.png",
-     "depth": "scans/distance_to_image_plane_0021.npy.gz"
+     "depth": "scans/distance_to_image_plane_0021.npy.gz",
+     "normals": "scans/normals_0021.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0023.png",
-     "depth": "scans/distance_to_image_plane_0023.npy.gz"
+     "depth": "scans/distance_to_image_plane_0023.npy.gz",
+     "normals": "scans/normals_0023.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0025.png",
-     "depth": "scans/distance_to_image_plane_0025.npy.gz"
+     "depth": "scans/distance_to_image_plane_0025.npy.gz",
+     "normals": "scans/normals_0025.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0027.png",
-     "depth": "scans/distance_to_image_plane_0027.npy.gz"
+     "depth": "scans/distance_to_image_plane_0027.npy.gz",
+     "normals": "scans/normals_0027.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0029.png",
-     "depth": "scans/distance_to_image_plane_0029.npy.gz"
+     "depth": "scans/distance_to_image_plane_0029.npy.gz",
+     "normals": "scans/normals_0029.png"
     }
    ],
    "bead_image": "beads/rgb_0029.png",
@@ -737,27 +752,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0031.png",
-     "depth": "scans/distance_to_image_plane_0031.npy.gz"
+     "depth": "scans/distance_to_image_plane_0031.npy.gz",
+     "normals": "scans/normals_0031.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0033.png",
-     "depth": "scans/distance_to_image_plane_0033.npy.gz"
+     "depth": "scans/distance_to_image_plane_0033.npy.gz",
+     "normals": "scans/normals_0033.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0035.png",
-     "depth": "scans/distance_to_image_plane_0035.npy.gz"
+     "depth": "scans/distance_to_image_plane_0035.npy.gz",
+     "normals": "scans/normals_0035.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0037.png",
-     "depth": "scans/distance_to_image_plane_0037.npy.gz"
+     "depth": "scans/distance_to_image_plane_0037.npy.gz",
+     "normals": "scans/normals_0037.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0039.png",
-     "depth": "scans/distance_to_image_plane_0039.npy.gz"
+     "depth": "scans/distance_to_image_plane_0039.npy.gz",
+     "normals": "scans/normals_0039.png"
     }
    ],
    "bead_image": "beads/rgb_0039.png",
@@ -918,27 +938,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0041.png",
-     "depth": "scans/distance_to_image_plane_0041.npy.gz"
+     "depth": "scans/distance_to_image_plane_0041.npy.gz",
+     "normals": "scans/normals_0041.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0043.png",
-     "depth": "scans/distance_to_image_plane_0043.npy.gz"
+     "depth": "scans/distance_to_image_plane_0043.npy.gz",
+     "normals": "scans/normals_0043.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0045.png",
-     "depth": "scans/distance_to_image_plane_0045.npy.gz"
+     "depth": "scans/distance_to_image_plane_0045.npy.gz",
+     "normals": "scans/normals_0045.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0047.png",
-     "depth": "scans/distance_to_image_plane_0047.npy.gz"
+     "depth": "scans/distance_to_image_plane_0047.npy.gz",
+     "normals": "scans/normals_0047.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0049.png",
-     "depth": "scans/distance_to_image_plane_0049.npy.gz"
+     "depth": "scans/distance_to_image_plane_0049.npy.gz",
+     "normals": "scans/normals_0049.png"
     }
    ],
    "bead_image": "beads/rgb_0049.png",
@@ -1099,27 +1124,32 @@
     {
      "orbit_deg": -45.0,
      "mask": "scans/semantic_segmentation_0051.png",
-     "depth": "scans/distance_to_image_plane_0051.npy.gz"
+     "depth": "scans/distance_to_image_plane_0051.npy.gz",
+     "normals": "scans/normals_0051.png"
     },
     {
      "orbit_deg": -22.5,
      "mask": "scans/semantic_segmentation_0053.png",
-     "depth": "scans/distance_to_image_plane_0053.npy.gz"
+     "depth": "scans/distance_to_image_plane_0053.npy.gz",
+     "normals": "scans/normals_0053.png"
     },
     {
      "orbit_deg": 0.0,
      "mask": "scans/semantic_segmentation_0055.png",
-     "depth": "scans/distance_to_image_plane_0055.npy.gz"
+     "depth": "scans/distance_to_image_plane_0055.npy.gz",
+     "normals": "scans/normals_0055.png"
     },
     {
      "orbit_deg": 22.5,
      "mask": "scans/semantic_segmentation_0057.png",
-     "depth": "scans/distance_to_image_plane_0057.npy.gz"
+     "depth": "scans/distance_to_image_plane_0057.npy.gz",
+     "normals": "scans/normals_0057.png"
     },
     {
      "orbit_deg": 45.0,
      "mask": "scans/semantic_segmentation_0059.png",
-     "depth": "scans/distance_to_image_plane_0059.npy.gz"
+     "depth": "scans/distance_to_image_plane_0059.npy.gz",
+     "normals": "scans/normals_0059.png"
     }
    ],
    "bead_image": "beads/rgb_0059.png",

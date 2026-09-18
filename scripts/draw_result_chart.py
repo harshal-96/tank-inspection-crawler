@@ -75,12 +75,18 @@ def _font(size, bold=False):
     return ImageFont.load_default()
 
 
-def draw_png(rows, before, after, factor, out: Path, title: str, scale=2):
+def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
+             subject: str = "cloud guided"):
     """The same chart as a flat image, for a README or a slide.
 
     Same data, same two shades, same log axis. Drawn at twice the size and
     reduced, because a circle four pixels across looks like a square otherwise.
+
+    subject names what the second arm was. It is not decoration: the seam
+    campaign is geometry with no model in it and the guided campaign is not, and
+    one label across both would credit a model with work it did not do.
     """
+    subject_title = subject[:1].upper() + subject[1:]
     # Lay the page out first and size the canvas to it. Guessing a height and
     # hoping the rows fit is how the last five parts got cropped off.
     row_h = 11.5
@@ -121,7 +127,7 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2):
     cards = [
         ("TAUGHT PROGRAM", f"{before['mean']:.1f} mm",
          f"worst {before['max']:.1f} mm   {before['submm']} of {len(rows)} under 1 mm"),
-        ("DEPTH + CLOUD GUIDED", f"{after['mean']:.2f} mm",
+        (subject.upper(), f"{after['mean']:.2f} mm",
          f"worst {after['max']:.2f} mm   {after['submm']} of {len(rows)} under 1 mm"),
         ("ERROR REDUCED BY", f"{factor:.0f}x", "every part measured, none refused"),
     ]
@@ -138,7 +144,7 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2):
     draw.ellipse([44 * S, (ly + 3) * S, (44 + 11) * S, (ly + 14) * S], fill=pale)
     text((62, ly + 1), "No correction, taught path", 13, ink2)
     draw.ellipse([250 * S, (ly + 3) * S, (250 + 11) * S, (ly + 14) * S], fill=deep)
-    text((268, ly + 1), "Depth measured, cloud guided", 13, ink2)
+    text((268, ly + 1), subject_title, 13, ink2)
 
     left, plot_w = 118.0, 760.0
     top = plot_top
@@ -233,6 +239,12 @@ def main() -> int:
         f"<td>{r['after']:.2f}</td><td>{r['looks']}</td></tr>" for r in rows
     )
 
+    # What the second arm actually was. The seam campaign is geometry with no model
+    # in it and the guided campaign is not, and a chart that labels both "cloud
+    # guided" credits a model with work it did not do.
+    subject = args.subject
+    subject_title = subject[:1].upper() + subject[1:]
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -317,7 +329,7 @@ def main() -> int:
            {before['submm']} of {len(rows)} under 1 mm</div>
     </div>
     <div class="kpi">
-      <div class="label">Depth + cloud guided</div>
+      <div class="label">{subject_title}</div>
       <div class="value">{after['mean']:.2f}<small> mm</small></div>
       <div class="note">worst {after['max']:.2f} mm &middot;
            {after['submm']} of {len(rows)} under 1 mm</div>
@@ -333,10 +345,10 @@ def main() -> int:
     <span><span class="swatch" style="background:var(--before)"></span>
        No correction, taught path</span>
     <span><span class="swatch" style="background:var(--after)"></span>
-       Depth measured, cloud guided</span>
+       {subject_title}</span>
   </div>
 
-  <p class="axiscap">error, millimetres &mdash; log scale, so the whole range fits</p>
+  <p class="axiscap">error, millimetres, log scale, so the whole range fits</p>
   <svg viewBox="0 0 {left + plot_w + 30:.0f} {height:.0f}" role="img"
        aria-label="Per-part seam error before and after correction">
     {''.join(grid)}
@@ -368,11 +380,12 @@ def main() -> int:
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(html, encoding="utf-8")
     print(f"no correction : mean {before['mean']:.2f} mm, worst {before['max']:.2f} mm")
-    print(f"cloud guided  : mean {after['mean']:.2f} mm, worst {after['max']:.2f} mm")
+    print(f"{args.subject:<14}: mean {after['mean']:.2f} mm, worst {after['max']:.2f} mm")
     print(f"reduction     : {factor:.1f}x")
     print(f"wrote {out}")
     if args.png:
-        print(f"wrote {draw_png(rows, before, after, factor, Path(args.png), title)}")
+        print(f"wrote {draw_png(rows, before, after, factor, Path(args.png), title,
+                                subject=subject)}")
     return 0
 
 

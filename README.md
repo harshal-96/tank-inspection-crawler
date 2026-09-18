@@ -5,8 +5,14 @@ afterwards, and escalates to a supervisor agent when the line starts to drift.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 
-Everything below is measured. Where a claim did not survive being checked it has been
-retracted in place rather than quietly dropped, and the check that killed it is shown.
+![Weld seam found to under a millimetre on parts arriving centimetres out](docs/figures/seam_result.png)
+
+Every row is one part. The pale dot is where a taught program would have welded; the
+dark dot is where the cell put the seam after measuring it. Drawn from the campaign
+file by `scripts/draw_result_chart.py`, so a number on the chart cannot drift away from
+the run that produced it.
+
+## Run it
 
 ```bash
 pip install -r requirements.txt
@@ -14,8 +20,50 @@ uvicorn service.app:app            # every study page is live immediately
 python scripts/demo.py --offline   # three seconds, and the cell is running
 ```
 
-No GPU, no API key, and no download: six parts of real captured depth ship with the
-repository. A key turns on the half that calls a model.
+No GPU, no API key and no download. Six parts of real captured depth ship with the
+repository, and this runs the actual pipeline over them rather than replaying saved
+numbers. A Token Factory key turns on the half that calls a model.
+
+![The dashboard's summary page](docs/figures/dashboard.png)
+
+## What was measured
+
+| | Result | Scored against |
+| --- | --- | --- |
+| Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
+| Routing to the right model size | 34 of 39 for the smallest model | ground truth, not a larger model's opinion |
+| Post-weld inspection | 82% pass or defect on 50 beads | the defect that was injected |
+| Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
+| Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
+| Which machine is drifting, on hard cases | **best model 68%, a fixed rule 46%** | cases sampled onto the decision boundary |
+
+### If you read three things
+
+**[The test the answer key passes](#the-test-the-answer-key-passes-and-what-replaces-it).**
+Every drift score here was measured on cases where the answer is recoverable by
+comparing two numbers to a threshold, and four lines of arithmetic score full marks on
+them in zero milliseconds. The replacement is a set built by rejection sampling onto
+the boundary. Six hosted models were run on it. The best gets 68%, one of them scores
+below the rule, and the fine-tuned model's perfect score turns out to be an artefact of
+the easy set.
+
+![Nine arms against five families of hard case](docs/figures/boundary_test.png)
+
+**[A drifting camera looks exactly like a drifting fixture](#a-drifting-camera-looks-exactly-like-a-drifting-fixture).**
+Measured on the seam alone the two faults are not similar, they are the same numbers,
+to two decimal places. No model fixes that because the information is not in the data.
+One reference feature bolted to the machine base does: same model, same prompt, 0 of 4
+drifting cameras identified becomes 4 of 4.
+
+**[What the 0.67 mm does not include](#what-the-067-mm-does-not-include).** The tracker
+finds the joint to 0.67 mm. Add hand-eye calibration, robot repeatability, standoff
+drift and what the arc itself does, and the chain comes to 2.82 mm against a 1.5 mm
+requirement. The largest term is calibration, it is systematic, and this cell cannot
+measure it.
+
+Everything here is measured. Where a claim did not survive being checked it has been
+retracted in place rather than quietly dropped, and the check that killed it is shown
+next to it.
 
 ## The problem
 
@@ -33,6 +81,13 @@ scales, and neither straightens a seam that the press has curved.
 
 This project takes the other route: assume the part will move, and measure it.
 
+![The cell in plan and elevation](docs/figures/cell_layout.png)
+
+The cell, drawn to scale from the same constants the simulation builds from by
+`scripts/draw_cell.py`. No renderer is involved: this is the model, not a picture of
+it. The camera stands 0.95 m off the joint, the joint runs 450 mm top to bottom, and
+the panels are 2 mm sheet.
+
 ## What it does
 
 **1. Track the seam, geometrically.** A depth camera looks at the part. The joint is
@@ -46,6 +101,15 @@ Tracking the whole length rather than locating a point is the part that matters.
 seam is not merely displaced, it is bent: the press leaves it bowed off the straight
 line between its own ends by 0.39 mm on average and 0.94 mm at worst. A program that
 locates the part perfectly and then drives a straight path still walks off the joint.
+
+![One part, tracked from its depth frame](docs/figures/seam_tracked.png)
+
+One part from the shipped capture, drawn by `scripts/track_on_model.py` against
+`data/demo/manifest.json`, so this picture regenerates on a clone. Grey is the taught
+path, red is where the seam really is, and the dots are the measurement at each of the
+twenty stations, coloured by whether the edges are touching there or the joint has
+opened. The taught path misses this part by 34.2 mm. Everything in the image comes out
+of the depth buffer, including the shading: no colour pass is involved at any stage.
 
 **2. Decide whether to believe it, in the cloud.** One look is not evidence. The
 measurement comes with signals a real cell has: the angle between the fitted faces, how
@@ -671,6 +735,15 @@ python scripts/eval_hard_drift.py --per-family 4
 ```
 
 ### Reproducing all of it
+
+Every figure in this file is generated rather than pasted, so a stale one is a command
+away from being correct:
+
+```bash
+python scripts/make_figures.py
+```
+
+The studies behind them:
 
 ```bash
 python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json

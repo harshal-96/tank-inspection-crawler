@@ -36,8 +36,12 @@ from cell.capture import pack_depth, unpack_depth  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, transform_points  # noqa: E402
 from cell.seam_track import find_and_track  # noqa: E402
 
-COPY_CHANNELS = ("mask",)          # PNG already; the tracker needs it
-DROP_CHANNELS = ("rgb", "normals")  # only used by the drawing scripts
+# All PNG already. The mask is what the tracker segments with, and the normals are
+# what the figures are shaded from, which is why the pictures in the README can be
+# regenerated from what ships rather than only on the machine that captured it. The
+# colour pass is 113 KB a view against the normals' 5 KB, and nothing reads it.
+COPY_CHANNELS = ("mask", "normals")
+DROP_CHANNELS = ("rgb",)
 
 
 def _stations(depth, intrinsics, to_world, start, end):

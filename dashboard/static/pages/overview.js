@@ -158,15 +158,21 @@ function tiles(ev) {
     tone: "warn",
     sub: `pass or defect on ${i.n} beads, ${i.false_alarms} false alarms, ${i.missed} missed`,
   }));
-  const trained = (ev.drift.edge || []).find((r) => r.tier === "edge");
-  if (trained) {
-    const bestCloud = [...ev.drift.runs].sort((a, b) => b.correct - a.correct)[0];
+  // This tile used to lead with the edge model's 12 of 12 on the three-cause set.
+  // That set has no hard case in it and four lines of arithmetic score the same,
+  // so the number was real and meant nothing. The boundary test is what the
+  // summary should carry, including the part where nothing passes it.
+  const hard = ev.hard;
+  if (hard && hard.available && hard.arms.length) {
+    const best = hard.arms[0];
+    const rule = hard.arms.find((a) => a.label.includes("threshold as arithmetic"));
     html.push(tile({
-      label: "Drift named, on the cell's own GPU",
-      value: `${trained.correct}/${trained.n}`,
-      tone: "after",
-      delta: `vs ${bestCloud.correct}/${bestCloud.n} cloud`,
-      sub: "a 1.7B trained on Token Factory, answering with no network",
+      label: "Best score on the boundary test",
+      value: V.pct(best.rate),
+      tone: "warn",
+      delta: rule ? `vs ${V.pct(rule.rate)} for a fixed rule` : null,
+      sub: `${best.label}, on ${hard.cases} cases built to sit on the decision `
+         + `boundary. Nothing in the field is close to answering it.`,
     }));
   }
   html.push(tile({
@@ -267,7 +273,20 @@ function studies(ev) {
       untrainedRun
         ? `${untrainedRun.correct}/${untrainedRun.n} untrained → ${trainedRun.correct}/${trainedRun.n} trained`
         : `${trainedRun.correct}/${trainedRun.n}`,
-      "good", "#/diagnosis"]);
+      // Not "good". The number is real and the test it was measured on is not
+      // hard, which the row below is here to say.
+      "warn", "#/diagnosis"]);
+  }
+  if (ev.hard && ev.hard.available) {
+    const best = ev.hard.arms[0];
+    const rule = ev.hard.arms.find((a) => a.label.includes("threshold as arithmetic"));
+    const edge = ev.hard.arms.find((a) => a.label.includes("on the cell"));
+    rows.push(["The same diagnosis, on hard cases",
+      `${ev.hard.arms.length} arms × ${ev.hard.cases} cases, passes pooled`,
+      "cases sampled onto the decision boundary, where a fixed rule fails",
+      `best ${V.pct(best.rate)}, a fixed rule ${rule ? V.pct(rule.rate) : "–"}`
+      + (edge ? `, the edge model ${V.pct(edge.rate)}` : ""),
+      "bad", "#/diagnosis"]);
   }
   if (ev.vision && ev.vision.available && ev.vision.arms.length > 1) {
     const quiet = ev.vision.arms.find((a) => a.never_says_defect);
