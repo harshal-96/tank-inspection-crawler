@@ -25,6 +25,8 @@ from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from cell.capture import load_depth  # noqa: E402
+
 # Directions FROM the surface TO each light. The camera views the joint from +x
 # and -y, so the key has to come from that side or the two faces it sees get
 # nothing but ambient. The fill comes over the opposite shoulder so nothing that
@@ -116,7 +118,7 @@ def main() -> int:
     row = next(r for r in manifest["rows"] if r["trial"] == args.part)
     view = min(row["views"], key=lambda v: abs(v["orbit_deg"] - args.view))
 
-    depth = np.load(root / view["depth"])
+    depth = load_depth(root / view["depth"])
     normals, written = decode_normals(root / view["normals"])
     image = shade(normals, written, depth)
 

@@ -30,6 +30,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.client import CellClient  # noqa: E402
 from cell.depth_joint import (  # noqa: E402
     Intrinsics,
@@ -108,7 +109,7 @@ def load_context(manifest_path: Path) -> tuple[dict, Context]:
 
 
 def take_look(view: dict, truth: np.ndarray, ctx: Context) -> Look:
-    depth = np.load(ctx.root / view["depth"])
+    depth = load_depth(ctx.root / view["depth"])
     mask = working_volume(
         depth,
         ctx.intrinsics,

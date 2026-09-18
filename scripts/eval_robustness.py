@@ -40,6 +40,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, transform_points  # noqa: E402
 from cell.seam_track import find_and_track  # noqa: E402
 from cell.sensor import CLEAN, HARSH_SPECULAR, TYPICAL_STEREO, DepthSensor  # noqa: E402
@@ -94,7 +95,7 @@ def run_campaign(rows, root, intrinsics, to_world, taught_start, taught_end,
 
     for row in rows:
         view = min(row["views"], key=lambda v: abs(v["orbit_deg"]))
-        depth = np.load(root / view["depth"])
+        depth = load_depth(root / view["depth"])
         frame = sensor.degrade(depth, rng)
         cloud = transform_points(backproject(frame, intrinsics), to_world)
 

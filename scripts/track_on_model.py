@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, project, transform_points  # noqa: E402
 from cell.seam_track import TOUCHING_TOLERANCE_MM, find_and_track  # noqa: E402
 from scripts.shade_from_buffers import decode_normals, shade  # noqa: E402
@@ -63,7 +64,7 @@ def main() -> int:
     )
     to_world = np.array(camera["to_world"])
 
-    depth = np.load(root / view["depth"])
+    depth = load_depth(root / view["depth"])
     normals, written = decode_normals(root / view["normals"])
 
     # The point cloud IS the depth image, back-projected. Nothing else feeds this.

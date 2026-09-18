@@ -19,6 +19,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.depth_joint import (  # noqa: E402
     backproject,
     fit_plane_ransac,
@@ -59,7 +60,7 @@ def main() -> int:
     row = next(r for r in manifest["rows"] if r["trial"] == args.part)
     view = next(v for v in row["views"] if abs(v["orbit_deg"] - args.view) < 1e-6)
 
-    depth = np.load(ctx.root / view["depth"])
+    depth = load_depth(ctx.root / view["depth"])
     mask = working_volume(
         depth,
         ctx.intrinsics,

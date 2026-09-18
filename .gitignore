@@ -19,6 +19,11 @@ venv/
 *.engine
 *.trt
 
+# What scripts/demo.py writes. The demo runs the real pipeline, so it produces
+# real results, but they are six parts rather than fifty and must never be
+# mistaken for the campaign files beside them that the README quotes.
+data/demo_run/
+
 # Generated data
 data/*.db
 data/*.db-journal

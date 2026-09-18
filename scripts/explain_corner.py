@@ -22,6 +22,7 @@ from PIL import Image, ImageDraw
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, project, transform_points  # noqa: E402
 from cell.seam_track import find_and_track  # noqa: E402
 from scripts.shade_from_buffers import decode_normals  # noqa: E402
@@ -61,7 +62,7 @@ def main() -> int:
     )
     to_world = np.array(camera["to_world"])
 
-    depth = np.load(root / view["depth"])
+    depth = load_depth(root / view["depth"])
     normals, _ = decode_normals(root / view["normals"])
     height, width = depth.shape
 

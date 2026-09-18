@@ -32,6 +32,7 @@ import numpy as np
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cell import geometry as geo  # noqa: E402
+from cell.capture import load_depth  # noqa: E402
 from cell.client import CellClient  # noqa: E402
 from cell.depth_joint import Intrinsics, backproject, transform_points  # noqa: E402
 from cell.seam_track import find_and_track  # noqa: E402
@@ -123,7 +124,7 @@ def main() -> int:
 
     for row in manifest["rows"]:
         view = min(row["views"], key=lambda v: abs(v["orbit_deg"] - args.view))
-        depth = np.load(root / view["depth"])
+        depth = load_depth(root / view["depth"])
         # Timed from the depth frame to a finished path, which is the work the cell
         # does between the camera firing and the torch being allowed to move. The
         # file read is outside it; on a real sensor that is a frame arriving.

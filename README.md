@@ -5,8 +5,17 @@ afterwards, and escalates to a supervisor agent when the line starts to drift.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 
-> Status: in development. Results tables below are filled in from measured runs only.
-> Anything not yet measured is marked TBD rather than estimated.
+Everything below is measured. Where a claim did not survive being checked it has been
+retracted in place rather than quietly dropped, and the check that killed it is shown.
+
+```bash
+pip install -r requirements.txt
+uvicorn service.app:app            # every study page is live immediately
+python scripts/demo.py --offline   # three seconds, and the cell is running
+```
+
+No GPU, no API key, and no download: six parts of real captured depth ship with the
+repository. A key turns on the half that calls a model.
 
 ## The problem
 
@@ -816,8 +825,25 @@ Run the service and open the dashboard at http://127.0.0.1:8000:
 uvicorn service.app:app --reload
 ```
 
-It starts empty. Fill it from a capture, which takes a few minutes and needs no GPU
-because the depth buffers are already on disk:
+It starts empty, and one command fills it:
+
+```bash
+python scripts/demo.py
+```
+
+That runs the real pipeline over `data/demo`, six parts of captured depth that ship
+with this repository, and posts what it finds. It does as much as it can with what
+you have: seam tracking and weld scheduling need nothing but the depth frames and
+finish in about three seconds, and the look-and-judge routing, the post-weld
+inspection and the cited briefs each need a key. Add `--offline` to run only the half
+that calls nothing.
+
+The demo writes under `data/demo_run/` rather than over the campaign files in `data/`,
+which are the evidence for the numbers in this README and are not the demo's to
+overwrite.
+
+Six parts is a demo, not the result. The fifty-part campaign behind the tables needs
+the full capture, which is about 900 MB and is not in git:
 
 ```bash
 python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
@@ -825,16 +851,22 @@ python scripts/run_campaign.py --manifest data/cap50/manifest.json --routed
 python scripts/run_inspection.py --manifest data/cap50/manifest.json
 ```
 
-The first posts a tracked seam and a weld schedule per part, the second the
-look-and-judge decisions with the model size that made each one, the third the
-post-weld verdicts scored against the defects that were injected.
+### What the demo capture costs
+
+The raw depth frames are float32, 1.6 MB each, which is why a full capture cannot be
+carried in a repository. The shipped frames are quantised to uint16 over the near
+field and gzipped, 49 MB of depth into 5 MB on disk. That is only allowed if the seam
+that comes out is the same seam, so `scripts/make_demo_capture.py` tracks every part
+from the raw frame and again from the packed one and prints the difference. The worst
+station moves by **0.13 mm**, against a tracked seam accuracy of 0.68 mm and a sensor
+noise floor above both.
 
 The dashboard then shows the seam itself: the tracked path against the straight line
 a taught program drives, the gap at every station, the heat the torch is putting in,
 and which Nemotron answered each decision and why.
 
-The simulation half requires Isaac Sim 6.0 and is run with its bundled interpreter. See
-`docs/simulation.md`. Capture in batches of ten rather than one run of fifty; the
+The simulation half, which produces the captures in the first place, requires Isaac
+Sim 6.0 and is run with its bundled interpreter. Nothing above needs it. Capture in batches of ten rather than one run of fifty; the
 Replicator graph grows as parts times frames and a single large capture stalls in
 graph construction. `scripts/merge_manifests.py` stitches the batches.
 
