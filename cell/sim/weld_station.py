@@ -552,19 +552,48 @@ def build_bead(
                 count += 1
 
         # Heat tint: the parent metal discolours in bands either side of the weld,
-        # straw closest and blue-grey further out.
+        # straw closest and blue-grey further out. The bands follow the bead
+        # segments, because the tint is made by the arc: where no weld was laid
+        # there is no heat and no tint. Drawn full length, as they were, they hid
+        # every skip: the bead is the same tone as the straw band and the band
+        # ran on through the gap, so 13 of 13 skips read as a clean bead.
         for offset, tint in ((0.010, (0.68, 0.55, 0.30)), (0.019, (0.42, 0.44, 0.52))):
+            for index, (start, end) in enumerate(segments):
+                span = (end - start) * full_len
+                if span <= 1e-4:
+                    continue
+                centre = along((start + end) / 2)
+                box(
+                    f"{path}/tint_side_{int(offset * 1000)}_{index}",
+                    (0.0012, 0.008, span),
+                    (local_x + offset, local_y - 0.004, centre),
+                    color=tint,
+                )
+                box(
+                    f"{path}/tint_front_{int(offset * 1000)}_{index}",
+                    (0.008, 0.0012, span),
+                    (local_x - 0.004, local_y - offset, centre),
+                    color=tint,
+                )
+
+        # Where the bead stops, the bare joint shows: a dark seam line the width
+        # of the fit-up gap, which is what a skip looks like on a real part.
+        covered = sorted(segments)
+        bare = []
+        cursor = 0.0
+        for start, end in covered:
+            if start - cursor > 1e-4:
+                bare.append((cursor, start))
+            cursor = max(cursor, end)
+        if 1.0 - cursor > 1e-4:
+            bare.append((cursor, 1.0))
+        for index, (start, end) in enumerate(bare):
+            span = (end - start) * full_len
             box(
-                f"{path}/tint_side_{int(offset * 1000)}",
-                (0.0012, 0.008, full_len),
-                (local_x + offset, local_y - 0.004, geo.BEAD_Z),
-                color=tint,
-            )
-            box(
-                f"{path}/tint_front_{int(offset * 1000)}",
-                (0.008, 0.0012, full_len),
-                (local_x - 0.004, local_y - offset, geo.BEAD_Z),
-                color=tint,
+                f"{path}/bare_joint_{index}",
+                (0.0015, 0.0015, span),
+                (local_x, local_y, along((start + end) / 2)),
+                color=(0.08, 0.08, 0.09),
             )
 
     if tag_semantics:
@@ -599,13 +628,16 @@ def build_bead(
     if plan.groove is not None:
         start, end, depth = plan.groove
         # Undercut is a groove melted into the parent metal along the bead toe,
-        # so it runs beside the weld, not through it.
+        # so it runs beside the weld, not through it. It used to sit at the
+        # corner itself, where it read as a dark break in the bead, and every
+        # model called it a skip. It now sits just outside the straw tint band
+        # on one plate, a thin dark line along the toe, with the bead intact.
         box(
             f"{path}/undercut",
-            (0.0025, depth * 3, (end - start) * full_len),
+            (0.0008, depth * 3, (end - start) * full_len),
             (
-                local_x + geo.FILLET_LEG / 2 + 0.001,
-                local_y - 0.002,
+                local_x + 0.010 + 0.0012 + 0.0006,
+                local_y - 0.004,
                 along((start + end) / 2),
             ),
             color=(0.10, 0.095, 0.09),
