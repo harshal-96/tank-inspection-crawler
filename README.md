@@ -484,6 +484,27 @@ Same model, same prompt structure, one extra column. What was missing was not
 intelligence. And it is the same instrument that would catch the calibration term
 above going out, so the two findings are one blind spot seen from two directions.
 
+Once the instrument existed, the small model was retrained on the harder problem:
+four causes rather than three, with the reference column, on eight hundred runs
+generated away from the same held-out seeds.
+
+| Model | Where | Four-way score | The two that look alike |
+| --- | --- | --- | --- |
+| Nemotron 3 Super 120B, seam only | Token Factory | 8 of 16 | 4 of 8 |
+| Nemotron 3 Super 120B, with reference | Token Factory | 14 of 16 | 6 of 8 |
+| **Qwen3-1.7B + LoRA, with reference** | **the cell's own GPU** | **16 of 16** | **8 of 8** |
+
+The three-cause result earlier in this file is kept rather than replaced. Those
+models were scored on that question, and restating their numbers against a harder
+one they never saw would be exactly the sort of thing the rest of this file exists
+to avoid.
+
+The honest cost is time. The four-way model answers in about 17 s on a laptop GPU
+against roughly 1.6 s for the 120B in the cloud, because the table carries an extra
+column and the model writes out its reasoning. For a question asked once a shift on
+a machine that may have no network, that is the right side of the trade, and it is
+a different trade from the one the per-part decisions make.
+
 ### Reproducing all of it
 
 ```bash
@@ -516,6 +537,17 @@ python scripts/eval_compensation.py
 
 # the camera-versus-fixture confound, and the instrument that resolves it
 python scripts/eval_confound.py
+
+# retrain the edge model on four causes, and score it on the cell's own GPU
+python scripts/make_drift_dataset.py --with-camera --train 800 --val 100 \
+    --out data/finetune_camera
+python scripts/finetune_drift.py --launch \
+    --train data/finetune_camera/drift_train.jsonl \
+    --val data/finetune_camera/drift_val.jsonl --suffix drift-four-way
+python scripts/finetune_drift.py --watch
+python scripts/finetune_drift.py --fetch
+python scripts/eval_drift_edge.py --with-camera
+python scripts/eval_drift_edge.py --with-camera --base-only
 ```
 
 Seam finding is geometric: two faces fitted from depth and intersected, walked along

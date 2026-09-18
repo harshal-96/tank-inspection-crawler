@@ -19,10 +19,12 @@ from cell.drift import (
     HELD_OUT_SEEDS,
     SCENARIOS,
     SYSTEM_PROMPT,
+    SYSTEM_PROMPT_WITH_REFERENCE,
     VISIBLE_RATIO,
     build_stream,
     discriminators,
     is_held_out,
+    prompt_for,
     slope_ratio,
     user_prompt,
 )
@@ -70,10 +72,24 @@ def test_held_out_seeds_are_fenced_with_a_margin():
 
 
 def test_the_prompt_is_shared_rather_than_retyped():
-    """A trained model given a better prompt has not been compared to its baseline."""
+    """A trained model given a better prompt has not been compared to its baseline.
+
+    The guarantee used to be that the evaluation imported the prompt by name. It is
+    now stronger: the prompt is chosen from the rows themselves, so a model cannot
+    be told about a reference column its table does not carry, or shown one nobody
+    described. Checked on the function every evaluation calls.
+    """
     import scripts.eval_drift_edge as edge  # noqa: PLC0415
 
-    assert edge.SYSTEM_PROMPT is SYSTEM_PROMPT
+    assert edge.prompt_for is prompt_for
+
+    plain, _ = build_stream(8, "press", 4242)
+    assert prompt_for(plain) is SYSTEM_PROMPT
+    assert "reference" not in prompt_for(plain).lower()
+
+    instrumented, _ = build_stream(8, "press", 4242, reference=True)
+    assert prompt_for(instrumented) is SYSTEM_PROMPT_WITH_REFERENCE
+    assert "reference" in prompt_for(instrumented).lower()
 
 
 def test_the_table_carries_all_three_columns():

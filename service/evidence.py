@@ -36,6 +36,15 @@ DRIFT_EDGE: dict[str, tuple[str, str]] = {
     "edge_base": ("drift_eval_edge_base.jsonl", "Qwen3 1.7B, untrained, on the cell's GPU"),
 }
 
+# The same models on the harder question: four causes rather than three, with the
+# reference channel that separates a drifting camera from a drifting fixture.
+DRIFT_EDGE_FOUR: dict[str, tuple[str, str]] = {
+    "edge4": ("drift_eval_edge4.jsonl",
+              "Qwen3 1.7B, fine-tuned on four causes, on the cell's GPU"),
+    "edge4_base": ("drift_eval_edge4_base.jsonl",
+                   "Qwen3 1.7B, untrained, on the cell's GPU"),
+}
+
 DRIFT_SEVERE: dict[str, tuple[str, str]] = {
     "nano": ("drift_sev2.5_NVIDIA-Nemotron-3-Nano-30B-A3B.jsonl", "Nemotron 3 Nano 30B-A3B"),
     "super": ("drift_sev2.5_nemotron-3-super-120b-a12b.jsonl", "Nemotron 3 Super 120B-A12B"),
@@ -281,6 +290,7 @@ def drift_study() -> dict[str, Any]:
     normal = load(DRIFT_RUNS)
     severe = load(DRIFT_SEVERE)
     edge = load(DRIFT_EDGE)
+    four_way = load(DRIFT_EDGE_FOUR)
     if not normal:
         return {"available": False}
     scenarios = sorted({c["scenario"] for run in normal for c in run["cases"]})
@@ -292,6 +302,7 @@ def drift_study() -> dict[str, Any]:
         "runs": normal,
         "severe": severe,
         "edge": edge,
+        "four_way": four_way,
     }
 
 
