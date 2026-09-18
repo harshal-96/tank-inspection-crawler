@@ -212,13 +212,15 @@ function tiles(ev) {
   if (hard && hard.available && hard.arms.length) {
     const best = hard.arms[0];
     const rule = hard.arms.find((a) => a.label.includes("threshold as arithmetic"));
+    const sig = hard.arms.filter((a) => a.vs_rule && a.vs_rule.p < 0.05).length;
     html.push(tile({
       label: "Best score on the boundary test",
       value: V.pct(best.rate),
       tone: "warn",
       delta: rule ? `vs ${V.pct(rule.rate)} for a fixed rule` : null,
       sub: `${best.label}, on ${hard.cases} cases built to sit on the decision `
-         + `boundary. Nothing in the field is close to answering it.`,
+         + `boundary. Only ${sig} arms beat the rule by a margin that survives a `
+         + `paired test. Nothing is close to answering it.`,
     }));
   }
   html.push(tile({
@@ -331,7 +333,8 @@ function studies(ev) {
       `${ev.hard.arms.length} arms × ${ev.hard.cases} cases, passes pooled`,
       "cases sampled onto the decision boundary, where a fixed rule fails",
       `best ${V.pct(best.rate)}, a fixed rule ${rule ? V.pct(rule.rate) : "–"}`
-      + (edge ? `, the edge model ${V.pct(edge.rate)}` : ""),
+      + (edge ? `, the edge model ${V.pct(edge.rate)}` : "")
+      + (best.vs_rule ? ` (p ${best.vs_rule.p.toFixed(3)})` : ""),
       "bad", "#/diagnosis"]);
   }
   if (ev.vision && ev.vision.available && ev.vision.arms.length > 1) {

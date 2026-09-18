@@ -35,7 +35,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | Post-weld inspection | 82% pass or defect on 50 beads | the defect that was injected |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
-| Which machine is drifting, on hard cases | **best model 68%, a fixed rule 46%** | cases sampled onto the decision boundary |
+| Which machine is drifting, on hard cases | **best model 72%, a fixed rule 56%** | cases sampled onto the decision boundary |
 
 ### If you read three things
 
@@ -43,9 +43,10 @@ numbers. A Token Factory key turns on the half that calls a model.
 Every drift score here was measured on cases where the answer is recoverable by
 comparing two numbers to a threshold, and four lines of arithmetic score full marks on
 them in zero milliseconds. The replacement is a set built by rejection sampling onto
-the boundary. Six hosted models were run on it. The best gets 68%, one of them scores
-below the rule, and the fine-tuned model's perfect score turns out to be an artefact of
-the easy set.
+the boundary. Six hosted models were run on it. The best gets 72% against the rule's
+56%, one of them scores below the rule, and the fine-tuned model's perfect score turns
+out to be an artefact of the easy set. The test itself then turned out to have a hole
+in it, which is written up with the rest.
 
 ![Nine arms against five families of hard case](docs/figures/boundary_test.png)
 
@@ -681,45 +682,65 @@ the same scoring, alongside the rule and the model running at the edge. Passes a
 pooled rather than picked, and each arm's per-pass scores are shown, because the
 spread matters more than the ranking:
 
-| Arm | Pooled | Each pass | clear | marginal | lucky noise | subtle camera | mixed |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| Qwen3.5 397B | **68%** | 19, 19 | 16/16 | 4/16 | 6/8 | 4/8 | 8/8 |
-| Nemotron 3 Ultra 550B | 64% | 18, 18 | 16/16 | 6/16 | 2/8 | 4/8 | 8/8 |
-| DeepSeek V4.1 Flash | 64% | 18, 18 | 16/16 | 4/16 | 4/8 | 4/8 | 8/8 |
-| Nemotron 3 Super 120B | 60% | 18, 16, 17, 16 | 32/32 | 18/32 | 1/16 | 0/16 | 16/16 |
-| DeepSeek V4 Pro | 59% | 16, 17 | 16/16 | 5/16 | 0/8 | 4/8 | 8/8 |
-| Qwen3-1.7B + LoRA, at the edge | 57% | 16 | 8/8 | 0/8 | 4/4 | 0/4 | 4/4 |
-| Super 120B, boundary withheld | 54% | 15 | 6/8 | 2/8 | 3/4 | 0/4 | 4/4 |
-| **The threshold as arithmetic** | 46% | 13, 13, 13, 13 | 32/32 | 12/32 | 0/16 | 8/16 | 0/16 |
-| gpt-oss 120B | 39% | 10, 12 | 13/16 | 5/16 | 0/8 | 1/8 | 3/8 |
+| Arm | Score | Rate | Beats the rule on | Loses on | p |
+| --- | --- | --- | --- | --- | --- |
+| Qwen3.5 397B | 46/64 | **72%** | 12 | 2 | **0.013** |
+| Nemotron 3 Ultra 550B | 45/64 | 70% | 9 | 0 | **0.004** |
+| DeepSeek V4.1 Flash | 45/64 | 70% | 12 | 3 | **0.035** |
+| Nemotron 3 Super 120B | 44/64 | 69% | 12 | 4 | 0.077 |
+| DeepSeek V4 Pro | 43/64 | 67% | 8 | 1 | **0.039** |
+| Qwen3-1.7B + LoRA, at the edge | 43/64 | 67% | 16 | 9 | 0.230 |
+| Super 120B, boundary withheld | 38/64 | 59% | 13 | 11 | 0.839 |
+| **The threshold as arithmetic** | 36/64 | 56% | | | baseline |
+| gpt-oss 120B | 28/64 | 44% | 4 | 12 | 0.077 |
 
-Out of 28 cases, all of them chosen to be hard. Four things fall out of it and only
-one is flattering.
+Sixty-four cases, eight per family and scenario pair over eight seeds. The last three
+columns are the paired comparison against the rule on the same cases: how many the arm
+got right where the rule did not, how many the other way, and the exact McNemar p.
+Concordant cases say nothing about which arm is better and are excluded.
 
-**Read the gaps with the spread in mind.** At temperature zero the same model on the
-same cases came back 18, 16, 17 and 16 across four passes. A difference of one or two
-between two rows is not a difference, and the only claims worth making here are the
-ones larger than that.
+Four things fall out of it, and the first is about the test rather than the models.
 
-**The fine-tuned model's 16 of 16 was an artefact of the easy set.** Here it answers
-"none" to all eight marginal cases and all four subtle camera cases. It learned the
-threshold and nothing past it, which is exactly the behaviour the easy set cannot
-distinguish from diagnosis. It is still the right thing to run for the clear cases it
-was built for, at the edge, with no network. It is not a better diagnostician than the
-model it was distilled from.
+**The first version of this test had a hole in it, and said nothing.** A clear camera
+drift generated zero cases out of an intended eight, so one of the eight family and
+scenario pairs was simply absent and the header announced "8 pairs" regardless. The
+cause was a guard that looked reasonable: a case should be loud on the channel its
+fault moves and quiet on the rest. But a camera moves the MEASUREMENT, so it shows on
+the reference and as an apparent shift of the whole seam, and that second channel is
+the entire confound the section above spends a study on. The guard threw every camera
+case away. Filling the hole moved the rule's baseline from 46% to 56%, because a clear
+camera is easy for a rule, so the first version also flattered every model against it.
+The generator now knows which channels each fault is supposed to move, the runner
+prints the count for every pair and says so loudly when one is empty, and a test
+asserts that no pair is ever silently absent.
 
-**Most of the field beats the rule, but not all of it, and nothing is near solving it.**
-Seven of eight arms clear 46%; gpt-oss 120B does not. The best is 68%, on a question
-where the answer is one of four. Where the models earn their place is the two families
-a threshold cannot reach: 8 of 8 on runs with two machines drifting, where the rule
-scores 0 of 16 because seeing two channels move gives it no branch and it falls through
-to "nothing wrong", and 2 to 6 of 8 on lucky noise, where the rule scores 0 of 16
-because a channel over the line is all it looks at.
+**Read the gaps against the spread and the p value, not against each other.** At
+temperature zero the same model on the same cases came back 18, 16, 17 and 16 across
+four passes of the earlier set. Two arms differing by one or two are not differing.
+Three of the six hosted models beat the rule at p below 0.05 on the paired test, and
+Nemotron 3 Super 120B, which is the model this project actually routes to, is not one
+of them: 69% against 56% at p = 0.077. On the earlier 28 case set no arm at all
+cleared p = 0.05, and an earlier draft of this section claimed the margin as a finding
+anyway. Pooling repeated passes would have turned that p = 0.07 into p = 0.004, which
+is significance manufactured out of a rerun; the comparison is made on one pass.
 
-**Subtle camera is where the rule wins.** It takes 8 of 16; the best model takes half
-its cases and Super takes none of 16. A camera creeping just past the line is exactly
-the case where applying the boundary mechanically is right and reasoning around it is
-wrong. That is reported rather than dropped, and it is the clearest open problem here.
+**The fine-tuned model's 16 of 16 was an artefact of the easy set.** Here it scores 67%
+and answers "none" to 3 of 16 marginal cases and none of the 8 subtle camera cases. It
+learned the threshold and very little past it, which is exactly the behaviour an easy
+set cannot distinguish from diagnosis, and its margin over the rule is not significant
+(p = 0.23). It is still the right thing to run for the clear cases it was built for, at
+the edge, with no network. It is not a better diagnostician than the model it was
+distilled from.
+
+**Where the models earn their place, and where the rule wins.** The gap is in the two
+families a threshold cannot reach: 8 of 8 on runs with two machines drifting, where the
+rule scores 0 of 8 because seeing two channels move gives it no branch and it falls
+through to "nothing wrong", and up to 4 of 8 on lucky noise, where the rule scores 0 of
+8 because a channel over the line is all it looks at. The rule wins on subtle camera,
+5 of 8 against 3 to 5 for the models and 0 of 8 for both the edge model and the 120B
+with the boundary withheld. A camera creeping just past the line is exactly the case
+where applying the boundary mechanically is right and reasoning around it is wrong.
+Nothing here is close to answering the question, on four possible answers.
 
 One implementation note that belongs here rather than in a commit message. On these
 runs the 120B twice answered `reference`, which is a column in the data and not one
@@ -731,7 +752,7 @@ one validator that rejects anything outside the answer space and records it as
 three distinct outcomes rather than all silently counted as a wrong diagnosis.
 
 ```bash
-python scripts/eval_hard_drift.py --per-family 4
+python scripts/eval_hard_drift.py --per-family 8
 ```
 
 ### Reproducing all of it

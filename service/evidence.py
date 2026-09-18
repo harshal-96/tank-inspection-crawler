@@ -14,6 +14,7 @@ a real answer and an empty chart is not.
 from __future__ import annotations
 
 import json
+import math
 import statistics
 from pathlib import Path
 from typing import Any, Iterable
@@ -584,8 +585,11 @@ HARD_ARM_LABELS = {
 }
 
 
-HARD_FILES = ("hard_drift.jsonl", "hard_drift_frontier.jsonl",
-              "hard_drift_frontier2.jsonl", "hard_drift_frontier3.jsonl")
+# The 64 case set, eight per family and scenario pair over eight seeds. The earlier
+# 28 case files are not read any more and are not pooled with these: they were
+# measured on a set with a hole in it, where clear + camera generated nothing at
+# all, and mixing the two would average a defective test with its replacement.
+HARD_FILES = ("hard64_a.jsonl", "hard64_b.jsonl", "hard64_c.jsonl")
 
 HARD_ARM_LABELS = {
     "rule": "the threshold as arithmetic",
@@ -599,6 +603,51 @@ HARD_ARM_LABELS = {
     "Qwen3.5-397B-A17B": "Qwen3.5 397B",
     "gpt-oss-120b": "gpt-oss 120B",
 }
+
+
+def _mcnemar_exact(b: int, c: int) -> float:
+    """Two-sided exact McNemar p for paired binary outcomes.
+
+    b and c are the discordant counts: cases one arm got right and the other did
+    not, each way round. Concordant cases carry no information about which arm is
+    better and are correctly ignored.
+    """
+    n = b + c
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, k) for k in range(0, min(b, c) + 1))
+    return min(1.0, 2.0 * tail / (2 ** n))
+
+
+def _significance_vs_rule(passes: dict[str, list[list[dict[str, Any]]]],
+                          rule_label: str) -> dict[str, dict[str, Any]]:
+    """Whether each arm's margin over the fixed rule is bigger than the noise.
+
+    Measured on ONE pass per arm rather than on the pooled passes. Pooling looked
+    tempting and was wrong: the same cases repeat in every pass, so the discordant
+    counts double and the p value falls by a factor that reflects nothing but how
+    many times the test was run. Doing it that way turned p = 0.07 into p = 0.004
+    here, which would have been a claim of significance manufactured out of a
+    rerun.
+    """
+    rule_runs = passes.get(rule_label)
+    if not rule_runs:
+        return {}
+    rule = {(r["family"], r["seed"], r["truth"]): bool(r["correct"])
+            for r in rule_runs[0]}
+    out = {}
+    for label, runs in passes.items():
+        if label == rule_label:
+            continue
+        got = {(r["family"], r["seed"], r["truth"]): bool(r["correct"]) for r in runs[0]}
+        shared = sorted(set(rule) & set(got))
+        if not shared:
+            continue
+        b = sum(1 for k in shared if got[k] and not rule[k])
+        c = sum(1 for k in shared if rule[k] and not got[k])
+        out[label] = {"n": len(shared), "better": b, "worse": c,
+                      "p": _mcnemar_exact(b, c)}
+    return out
 
 
 def hard_study() -> dict[str, Any]:
@@ -664,8 +713,15 @@ def hard_study() -> dict[str, Any]:
     arms.sort(key=lambda a: -a["rate"])
     spread = max((max(a["per_run"]) - min(a["per_run"])
                   for a in arms if len(a["per_run"]) > 1), default=0)
+    rule_label = HARD_ARM_LABELS["rule"]
+    against_rule = _significance_vs_rule(passes, rule_label)
+    for a in arms:
+        a["vs_rule"] = against_rule.get(a["label"])
+    seeds = sorted({r.get("seed") for runs in passes.values()
+                    for got in runs for r in got if r.get("seed") is not None})
     return {"available": True, "families": list(families), "arms": arms,
-            "cases": arms[0]["cases_per_run"], "worst_spread": spread}
+            "cases": arms[0]["cases_per_run"], "worst_spread": spread,
+            "seeds": len(seeds), "vs_rule": against_rule}
 
 
 def view_prompt_study() -> dict[str, Any]:

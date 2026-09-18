@@ -206,6 +206,7 @@ def main() -> int:
     args = parser.parse_args()
 
     cases = []
+    built: dict[tuple[str, str], int] = {}
     for family, scenario in PLAN:
         found = 0
         for seed in range(3, 3 + args.per_family * 12):
@@ -218,8 +219,29 @@ def main() -> int:
             cases.append({"family": family, "truth": truth, "seed": seed,
                           "rows": rows, "ratios": d})
             found += 1
-    print(f"{len(cases)} cases across {len(PLAN)} family and scenario pairs, "
-          f"built to sit on the boundary.\n")
+        built[(family, scenario)] = found
+
+    # A pair that generates nothing is a hole in the design, and the first version
+    # of this had one: clear + camera never produced a single case, because the
+    # "quiet elsewhere" guard counted a camera's apparent seam shift as
+    # disqualifying when that shift is the whole point of the fault. The header
+    # said "8 pairs" either way and nobody was any the wiser. Say it out loud.
+    seeds = sorted({c["seed"] for c in cases})
+    empty = [pair for pair, n in built.items() if n == 0]
+    short = [(pair, n) for pair, n in built.items() if 0 < n < args.per_family]
+    print(f"{len(cases)} cases from {len(built) - len(empty)} of {len(PLAN)} family "
+          f"and scenario pairs, over {len(seeds)} seeds, built to sit on the boundary.")
+    for pair, n in built.items():
+        flag = ("  <-- NONE BUILT" if n == 0
+                else "  <-- short" if n < args.per_family else "")
+        print(f"    {pair[0]:<14} {pair[1]:<9} {n:>2}{flag}")
+    if empty:
+        print(f"\n  {len(empty)} pair(s) produced no cases at all. Every score below is "
+              f"measured on a\n  test with a hole in it. Fix the generator before "
+              f"quoting them.")
+    if short:
+        print(f"\n  {len(short)} pair(s) came up short of --per-family.")
+    print()
 
     edge = None
     if not args.no_edge and Path(ADAPTER).is_dir():

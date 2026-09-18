@@ -378,6 +378,28 @@ HARD_BANDS = {
 }
 
 
+# Which channels a fault is SUPPOSED to move. A press tilts the seam. A fixture
+# shifts it. A camera moves the measurement rather than the part, so it shows up on
+# the reference AND as an apparent shift of the whole seam, which is exactly the
+# confound the reference feature exists to break. Treating "more than one channel
+# is loud" as disqualifying made a clear camera case impossible to generate, and
+# the test quietly ran without one.
+EXPECTED_LOUD = {
+    "press": ("tilt_ratio",),
+    "fixture": ("shift_ratio",),
+    "camera": ("reference_ratio", "shift_ratio"),
+    "mixed": ("tilt_ratio", "shift_ratio"),
+    "none": (),
+}
+
+
+def _quiet_elsewhere(scenario: str, d: dict[str, float], limit: float) -> bool:
+    """Is every channel this fault should NOT move actually quiet?"""
+    expected = EXPECTED_LOUD.get(scenario, ())
+    return all(v <= limit for k, v in d.items()
+               if k.endswith("_ratio") and k not in expected)
+
+
 def _signal_ratio(scenario: str, d: dict[str, float]) -> float:
     """The channel the injected fault is supposed to move."""
     if scenario == "press":
@@ -424,12 +446,11 @@ def build_hard_case(family: str, scenario: str, seed: int, parts: int = 30,
         ratio = _signal_ratio(scenario, d)
         if not (lo <= ratio <= hi):
             continue
-        # A marginal case must be marginal on the signal and quiet elsewhere, or it
-        # is just a different fault wearing the wrong label.
-        others = [v for k, v in d.items() if k.endswith("_ratio")]
-        if family == "marginal" and max(others) > 2.6:
+        # A case must be loud on the channels its fault moves and quiet on the rest,
+        # or it is a different fault wearing the wrong label.
+        if family == "marginal" and not _quiet_elsewhere(scenario, d, 2.6):
             continue
-        if family == "clear" and scenario != "mixed" and sorted(others)[-2] > 2.0:
+        if family in ("clear", "subtle_camera") and not _quiet_elsewhere(scenario, d, 2.0):
             continue
         return rows, truth, d
     return None

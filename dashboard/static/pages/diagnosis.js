@@ -363,9 +363,15 @@ function hard() {
         >${got.correct}/${got.n}</text>`;
     });
     const tx = padL + fams.length * cell + 58;
-    out += `<text x="${tx}" y="${y + cell / 2 + 1}" text-anchor="middle" font-size="13"
+    out += `<text x="${tx}" y="${y + cell / 2 - 4}" text-anchor="middle" font-size="13"
       font-weight="700" fill="var(--text-primary)">${V.pct(arm.rate)}</text>`;
-    out += `<text x="${tx}" y="${y + cell / 2 + 14}" text-anchor="middle" font-size="9.5"
+    // Whether the margin over the rule is bigger than the noise, not just bigger.
+    const v = arm.vs_rule;
+    const note = v ? `p ${v.p < 0.05 ? v.p.toFixed(3) : v.p.toFixed(2)}`
+                   : "the rule itself";
+    out += `<text x="${tx}" y="${y + cell / 2 + 10}" text-anchor="middle" font-size="9"
+      fill="${v && v.p < 0.05 ? "var(--good)" : "var(--text-muted)"}">${note}</text>`;
+    out += `<text x="${tx}" y="${y + cell / 2 + 22}" text-anchor="middle" font-size="9"
       fill="var(--text-muted)">${arm.per_run.join(" ")} of ${arm.cases_per_run}</text>`;
   });
   out += V.axisTitle(padL, height - 8,
@@ -378,31 +384,38 @@ function hard() {
   const best = h.arms[0];
   const bits = [];
   if (rule && best) {
-    // Counted rather than asserted. An earlier draft of this sentence claimed every
-    // hosted model beat the rule, and one of them does not.
+    // Counted rather than asserted, and tested rather than eyeballed. An earlier
+    // draft claimed every hosted model beat the rule; one does not, and most of
+    // the margins that looked real do not survive a paired test.
     const hosted = h.arms.filter((a) => a !== rule);
-    const above = hosted.filter((a) => a.rate > rule.rate);
+    const sig = hosted.filter((a) => a.vs_rule && a.vs_rule.p < 0.05);
     const below = hosted.filter((a) => a.rate <= rule.rate);
     bits.push(`The rule is perfectly repeatable and perfectly limited: <b>${rule.per_run[0]}
       of ${rule.cases_per_run}</b> on every pass, because it is arithmetic. The best model
-      reaches <b>${V.pct(best.rate)}</b>, and <b>${above.length} of ${hosted.length}</b> arms
-      beat the rule at all${below.length
-        ? ` while ${below.map((a) => `<b>${V.esc(a.label)}</b>`).join(" and ")} `
-          + `${below.length > 1 ? "do" : "does"} not`
-        : ""}. That gap is the finding the easy set could not produce. None of them is
-      close to answering the question.`);
+      reaches <b>${V.pct(best.rate)}</b>, but only <b>${sig.length} of ${hosted.length}</b>
+      arms beat it by a margin that survives a paired test at p below 0.05${below.length
+        ? `, and ${below.map((a) => `<b>${V.esc(a.label)}</b>`).join(" and ")} `
+          + `${below.length > 1 ? "score" : "scores"} below it outright`
+        : ""}. None of them is close to answering the question.`);
   }
   if (edge) {
+    // Counted, not asserted. An earlier version of this sentence said "every marginal
+    // fault", which was true on the 28 case set and stopped being true on this one.
     const said = edge.said.none || 0;
+    const m = edge.by_family.marginal;
     bits.push(`The trained edge model's full marks on the easy set were an artefact of it.
-      Here it answers <b>none</b> to ${said} of ${edge.n} runs, including every marginal
-      fault: it learned the threshold and nothing past it, which is exactly the behaviour
-      an easy set cannot tell apart from diagnosis.`);
+      Here it answers <b>none</b> to ${said} of ${edge.n} runs and catches
+      <b>${m ? `${m.correct} of ${m.n}` : "few"}</b> marginal faults, against
+      ${V.pct(edge.rate)} overall at p ${edge.vs_rule ? edge.vs_rule.p.toFixed(2) : "?"}
+      versus the rule. It learned the threshold and very little past it, which is exactly
+      the behaviour an easy set cannot tell apart from diagnosis.`);
   }
   if (h.worst_spread) {
     bits.push(`Read the gaps with the spread in mind. At temperature zero the same model on
       the same cases varies by up to <b>${h.worst_spread}</b> between passes, so a difference
-      of one or two here is not a difference. An arm marked <b>*</b> was called without the
+      of one or two here is not a difference, and the p value beside each score is measured
+      on one pass rather than on the pooled passes: repeating a test does not make its result
+      more significant, though pooling it would say so. An arm marked <b>*</b> was called without the
       reasoning option its endpoint rejects; the question, the data and the scoring are
       identical for every arm.`);
   }
