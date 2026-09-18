@@ -509,38 +509,55 @@ export class Cell3D {
     // anything was drawn and left the picture showing a 0.4 mm bow beside a chip
     // that said 14.9 mm. The line has to stand where the robot would have gone.
     const nom = new THREE.Vector3(this.geometry.seam.x_m, this.geometry.seam.y_m, 0);
-    const taught = new THREE.Line(
-      new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(nom.x, nom.y, zBottom),
-        new THREE.Vector3(nom.x, nom.y, zTop),
-      ]),
-      new THREE.LineBasicMaterial({ color: COLOUR.taught, linewidth: 2 })
+    // Drawn as a tube, not a line: WebGL lines are one pixel wide whatever the
+    // linewidth says, and a hairline beside the seam's spheres reads as a
+    // gridline. Two paths of equal weight, a known distance apart, is the point.
+    const taught = new THREE.Mesh(
+      new THREE.TubeGeometry(
+        new THREE.LineCurve3(
+          new THREE.Vector3(nom.x, nom.y, zBottom),
+          new THREE.Vector3(nom.x, nom.y, zTop)),
+        1, 0.005, 8, false),
+      new THREE.MeshStandardMaterial({
+        color: COLOUR.taught, emissive: COLOUR.taught, emissiveIntensity: 0.9,
+        metalness: 0.2, roughness: 0.5,
+      })
     );
     this.seamGroup.add(taught);
 
-    // The measured path, with the whole gap from the taught line multiplied: the
-    // offset of the part and the bow along it together, so what is exaggerated is
-    // exactly the miss the chip quotes. Tens of millimetres on a metre of tray are
-    // hard to read at a workcell's scale, so the factor is always shown on the
-    // control, because an exaggerated picture that does not say so is a lie.
+        // The measured path, drawn where it was measured. The offset from the taught
+    // line is shown at true scale, always: an earlier version multiplied it by
+    // the display factor, which at x10 put the part 300 mm off its fixture, half
+    // off the table and through the locating pads. No fixture allows that, and
+    // anyone who has stood at one sees it in a second. Fifteen to thirty
+    // millimetres between two lines is plain to see once the camera is close.
+    //
+    // What the factor may exaggerate is the bow: how far each point strays from
+    // the straight line between the seam's own measured ends. That is a fraction
+    // of a millimetre over half a metre and invisible at any framing, and the
+    // control always shows the factor, because an exaggerated picture that does
+    // not say so is a lie.
+    const a = pts[0], b = pts[pts.length - 1];
     const k = this.exaggeration;
-    const shown = pts.map((v) => new THREE.Vector3(
-      nom.x + (v.x - nom.x) * k,
-      nom.y + (v.y - nom.y) * k,
-      v.z
-    ));
+    const shown = pts.map((v, i) => {
+      const t = along[i] / Math.max(1e-6, along[along.length - 1]);
+      const straight = new THREE.Vector3().lerpVectors(a, b, t);
+      return new THREE.Vector3(
+        straight.x + (v.x - straight.x) * k,
+        straight.y + (v.y - straight.y) * k,
+        v.z
+      );
+    });
 
-    // The part itself sits where its seam was found, not where the fixture
-    // expected it. Move the tray with the seam so the picture is of a part off
-    // its mark, and remember where to point the camera so both lines stay in
-    // frame.
-    const a = pts[0];
+    // The part sits where its seam was found, at true scale, so the picture is
+    // of a part a few millimetres off its mark, sliding along the pads that
+    // locate it. The camera aims between the taught line and the real corner.
     if (this.trayGroup) {
-      this.trayGroup.position.set((a.x - nom.x) * k, (a.y - nom.y) * k, 0);
+      this.trayGroup.position.set(a.x - nom.x, a.y - nom.y, 0);
     }
     this.seamFocus = new THREE.Vector3(
-      (nom.x + shown[0].x) / 2, (nom.y + shown[0].y) / 2, (zBottom + zTop) / 2);
-    this.seamGap = Math.hypot(shown[0].x - nom.x, shown[0].y - nom.y);
+      (nom.x + a.x) / 2, (nom.y + a.y) / 2, (zBottom + zTop) / 2);
+    this.seamGap = Math.hypot(a.x - nom.x, a.y - nom.y);
 
     const curve = new THREE.CatmullRomCurve3(shown);
     const tube = new THREE.Mesh(
@@ -607,12 +624,11 @@ export class Cell3D {
     const g = this.geometry;
     if (!g) return;
     const s = g.seam, mid = (s.bottom_z_m + s.top_z_m) / 2;
-    // Aim between the taught line and the seam as shown, and stand back a little
-    // further the wider that gap is, so an exaggerated miss does not leave one of
-    // the two lines out of the picture.
+        // Aim between the taught line and the real corner, close enough that a gap of
+    // fifteen millimetres reads as two separate lines. At this distance the whole
+    // 450 mm seam still fits the frame top to bottom.
     const focus = this.seamFocus ?? new THREE.Vector3(s.x_m, s.y_m, mid);
-    const back = 1 + Math.min(1.6, (this.seamGap ?? 0) * 2.2);
     this.controls.target.copy(focus);
-    this.camera.position.set(focus.x + 0.62 * back, focus.y - 0.74 * back, mid + 0.34 * back);
+    this.camera.position.set(focus.x + 0.42, focus.y - 0.50, mid + 0.22);
   }
 }

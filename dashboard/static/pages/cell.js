@@ -24,7 +24,7 @@ export function render() {
         <button id="v-seam">Seam</button>
         <button id="v-sensor">Sensor</button>
         <button id="v-spin">Spin</button>
-        <button id="v-exag">Exaggerate ×1</button>
+        <button id="v-exag">Exaggerate bow ×1</button>
       </div>
       <div class="overlay-bl">drag to orbit · scroll to zoom</div>
       <div class="overlay-br">
@@ -82,7 +82,7 @@ export async function mount() {
   V.$("v-exag").onclick = () => {
     exaggeration = exaggeration >= 40 ? 1 : (exaggeration === 1 ? 10 : exaggeration * 2);
     view?.setExaggeration(exaggeration);
-    V.$("v-exag").textContent = `Exaggerate ×${exaggeration}`;
+    V.$("v-exag").textContent = `Exaggerate bow ×${exaggeration}`;
     V.$("v-exag").classList.toggle("on", exaggeration > 1);
     draw();
   };
@@ -129,7 +129,7 @@ function chips(slot) {
       s.refused_stations ? "var(--warning)" : "var(--good)"));
   }
   if (exaggeration > 1) {
-    cards.push(glass("Display", `×${exaggeration}`, "exaggerated for visibility", "var(--warning)"));
+    cards.push(glass("Display", `bow ×${exaggeration}`, "only the curve is exaggerated; the offset is true scale", "var(--warning)"));
   }
   V.$("cell-chips").innerHTML = cards.join("");
 }

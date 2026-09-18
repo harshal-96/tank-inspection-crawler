@@ -65,7 +65,7 @@ export function render() {
     <div class="stage brief">
       <canvas id="ov-view"></canvas>
       <div class="overlay-tl" id="ov-chips"></div>
-      <div class="overlay-bl">drag to orbit &middot; scroll to zoom &middot; shown at &times;10 so the error is visible</div>
+      <div class="overlay-bl">drag to orbit &middot; scroll to zoom &middot; true scale</div>
       <div class="overlay-br">
         <div class="glass legend" style="margin:0">
                     <span><i class="line" style="background:var(--series-1)"></i>where the robot was taught to weld</span>
@@ -176,19 +176,18 @@ export async function mount() {
 
 /** The cell in three dimensions, framed on the joint, exaggerated so the miss reads.
 
-  A number says the taught path is 22.8 mm off. A picture of the taught path
+    A number says the taught path is 22.8 mm off. A picture of the taught path
   running beside the real joint says it without a number, which is why this sits
-  at the top of the page rather than in a tile. The exaggeration is on the display
-  and on the legend, so nobody reads the picture as the true scale.
+  at the top of the page rather than in a tile. It is true scale, and says so: an
+  earlier version exaggerated it tenfold and put the part through its own fixture.
 */
 async function viewport(geo) {
   const canvas = V.$("ov-view");
   if (!canvas || !geo) return;
   try {
     const { Cell3D } = await import("../cell3d.js");
-    view = new Cell3D(canvas);
+        view = new Cell3D(canvas);
     view.build(geo);
-    view.setExaggeration(10);
   } catch (err) {
     canvas.insertAdjacentHTML("afterend",
       `<div class="empty">3D view unavailable: ${V.esc(err.message)}</div>`);
@@ -212,7 +211,7 @@ function drawPart() {
     chips.push(glass("Where the cell welded", `${V.fmt(t.error_mm, 2)} mm off`,
       `worst of ${t.stations_measured} points ${V.fmt(t.worst_station_mm, 2)} mm`, "var(--good)"));
   }
-  chips.push(glass("Display", "\u00d710", "exaggerated for visibility", "var(--warning)"));
+    chips.push(glass("Display", "true scale", "nothing exaggerated", "var(--text-muted)"));
   V.$("ov-chips").innerHTML = chips.join("");
 }
 
