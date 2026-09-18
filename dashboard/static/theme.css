@@ -388,8 +388,24 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
 /* ----------------------------------------------------------------- 3d stage */
 
 .stage { position: relative; border-radius: var(--radius); overflow: hidden;
-         background: #05070a; border: 1px solid var(--hair); height: 60vh; min-height: 430px; }
-#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+         background: var(--surface-2); border: 1px solid var(--hair); height: 60vh; min-height: 430px; }
+.stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* The summary keeps its viewport shorter: it is one picture among several there,
+   not the page. */
+.stage.brief { height: 50vh; min-height: 380px; }
+
+/* Two real pictures beside each other under the viewport. */
+.photos { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; margin-top: 2px; }
+.photo { background: var(--surface-1); border: 1px solid var(--hair); padding: 12px 14px 13px; min-width: 0; }
+.photo img { display: block; width: 100%; height: auto; border-radius: 6px; background: var(--surface-2); }
+.photo .cap { font-size: 12.5px; color: var(--text-secondary); margin-top: 9px; line-height: 1.5; }
+.photo .cap b { color: var(--text-primary); }
+.beads { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.beads figure { margin: 0; min-width: 0; }
+.beads img { width: 100%; height: auto; display: block; border-radius: 6px; }
+.beads figcaption { font-size: 11.5px; margin-top: 6px; font-family: var(--mono); }
+.beads .ok { color: var(--good); }
+.beads .bad { color: var(--critical); }
 .overlay-tl { position: absolute; left: 22px; top: 20px; display: flex; gap: 30px;
               flex-wrap: wrap; pointer-events: none; }
 .overlay-tr { position: absolute; right: 22px; top: 18px; display: flex; gap: 6px;
@@ -435,6 +451,34 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
 .pill.theme-toggle:hover { color: var(--text-primary); border-color: var(--line); }
 .pill.theme-toggle:focus-visible {
   outline: 2px solid var(--series-1); outline-offset: 2px;
+}
+
+/* Three jobs side by side on the summary, so the model comparison does not need
+   four page visits to assemble. */
+.jobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 26px 30px; }
+.job .jt { font-size: 14.5px; font-weight: 600; color: var(--text-primary); }
+.job .jn { font-size: 12.5px; color: var(--text-muted); margin: 3px 0 10px; line-height: 1.5; }
+.job table { width: 100%; }
+.job th { font-size: 9.5px; padding-bottom: 6px; }
+.job td { padding: 7px 10px 7px 0; font-size: 13px; }
+.job tr.won td { font-weight: 600; color: var(--text-primary); }
+.job tr.won td:first-child { position: relative; padding-left: 12px; }
+.job tr.won td:first-child::before {
+  content: ""; position: absolute; left: 0; top: 10px;
+  width: 4px; height: 4px; border-radius: 50%; background: var(--after);
+}
+
+/* What is new, as opposed to what merely works. */
+.novel { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2px; }
+.nv {
+  background: var(--surface-1); border: 1px solid var(--hair);
+  border-top: 2px solid var(--series-1); padding: 15px 17px 17px;
+}
+.nv .t { display: block; font-size: 14.5px; font-weight: 600; margin-bottom: 6px; }
+.nv p { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.55; }
+.nv .f {
+  display: block; font-family: var(--mono); font-size: 11.5px; color: var(--series-1);
+  margin-top: 10px; font-weight: 500; line-height: 1.5;
 }
 
 /* The three machines, named under the process diagram. */

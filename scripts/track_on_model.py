@@ -25,8 +25,11 @@ from cell.depth_joint import Intrinsics, backproject, project, transform_points 
 from cell.seam_track import TOUCHING_TOLERANCE_MM, find_and_track  # noqa: E402
 from scripts.shade_from_buffers import decode_normals, shade  # noqa: E402
 
-TAUGHT = (150, 155, 165)
-MEASURED = (36, 140, 214)
+# The same legend the dashboard's 3D view uses: blue taught, green measured, red
+# for the true joint, which is the one thing this render can show that the cell
+# scale view cannot.
+TAUGHT = (57, 135, 229)
+MEASURED = (46, 160, 67)
 TOUCHING = (52, 170, 96)
 OPEN = (222, 96, 36)
 TRUTH = (214, 58, 58)
@@ -129,9 +132,9 @@ def main() -> int:
     for i, line in enumerate(lines):
         draw.text((8, canvas.height - box_height + 6 + i * 14), line, fill=INK)
 
-    draw.text((8, 8), "grey: taught path", fill=TAUGHT)
-    draw.text((8, 22), "red: where the seam really is", fill=TRUTH)
-    draw.text((8, 36), "blue: seam measured from depth", fill=MEASURED)
+    draw.text((8, 8), "blue: taught path", fill=TAUGHT)
+    draw.text((8, 22), "red: where the joint really is", fill=TRUTH)
+    draw.text((8, 36), "green: seam measured from depth", fill=MEASURED)
     draw.text((8, 50), "green: edges touching   orange: gap open", fill=OPEN)
 
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

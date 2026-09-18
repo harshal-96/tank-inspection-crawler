@@ -1,7 +1,7 @@
 /* The headline page: what the cell claims, and the evidence for it, above the fold. */
 
 import * as V from "../viz.js";
-import { state, loadEvidence, refreshLive } from "../store.js";
+import { state, loadEvidence, refreshLive, loadCell, chosen } from "../store.js";
 
 export const meta = {
   id: "overview",
@@ -57,14 +57,45 @@ function liveBand() {
 export function render() {
   return `
     <p class="lede">
-      A welding robot follows the same path every time. The parts do not arrive the
-      same every time. Sheet metal is folded in a press, and every fold springs back by a
-      slightly different amount, so the joint that needs welding sits in a different place
-      on every part. This cell photographs each part first, works out where its joint
-      actually is, and welds there. Below are the results from <b>fifty parts</b>.
+      A welding robot follows the same path every time, but folded sheet metal never comes
+      out of the press the same shape twice, so the joint is never quite where the path
+      says. This cell finds the joint on every part and welds there. Fifty parts, measured.
     </p>
-    <div id="ov-live"></div>
-    <div class="tiles" id="ov-tiles"></div>
+
+    <div class="stage brief">
+      <canvas id="ov-view"></canvas>
+      <div class="overlay-tl" id="ov-chips"></div>
+      <div class="overlay-bl">drag to orbit &middot; scroll to zoom &middot; shown at &times;10 so the error is visible</div>
+      <div class="overlay-br">
+        <div class="glass legend" style="margin:0">
+                    <span><i class="line" style="background:var(--series-1)"></i>where the robot was taught to weld</span>
+          <span><i class="line" style="background:var(--good)"></i>the corrected path the cell welds along</span>
+          <span><i style="background:var(--warning)"></i>gap needs attention</span>
+          <span><i style="background:var(--before)"></i>too wide, not welded</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="photos">
+      <div class="photo">
+        <img src="/figures/seam_tracked.png" alt="One part seen by the depth camera, with the taught path and the measured joint drawn on it">
+        <div class="cap"><b>What the camera sees.</b> One part, straight from the depth frame.
+          Blue is where the robot was taught to weld, red is where the joint really is, and
+          green is the path the cell measured and welded along, at its twenty points. On this
+          part the taught path is 34 mm off.</div>
+      </div>
+      <div class="photo">
+        <div class="beads">
+          <figure><img src="/demo/beads/rgb_0009.png" alt="A clean weld bead">
+            <figcaption class="ok">clean &middot; called pass</figcaption></figure>
+          <figure><img src="/demo/beads/rgb_0039.png" alt="A weld bead with burn-through">
+            <figcaption class="bad">burn-through &middot; called defect</figcaption></figure>
+        </div>
+        <div class="cap"><b>What the inspection camera sees.</b> Two beads from the shipped
+          run. The defect was put there on purpose before the picture was taken, so the
+          verdict has an answer to be marked against.</div>
+      </div>
+    </div>
 
     <div class="grid">
       <div class="card w12">
@@ -78,30 +109,41 @@ export function render() {
       </div>
     </div>
 
+    <div id="ov-live"></div>
+    <div class="tiles" id="ov-tiles"></div>
+
     <div class="grid">
-      <div class="card w12" id="bg-honest">
-        <header><h2>What these numbers leave out</h2></header>
-        <div class="hint">Two things worth knowing before you read any of the numbers below.</div>
-        <div id="ov-caveats"></div>
+      <div class="card w12">
+        <header><h2>Which model won each job</h2></header>
+        <div class="hint">Twelve models were scored. They are not interchangeable and bigger is
+          not better, so each question goes to whichever one measured best on it.</div>
+        <div id="ov-models"></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card w12">
+        <header><h2>What this cell does that a demonstration usually does not</h2></header>
+        <div id="ov-new"></div>
       </div>
     </div>
 
     <div class="grid">
       <div class="card w7">
-        <header><h2>What a taught path would have missed, against what the cell found</h2></header>
-        <div class="hint">One row per part. The left dot is the taught path's miss, the right dot is the
-          tracked seam's residual error. Log scale, so both ends stay readable.</div>
+        <header><h2>Every part: where a taught path would have welded, and where the cell did</h2></header>
+        <div class="hint">One row per part. Left dot is the taught path's miss, right dot is
+          the measured joint's error. Log scale, so both ends stay readable.</div>
         <div id="ov-dumbbell"></div>
         <div class="legend">
           <span><i style="background:var(--before)"></i>taught path, no correction</span>
-          <span><i style="background:var(--after)"></i>tracked seam, mean of 20 stations</span>
+          <span><i style="background:var(--after)"></i>measured joint, mean of 20 points</span>
         </div>
       </div>
 
       <div class="card w5">
-        <header><h2>Residual error across all fifty parts</h2></header>
-        <div class="hint">Every part's mean station error. The wire is 1.0 mm across, so
-          anything left of the dashed line is inside a wire diameter.</div>
+        <header><h2>How close every part came</h2></header>
+        <div class="hint">The welding wire is 1.0 mm across, so anything left of the dashed
+          line is inside a wire diameter.</div>
         <div id="ov-hist"></div>
         <footer id="ov-hist-meta"></footer>
       </div>
@@ -115,17 +157,75 @@ export function render() {
     </div>`;
 }
 
-export function update() { liveBand(); }
+export function update() { liveBand(); drawPart(); }
+
+let view = null;
 
 export async function mount() {
-  const [ev] = await Promise.all([loadEvidence(), refreshLive()]);
+  const [ev, geo] = await Promise.all([loadEvidence(), loadCell(), refreshLive()]);
   liveBand();
   flow(ev);
   tiles(ev);
   dumbbell(ev);
   hist(ev);
   studies(ev);
-  caveats(ev);
+  models(ev);
+  novelty(ev);
+  await viewport(geo);
+}
+
+/** The cell in three dimensions, framed on the joint, exaggerated so the miss reads.
+
+  A number says the taught path is 22.8 mm off. A picture of the taught path
+  running beside the real joint says it without a number, which is why this sits
+  at the top of the page rather than in a tile. The exaggeration is on the display
+  and on the legend, so nobody reads the picture as the true scale.
+*/
+async function viewport(geo) {
+  const canvas = V.$("ov-view");
+  if (!canvas || !geo) return;
+  try {
+    const { Cell3D } = await import("../cell3d.js");
+    view = new Cell3D(canvas);
+    view.build(geo);
+    view.setExaggeration(10);
+  } catch (err) {
+    canvas.insertAdjacentHTML("afterend",
+      `<div class="empty">3D view unavailable: ${V.esc(err.message)}</div>`);
+    view = null;
+    return;
+  }
+  // Draw first, then frame: the camera aims between the taught line and the
+  // seam as shown, and it cannot know where that is until the seam is drawn.
+  drawPart();
+  view.frameSeam();
+}
+
+function drawPart() {
+  const slot = chosen();
+  if (!slot || !view) return;
+  view.showSeam(slot.seam, slot.schedule);
+  const t = slot.seam, chips = [];
+  if (t) {
+    chips.push(glass("Where the robot was taught", `${V.fmt(t.taught_miss_mm, 1)} mm off`,
+      "from the real joint", "var(--series-1)"));
+    chips.push(glass("Where the cell welded", `${V.fmt(t.error_mm, 2)} mm off`,
+      `worst of ${t.stations_measured} points ${V.fmt(t.worst_station_mm, 2)} mm`, "var(--good)"));
+  }
+  chips.push(glass("Display", "\u00d710", "exaggerated for visibility", "var(--warning)"));
+  V.$("ov-chips").innerHTML = chips.join("");
+}
+
+const glass = (label, value, sub, colour) => `<div class="glass">
+  <div class="label">${V.esc(label)}</div>
+  <div class="value" style="color:${colour}">${value}</div>
+  <div class="sub">${V.esc(sub)}</div></div>`;
+
+export function retheme() { view?.retheme?.(); }
+
+export function unmount() {
+  view?.dispose?.();
+  view = null;
 }
 
 /** The process, drawn. Two loops are the whole point of the cell.
@@ -288,55 +388,111 @@ function machines() {
       </div>`).join("")}</div>`;
 }
 
-/** The two things a reader should have before over-reading the headline. */
-function caveats(ev) {
-  const host = V.$("ov-caveats");
+/** Three jobs, three winners, and the loser that makes each point.
+
+  Reading this dashboard used to mean opening four pages and holding the numbers
+  in your head. The comparison that actually shaped the architecture is small
+  enough to sit on the summary.
+*/
+function models(ev) {
+  const host = V.$("ov-models");
   if (!host) return;
-  const cards = [];
+  const r = ev.router, v = ev.vision, h = ev.hard;
+  const blocks = [];
 
-  const b = ev.error_budget;
-  if (b && b.available) {
-    const realistic = b.budgets.find((x) => x.label.startsWith("Typical stereo"));
-    const best = b.budgets.find((x) => x.label.startsWith("Laser"));
-    cards.push([
-      "The seam figure is one link in a chain",
-      `The tracker finds the joint to ${V.fmt(b.budgets[0].total_mm, 2)} mm. But that is `
-      + `one link in a chain. Add hand-eye calibration, the robot's own repeatability, `
-      + `standoff drift and what the heat of the arc does, and the whole chain comes to `
-      + `${V.fmt(realistic.total_mm, 2)} mm on a realistic sensor, against a requirement of `
-      + `${b.industry_requirement_mm} mm. Swap in the laser profiler that the sensor sweep `
-      + `says this needs, and it falls to ${V.fmt(best.total_mm, 2)} mm. The biggest single `
-      + `term is calibration. It is the same error on every part, so averaging more parts `
-      + `does not remove it, and this cell has no way to measure it.`,
-      "#/budget",
-    ]);
+  if (r && r.available) {
+    const order = ["nano", "ultra", "lightning", "super"];
+    const rows = order.map((k) => r.arms.find((a) => a.arm === k)).filter(Boolean);
+    blocks.push(["Per part: is this measurement good enough to weld on?",
+      "Asked fifty times a run, so it goes to the cheapest model that is right.",
+      ["Model", "Correct", "Wasted robot moves"],
+      rows.map((a, i) => [
+        a.arm === "nano" ? "Nemotron 3 Nano 30B" : a.arm === "ultra" ? "Nemotron 3 Ultra 550B"
+          : a.arm === "lightning" ? "Nemotron 3.5 Lightning" : "Nemotron 3 Super 120B",
+        `${a.correct}/${a.n}`, String(a.n - a.correct), i === 0])]);
+  }
+  if (v && v.available && v.arms.length > 1) {
+    const quiet = v.arms.find((a) => a.never_says_defect) || v.arms[1];
+    const work = v.arms.find((a) => a !== quiet);
+    blocks.push(["After welding: is this bead good?",
+      "Both name the same number correctly. Only one of them is looking.",
+      ["Model", "Named right", "Bad parts shipped"],
+      [[work.model, `${work.named_correct}/${work.n}`, String(work.missed), true],
+       [quiet.model, `${quiet.named_correct}/${quiet.n}`, String(quiet.missed), false]]]);
+  }
+  if (h && h.available) {
+    const rule = h.arms.find((a) => a.label.includes("arithmetic"));
+    const top = h.arms.filter((a) => a !== rule).slice(0, 3);
+    const worst = h.arms[h.arms.length - 1];
+    blocks.push(["Once a shift: which machine slipped?",
+      "Hard cases only, against a fixed rule with no model in it.",
+      ["Model", "Correct", "Beats the rule at"],
+      [...top.map((a, i) => [a.label, `${a.correct}/${a.n}`,
+        a.vs_rule ? `p ${a.vs_rule.p < 0.05 ? a.vs_rule.p.toFixed(3) : a.vs_rule.p.toFixed(2)}` : "", i === 0]),
+       [rule.label, `${rule.correct}/${rule.n}`, "the baseline", false],
+       [worst.label, `${worst.correct}/${worst.n}`, "loses to it", false]]]);
   }
 
-  const c = ev.confound;
-  if (c && c.available) {
-    cards.push([
-      "A drifting camera looks exactly like a drifting fixture",
-      `A fixture slipping moves the part. A camera slipping moves the measurement. Both `
-      + `shift the whole joint by the same amount top and bottom, so on the seam alone they `
-      + `produce identical numbers. The cell answers "fixture" to both, and sends a fitter `
-      + `to spend a shift on a machine that was fine. Bolting one reference marker to the `
-      + `machine base fixes it, because only the camera can appear to move it: drifting `
-      + `cameras identified went from ${c.camera_without.correct}/${c.camera_without.n} to `
-      + `${c.camera_with.correct}/${c.camera_with.n}, same model, one extra column of data.`,
-      "#/budget",
-    ]);
-  }
-
-  if (!cards.length) {
-    host.innerHTML = `<div class="empty">Not yet measured.</div>`;
-    return;
-  }
-  host.innerHTML = `<div class="steps">${cards.map(([title, body, href]) => `
-    <div class="step">
-      <div class="t" style="margin-top:0">${V.esc(title)}</div>
-      <div class="d">${V.esc(body)}</div>
-      <div class="o"><a href="${href}" style="text-decoration:none">read the study \u2192</a></div>
+  host.innerHTML = `<div class="jobs">${blocks.map(([title, note, head, rows]) => `
+    <div class="job">
+      <div class="jt">${V.esc(title)}</div>
+      <div class="jn">${V.esc(note)}</div>
+      <table><thead><tr>${head.map((h2, i) =>
+        `<th${i ? ' class="num"' : ""}>${V.esc(h2)}</th>`).join("")}</tr></thead>
+      <tbody>${rows.map(([a, b, c, win]) => `<tr${win ? ' class="won"' : ""}>
+        <td>${V.esc(a)}</td><td class="num">${V.esc(b)}</td><td class="num">${V.esc(c)}</td>
+      </tr>`).join("")}</tbody></table>
     </div>`).join("")}</div>`;
+}
+
+/** What is actually new here, as opposed to what merely works. */
+function novelty(ev) {
+  const host = V.$("ov-new");
+  if (!host) return;
+  const h = ev.hard, c = ev.confound, b = ev.error_budget, r = ev.router;
+  const items = [];
+  if (h && h.available) {
+    const rule = h.arms.find((a) => a.label.includes("arithmetic"));
+    items.push(["A test a fixed rule cannot pass",
+      "Evaluations usually leave out the trivial baseline. When one was written here, four "
+      + "lines of arithmetic scored full marks on the original drift test. So a harder set was "
+      + "built, on cases that sit right on the decision boundary.",
+      `best model ${V.pct(h.arms[0].rate)} against ${V.pct(rule.rate)} for the rule`]);
+  }
+  if (c && c.available) {
+    items.push(["A blind spot fixed with an instrument, not a bigger model",
+      "A loose fixture moves the part. A creeping camera moves the measurement. In the weld "
+      + "seam they produce identical numbers, so no model can separate them. One reference "
+      + "marker bolted to the machine base can, because only the camera can appear to move it.",
+      `drifting cameras found: ${c.camera_without.correct}/${c.camera_without.n} `
+      + `to ${c.camera_with.correct}/${c.camera_with.n}`]);
+  }
+  if (r && r.available) {
+    items.push(["Routing by how often a question is asked",
+      "Not a ladder that escalates when unsure, which pays for the biggest model on exactly "
+      + "the slowest cases. The per-part question goes to the smallest model because it "
+      + "measured best on it. The once-a-shift question can afford a large one.",
+      "44% fewer robot moves, half the model time"]);
+  }
+  items.push(["A model small enough to run on the cell itself",
+    "The simulator knows which fault it injected, so runs with a known answer cost nothing to "
+    + "make and arrive already labelled. Eight hundred of them trained a 1.7B model that now "
+    + "answers beside the cell with no network at all.",
+    "answers in 4 seconds, offline"]);
+  if (b && b.available) {
+    const real = b.budgets.find((x) => x.label.startsWith("Typical stereo"));
+    const best = b.budgets.find((x) => x.label.startsWith("Laser"));
+    items.push(["The whole chain, not just the camera",
+      "Most demonstrations quote the measurement and stop. Add hand-eye calibration, the "
+      + "robot's own repeatability, standoff drift and what the arc does to the metal, and the "
+      + "answer changes which sensor a shop would have to buy.",
+      `${V.fmt(real.total_mm, 2)} mm on a stereo camera, `
+      + `${V.fmt(best.total_mm, 2)} mm on a laser profiler, against `
+      + `${b.industry_requirement_mm} mm required`]);
+  }
+  host.innerHTML = `<div class="novel">${items.map(([t, d, f]) => `
+    <div class="nv"><span class="t">${V.esc(t)}</span>
+      <p>${V.esc(d)}</p><span class="f">${V.esc(f)}</span></div>`).join("")}</div>`;
 }
 
 function tiles(ev) {

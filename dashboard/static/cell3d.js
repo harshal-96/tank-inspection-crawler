@@ -20,11 +20,15 @@ const COLOUR = {
   table: 0x39434f,
   frame: 0x232b34,
   floor: 0x11161c,
-  taught: 0x6e7681,
-  tracked: 0x58a6ff,
+    // One legend shared with the camera render: blue is where the robot was
+  // taught to weld, green is the corrected path the cell welds along, amber is a
+  // gap that needs attention, grey is a point the cell refused to weld. Red is
+  // reserved for the true joint, which only the camera render can show apart.
+  taught: 0x3987e5,
+  tracked: 0x2ea043,
   ok: 0x3fb950,
   attention: 0xe3a008,
-  refused: 0xe5534b,
+  refused: 0x6e7681,
   arc: 0xffd28a,
 };
 
@@ -175,7 +179,7 @@ export class Cell3D {
     this.#robot(g);
   }
 
-  #box(w, l, h, x, y, z, colour, opts = {}) {
+  #box(w, l, h, x, y, z, colour, opts = {}, parent = this.scene) {
     const mesh = new THREE.Mesh(
       new THREE.BoxGeometry(w, l, h),
       new THREE.MeshStandardMaterial({
@@ -185,7 +189,7 @@ export class Cell3D {
       })
     );
     mesh.position.set(x, y, z);
-    this.scene.add(mesh);
+    parent.add(mesh);
     return mesh;
   }
 
@@ -225,13 +229,22 @@ export class Cell3D {
     const x0 = g.fixture.x_m, y0 = 0;
     const mat = { metalness: 1.0, roughness: 0.32 };
 
-    this.#box(p.width_m, p.length_m, t, x0, y0, top + t / 2, COLOUR.sheet, mat);
+    // The tray is one group, drawn with its welded corner at the nominal joint,
+    // because that corner is where the program was taught to weld. When a
+    // measured seam is shown the whole group is moved to where the part actually
+    // sat, so the picture shows the part off its mark rather than a seam floating
+    // off a tray that is drawn in the wrong place.
+    const tray = new THREE.Group();
+    this.trayGroup = tray;
+    this.scene.add(tray);
+
+    this.#box(p.width_m, p.length_m, t, x0, y0, top + t / 2, COLOUR.sheet, mat, tray);
     // Each side stands on its fold line and leans outward by the sheet thickness,
     // which is what leaves the notch at each corner.
-    this.#box(t, p.length_m, wall, x0 + hw + t / 2, y0, top + wall / 2, COLOUR.sheet, mat);
-    this.#box(t, p.length_m, wall, x0 - hw - t / 2, y0, top + wall / 2, COLOUR.sheet, mat);
-    this.#box(p.width_m, t, wall, x0, y0 + hl + t / 2, top + wall / 2, COLOUR.sheet, mat);
-    this.#box(p.width_m, t, wall, x0, y0 - hl - t / 2, top + wall / 2, COLOUR.sheet, mat);
+    this.#box(t, p.length_m, wall, x0 + hw + t / 2, y0, top + wall / 2, COLOUR.sheet, mat, tray);
+    this.#box(t, p.length_m, wall, x0 - hw - t / 2, y0, top + wall / 2, COLOUR.sheet, mat, tray);
+    this.#box(p.width_m, t, wall, x0, y0 + hl + t / 2, top + wall / 2, COLOUR.sheet, mat, tray);
+    this.#box(p.width_m, t, wall, x0, y0 - hl - t / 2, top + wall / 2, COLOUR.sheet, mat, tray);
   }
 
   /** The depth camera on its post.
@@ -490,32 +503,44 @@ export class Cell3D {
     const along = path.map(p => p.along_mm / 1000);
     pts.forEach((v, i) => { v.z = zBottom + along[i]; });
 
-    // The taught path: the straight line between the ends of the seam the cell
-    // was told to expect. Drawn from the measured ends so the two are comparable.
-    const a = pts[0], b = pts[pts.length - 1];
+    // The taught path is where the program was taught to weld: the nominal joint
+    // from the cell's own geometry, straight up. An earlier version drew this line
+    // from the MEASURED seam's own ends, which threw away the whole offset before
+    // anything was drawn and left the picture showing a 0.4 mm bow beside a chip
+    // that said 14.9 mm. The line has to stand where the robot would have gone.
+    const nom = new THREE.Vector3(this.geometry.seam.x_m, this.geometry.seam.y_m, 0);
     const taught = new THREE.Line(
       new THREE.BufferGeometry().setFromPoints([
-        new THREE.Vector3(a.x, a.y, zBottom),
-        new THREE.Vector3(a.x, a.y, zTop),
+        new THREE.Vector3(nom.x, nom.y, zBottom),
+        new THREE.Vector3(nom.x, nom.y, zTop),
       ]),
       new THREE.LineBasicMaterial({ color: COLOUR.taught, linewidth: 2 })
     );
     this.seamGroup.add(taught);
 
-    // The measured path. Real deviation is about a millimetre over half a metre
-    // of seam, which is invisible at the scale of a workcell, so it can be
-    // multiplied to make the shape readable. The factor is always shown on the
+    // The measured path, with the whole gap from the taught line multiplied: the
+    // offset of the part and the bow along it together, so what is exaggerated is
+    // exactly the miss the chip quotes. Tens of millimetres on a metre of tray are
+    // hard to read at a workcell's scale, so the factor is always shown on the
     // control, because an exaggerated picture that does not say so is a lie.
     const k = this.exaggeration;
-    const shown = pts.map((v, i) => {
-      const t = along[i] / Math.max(1e-6, along[along.length - 1]);
-      const straight = new THREE.Vector3().lerpVectors(a, b, t);
-      return new THREE.Vector3(
-        straight.x + (v.x - straight.x) * k,
-        straight.y + (v.y - straight.y) * k,
-        v.z
-      );
-    });
+    const shown = pts.map((v) => new THREE.Vector3(
+      nom.x + (v.x - nom.x) * k,
+      nom.y + (v.y - nom.y) * k,
+      v.z
+    ));
+
+    // The part itself sits where its seam was found, not where the fixture
+    // expected it. Move the tray with the seam so the picture is of a part off
+    // its mark, and remember where to point the camera so both lines stay in
+    // frame.
+    const a = pts[0];
+    if (this.trayGroup) {
+      this.trayGroup.position.set((a.x - nom.x) * k, (a.y - nom.y) * k, 0);
+    }
+    this.seamFocus = new THREE.Vector3(
+      (nom.x + shown[0].x) / 2, (nom.y + shown[0].y) / 2, (zBottom + zTop) / 2);
+    this.seamGap = Math.hypot(shown[0].x - nom.x, shown[0].y - nom.y);
 
     const curve = new THREE.CatmullRomCurve3(shown);
     const tube = new THREE.Mesh(
@@ -582,7 +607,12 @@ export class Cell3D {
     const g = this.geometry;
     if (!g) return;
     const s = g.seam, mid = (s.bottom_z_m + s.top_z_m) / 2;
-    this.controls.target.set(s.x_m, s.y_m, mid);
-    this.camera.position.set(s.x_m + 0.62, s.y_m - 0.74, mid + 0.34);
+    // Aim between the taught line and the seam as shown, and stand back a little
+    // further the wider that gap is, so an exaggerated miss does not leave one of
+    // the two lines out of the picture.
+    const focus = this.seamFocus ?? new THREE.Vector3(s.x_m, s.y_m, mid);
+    const back = 1 + Math.min(1.6, (this.seamGap ?? 0) * 2.2);
+    this.controls.target.copy(focus);
+    this.camera.position.set(focus.x + 0.62 * back, focus.y - 0.74 * back, mid + 0.34 * back);
   }
 }

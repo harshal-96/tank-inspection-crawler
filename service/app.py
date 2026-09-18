@@ -598,7 +598,17 @@ async def no_stale_dashboard(request, call_next):
 
 
 if DASHBOARD_DIR.exists():
-    assets = Path(__file__).resolve().parent.parent / "assets"
+    root = Path(__file__).resolve().parent.parent
+    assets = root / "assets"
     if assets.is_dir():
         app.mount("/assets", StaticFiles(directory=assets), name="assets")
+    # The pictures the summary page shows: the depth render of a tracked part and
+    # the weld bead photos. Both come from what ships with the repository, so they
+    # are there on a fresh clone and not only on the machine that captured them.
+    figures = root / "docs" / "figures"
+    if figures.is_dir():
+        app.mount("/figures", StaticFiles(directory=figures), name="figures")
+    demo = root / "data" / "demo"
+    if demo.is_dir():
+        app.mount("/demo", StaticFiles(directory=demo), name="demo")
     app.mount("/", StaticFiles(directory=DASHBOARD_DIR, html=True), name="dashboard")

@@ -29,10 +29,10 @@ export function render() {
       <div class="overlay-bl">drag to orbit · scroll to zoom</div>
       <div class="overlay-br">
         <div class="glass legend" style="margin:0">
-          <span><i class="line" style="background:var(--before)"></i>taught path</span>
-          <span><i class="line" style="background:var(--series-1)"></i>tracked seam</span>
-          <span><i style="background:var(--good)"></i>station ok</span>
-          <span><i style="background:var(--warning)"></i>needs attention</span>
+                    <span><i class="line" style="background:var(--series-1)"></i>where the robot was taught to weld</span>
+          <span><i class="line" style="background:var(--good)"></i>the corrected path the cell welds along</span>
+          <span><i style="background:var(--warning)"></i>gap needs attention</span>
+          <span><i style="background:var(--before)"></i>too wide, not welded</span>
         </div>
       </div>
     </div>
@@ -92,6 +92,7 @@ export async function mount() {
 
   fixed(geo);
   draw();
+  view?.frameSeam();
 }
 
 export function update() { draw(); }
