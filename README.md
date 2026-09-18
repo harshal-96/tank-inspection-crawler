@@ -31,7 +31,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | | Result | Scored against |
 | --- | --- | --- |
 | Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
-| Routing to the right model size | 34 of 39 for the smallest model | ground truth, not a larger model's opinion |
+| Routing to the right model size | 39 of 39 for the smallest model, and for two larger ones | ground truth, not a larger model's opinion |
 | Post-weld inspection | 92% pass or defect on 50 beads, 37 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
@@ -273,21 +273,22 @@ The obvious architecture is a ladder: a cheap model on routine calls, a large on
 the evidence conflicts. That is what was built, and measuring it took it apart.
 
 Scored against ground truth rather than against the largest model's opinion, on 39
-decision points where the simulation knows the answer:
+decision points where the simulation knows the answer, under the prompt the cell runs:
 
-| Model | Correct | Robot moves wasted |
-| --- | --- | --- |
-| Nemotron 3 Nano 30B | **34 of 39** | 5 |
-| Nemotron 3.5 Lightning | 1 of 39 | 38 |
-| Nemotron 3 Super 120B | 0 of 39 | 39 |
-| Nemotron 3 Ultra 550B | 21 of 39 | 18 |
+| Model | Correct | Robot moves wasted | Model time for the run |
+| --- | --- | --- | --- |
+| Nemotron 3 Nano 30B | **39 of 39** | 0 | 50 s |
+| Nemotron 3.5 Lightning | 39 of 39 | 0 | 47 s |
+| Nemotron 3 Super 120B | 19 of 39 | 20 | 65 s |
+| Nemotron 3 Ultra 550B | 39 of 39 | 0 | 63 s |
 
-The smallest model in the family is the most correct one for this decision, and on this
-part mix it should be the one that runs. That much holds. The explanation this file
-used to give for it does not.
+Three of the four sizes get every decision right. The smallest one runs, fifty times a
+part, because it is the cheapest of the three that are right; the largest buys nothing
+here. The 120B still asks for a second look on half the parts with the boundary stated,
+and that is the one model-level finding in the table.
 
-**The larger models were not being over-cautious. They were obeying the prompt.** The
-prompt said:
+That is not the first table this section carried, and the reason it changed is worth
+keeping. The prompt as first written said:
 
 > Accept a single view only if its signals are excellent and no other view is available.
 
@@ -295,7 +296,9 @@ Every part in the campaign starts with exactly one view, and "excellent" is neve
 defined anywhere in the prompt. Read literally, that sentence instructs a model to ask
 for a second look on every part in the set, which is precisely what Super did, 39 times
 out of 39. Scoring that as a judgment failure was scoring obedience to an instruction
-with no number in it.
+with no number in it. Under that prompt the same 39 decisions scored Nano 34, Lightning
+1, Super 0 and Ultra 21 of 39, and this file called the smallest model the most correct
+one and told a story about large models being cautious.
 
 Putting the same decisions to the same models with one sentence added, giving the
 boundary a number taken from what the cell already treats as a good view rather than
@@ -315,10 +318,11 @@ returned 18 of 20 for Lightning against the study's 1 of 39, which was a differe
 between two harnesses rather than between two prompts. A number that disagrees with the
 thing it is meant to explain is not a finding, it is a bug, and it was one.
 
-So the routing decision survives and its justification changes. The small model is still
-the right one to run here, and for a reason worth keeping: it reaches the correct call
-without needing the boundary spelled out, which is the behaviour you want from the model
-that answers every part. But "large models are inherently more cautious" was a story
+So the number went into the prompt the cell runs, and the table at the top of this
+section is measured under it. The small model is still the right one to run, now for the
+plain reason that it is the cheapest of the three that get every decision right, and a
+reply the planner cannot read falls back to the same numbers by arithmetic rather than
+to accepting the measurement. But "large models are inherently more cautious" was a story
 told about a prompt defect. Every model in the family improves once the boundary has a
 number, and two of them go to full marks, which is not what a difference in caution
 looks like. A reader entitled to the first table is entitled to this one.

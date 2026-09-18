@@ -26,10 +26,11 @@ export function render() {
 
     <div class="grid">
             <div class="card w12">
-        <header><h2>The smallest model was right most often</h2></header>
+        <header><h2>Three of four sizes were right every time; the smallest one runs</h2></header>
         <div class="hint">Every measurement in this run was good enough to weld on, so the right
           call was always to accept it. A model that asked for another look was wrong, and each
-          wrong call cost a robot move.</div>
+          wrong call cost a robot move. This is under the prompt the cell runs, which states
+          the boundary in numbers; the last card shows what the first prompt did.</div>
         <div id="rt-accuracy"></div>
       </div>
 
@@ -38,8 +39,8 @@ export function render() {
       <div class="card w12">
         <header><h2>Every decision, model by model</h2></header>
                 <div class="hint">One square per decision, one row per model. Green is a correct call;
-          red means it asked for another look it did not need. The wall of red on the large
-          models is explained in the next card.</div>
+          red means it asked for another look it did not need. The 120B is the one model that
+          still asks with the boundary stated.</div>
         <div id="rt-grid"></div>
         <div class="legend">
           <span><i style="background:var(--good)"></i>accepted, correctly</span>
@@ -48,12 +49,13 @@ export function render() {
       </div>
 
       <div class="card w12">
-                <header><h2>Why the big models scored zero: the prompt, not the model</h2></header>
-        <div class="hint">The prompt said to accept a single view only if its signals were
+                <header><h2>Why the big models once scored zero: the prompt, not the model</h2></header>
+        <div class="hint">The first prompt said to accept a single view only if its signals were
           &ldquo;excellent&rdquo;, and never said what excellent meant. Every part starts with
           one view, so read literally that asks for a second look every time. Here the same
           models get the same decisions with one sentence added that gives the boundary a
-          number.</div>
+          number. That sentence is now in the prompt the cell runs, and the cards above are
+          measured under it.</div>
         <div id="rt-prompt"></div>
         <div class="legend">
           <span><i style="background:var(--before)"></i>prompt as written</span>
