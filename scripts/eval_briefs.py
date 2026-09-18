@@ -115,10 +115,10 @@ def main() -> int:
 
     n = len(records)
     if n:
-        print(f"\ncame back {sum(r['score']['returned'] for r in records)}/{n}, "
-              f"cited {sum(r['score']['citations_ok'] for r in records)}/{n}, "
-              f"measured figure carried {sum(r['score']['measured_figure_present'] for r in records)}/{n}, "
-              f"steps {sum(r['score']['has_steps'] for r in records)}/{n}")
+        count = lambda key: sum(r["score"][key] for r in records)  # noqa: E731
+        print(f"\ncame back {count('returned')}/{n}, cited {count('citations_ok')}/{n}, "
+              f"measured figure carried {count('measured_figure_present')}/{n}, "
+              f"steps {count('has_steps')}/{n}")
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as handle:
