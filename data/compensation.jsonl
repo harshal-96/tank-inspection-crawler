@@ -1,0 +1,9 @@
+{"model_error": -0.6, "uncompensated_mm": 0.21497403126543177, "compensated_mm": 0.3304335757779021, "worst_compensated_mm": 1.0087687144578439, "helped": false, "weldable": true, "trials": 120}
+{"model_error": -0.4, "uncompensated_mm": 0.32975141620092274, "compensated_mm": 0.21565619084241114, "worst_compensated_mm": 0.6583695494294933, "helped": true, "weldable": true, "trials": 120}
+{"model_error": -0.2, "uncompensated_mm": 0.4333534387954874, "compensated_mm": 0.11205416824784649, "worst_compensated_mm": 0.3420867148023173, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 0.0, "uncompensated_mm": 0.551715830283748, "compensated_mm": 0.03362264902770839, "worst_compensated_mm": 0.10264569068249835, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 0.2, "uncompensated_mm": 0.6473470106473783, "compensated_mm": 0.10434849046589371, "worst_compensated_mm": 0.31856319959896245, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 0.4, "uncompensated_mm": 0.767052380727872, "compensated_mm": 0.2216447736845381, "worst_compensated_mm": 0.676655526615784, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 0.6, "uncompensated_mm": 0.8813979982320576, "compensated_mm": 0.33599039118872376, "worst_compensated_mm": 1.0257410238235074, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 0.8, "uncompensated_mm": 0.9804064752270067, "compensated_mm": 0.43499886818367295, "worst_compensated_mm": 1.3280051646713769, "helped": true, "weldable": true, "trials": 120}
+{"model_error": 1.0, "uncompensated_mm": 1.102839172721602, "compensated_mm": 0.5574315656782681, "worst_compensated_mm": 1.7017828065754024, "helped": true, "weldable": true, "trials": 120}
