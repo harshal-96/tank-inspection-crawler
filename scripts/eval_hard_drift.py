@@ -49,7 +49,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from openai import BadRequestError  # noqa: E402
 
 from brain import nebius  # noqa: E402
 from cell.drift import (  # noqa: E402
@@ -140,25 +139,16 @@ def ask_cloud(rows: list[dict], model: str,
     So the fallback below is one policy applied to every model rather than a branch
     per model, and which path a call took is recorded so the report can say so.
     """
-    client = nebius.client().with_options(timeout=90.0)
     system = prompt_for(rows) + (THRESHOLD_NOTE if tell_threshold else "")
     messages = [{"role": "system", "content": system},
                 {"role": "user", "content": user_prompt(rows) + stats_block(rows)}]
     started = time.perf_counter()
-    for effort in ("none", None):
-        extra = {"reasoning_effort": effort} if effort else {}
-        try:
-            response = client.chat.completions.create(
-                model=model, temperature=0.0, max_tokens=500, messages=messages, **extra)
-        except BadRequestError as exc:
-            if effort and "reasoning_effort" in str(exc):
-                continue                      # the option, not the question
-            return f"error: {type(exc).__name__}", elapsed(started), "none"
-        except Exception as exc:  # noqa: BLE001
-            return f"error: {type(exc).__name__}", elapsed(started), "none"
-        raw = nebius.reply_text(response.choices[0].message) or ""
-        return parse_verdict(raw)["cause"], elapsed(started), effort or "default"
-    return "error: BadRequestError", elapsed(started), "none"
+    try:
+        reply = nebius.chat(messages, model=model, max_tokens=500, reasoning_effort="none",
+                            parses=nebius.extract_json)
+    except Exception as exc:  # noqa: BLE001
+        return f"error: {type(exc).__name__}", elapsed(started), "none"
+    return parse_verdict(reply.raw or "")["cause"], elapsed(started), reply.effort
 
 
 def load_edge(base: str, adapter: str):

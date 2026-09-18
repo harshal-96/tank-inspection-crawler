@@ -13,8 +13,8 @@ define what a defect is. The defect definitions below are load-bearing, not deco
 from __future__ import annotations
 
 import json
+import os
 import re
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional
@@ -56,22 +56,62 @@ RENDER_PROMPT = SYSTEM_PROMPT.replace(
     "is in the frame.",
 )
 
-FRAMINGS = {"as_written": SYSTEM_PROMPT, "rendering": RENDER_PROMPT}
+# On a real cell the bead is a photograph, and the honest framing says so. It
+# closes the same exit the rendering prompt closes: an unfamiliar camera or an
+# odd finish is not a reason to decline.
+PHOTO_PROMPT = SYSTEM_PROMPT.replace(
+    'If the image is too dark, blurred or cropped to judge, return the verdict "uncertain".',
+    'Answer "uncertain" only if no bead is in the frame or the bead cannot be made out at '
+    "all. Low contrast, an unfamiliar camera or an unusual surface finish are not reasons "
+    "to decline; judge what is there.",
+)
 
-# The camera frames the whole part and the bead is a strip about twenty pixels
-# wide down the middle of a 640 pixel frame. This is the window a bead camera
-# would be aimed at: the strip, with the plates either side of it, doubled.
+FRAMINGS = {"as_written": SYSTEM_PROMPT, "rendering": RENDER_PROMPT, "photograph": PHOTO_PROMPT}
+
+# What the bead camera is looking at, set per site: BEAD_SOURCE=rendering on the
+# simulator this project ships with, BEAD_SOURCE=photograph on a cell.
+DEFAULT_FRAMING = "rendering"
+
+
+def default_framing() -> str:
+    value = os.getenv("BEAD_SOURCE", "").strip().lower()
+    return value if value in FRAMINGS else DEFAULT_FRAMING
+
+
+# The simulator's camera frames the whole part and the bead is a strip about
+# twenty pixels wide down the middle of a 640 pixel frame. This is the window a
+# bead camera would be aimed at: the strip with the plates either side, doubled.
+# Another camera sets BEAD_WINDOW=x0,y0,x1,y1 in pixels, or BEAD_WINDOW=none to
+# send the frame as it comes.
 BEAD_WINDOW = (200, 30, 440, 610)
 
 
-def bead_crop(image_path: str | Path) -> bytes:
+def bead_window() -> Optional[tuple[int, int, int, int]]:
+    """The crop box for this site, or None when the frame goes as it is."""
+    value = os.getenv("BEAD_WINDOW", "").strip().lower()
+    if not value:
+        return BEAD_WINDOW
+    if value == "none":
+        return None
+    parts = [int(float(v)) for v in value.replace(";", ",").split(",")]
+    if len(parts) != 4 or parts[0] >= parts[2] or parts[1] >= parts[3]:
+        raise ValueError("BEAD_WINDOW must be x0,y0,x1,y1 with x0<x1 and y0<y1, or none")
+    return parts[0], parts[1], parts[2], parts[3]
+
+
+def bead_crop(image_path: str | Path,
+              window: Optional[tuple[int, int, int, int]] = None) -> bytes:
     """The bead and the plate either side of it, at twice the size, as PNG bytes."""
     from io import BytesIO
 
     from PIL import Image
 
+    box = window or bead_window() or BEAD_WINDOW
     with Image.open(image_path) as im:
-        window = im.convert("RGB").crop(BEAD_WINDOW)
+        frame = im.convert("RGB")
+        # Clip to the frame so a smaller picture is cropped, not padded.
+        box = (max(0, box[0]), max(0, box[1]), min(frame.width, box[2]), min(frame.height, box[3]))
+        window = frame.crop(box)
         window = window.resize((window.width * 2, window.height * 2), Image.LANCZOS)
         buf = BytesIO()
         window.save(buf, format="PNG")
@@ -167,29 +207,8 @@ def _coerce(data: dict[str, Any]) -> tuple[Verdict, DefectType, Optional[float]]
     return verdict, defect, severity
 
 
-# A reasoning model spends its visible budget thinking before it answers. Under
-# the 400 tokens this call sends, MiniMax and GLM came back with nothing in the
-# answer and a full reasoning field, which the parser reads as a failure and the
-# campaign scores as a wrong verdict. That is the trap that made gpt-oss look
-# like 0 of 28 on the drift question. So a reply that did not parse and shows
-# the budget was spent thinking is asked once more with room. One policy for
-# every model; what a model is asked never changes, only the envelope.
-THINKING_TOKENS = 3000
-
-
-def _needs_room(response: Any, raw: str, cap: int) -> bool:
-    """Did the model think instead of answering, rather than answer badly?"""
-    try:
-        _extract_json(raw)
-        return False
-    except (ValueError, json.JSONDecodeError):
-        pass
-    message = response.choices[0].message
-    thought = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None)
-    usage = response.usage
-    exhausted = bool(usage and usage.completion_tokens is not None
-                     and usage.completion_tokens >= cap)
-    return bool(thought) or exhausted
+THINKING_TOKENS = nebius.THINKING_TOKENS
+_extract_json = nebius.extract_json
 
 
 def inspect_weld(
@@ -198,8 +217,8 @@ def inspect_weld(
     detail: str = "high",
     temperature: float = 0.0,
     max_tokens: int = 400,
-    framing: str = "rendering",
-    crop: bool = True,
+    framing: Optional[str] = None,
+    crop: Optional[bool] = None,
 ) -> InspectionResult:
     """Send one post-weld image for a verdict.
 
@@ -208,16 +227,20 @@ def inspect_weld(
     A reply that is empty because the model spent its budget reasoning is sent
     again with a larger one, and the result records that it was.
 
-    The defaults are the prompt that tells the model the picture is a rendering
-    and the bead shown up close, because on the same fifty beads every model
-    did better under them; the as-written prompt is kept so the comparison can
-    be re-run.
+    framing and crop default from the environment (BEAD_SOURCE, BEAD_WINDOW),
+    because they describe the camera, not the model. On the simulator that is
+    the rendering prompt and the bead shown up close, under which every model
+    did better on the same fifty beads; the as-written prompt is kept so the
+    comparison can be re-run.
     """
     model = model or nebius.vision_model()
-    client = nebius.client()
+    framing = framing or default_framing()
     if framing not in FRAMINGS:
         raise ValueError(f"framing must be one of {sorted(FRAMINGS)}, not {framing!r}")
-    picture = (nebius.image_part_from_bytes(bead_crop(image_path), "png", detail=detail)
+    window = bead_window()
+    if crop is None:
+        crop = window is not None
+    picture = (nebius.image_part_from_bytes(bead_crop(image_path, window), "png", detail=detail)
                if crop else nebius.image_part(image_path, detail=detail))
     messages = [
         {"role": "system", "content": FRAMINGS[framing]},
@@ -230,27 +253,18 @@ def inspect_weld(
         },
     ]
 
-    started = time.perf_counter()
-    response = client.chat.completions.create(
-        model=model, temperature=temperature, max_tokens=max_tokens, messages=messages)
-    raw = nebius.reply_text(response.choices[0].message)
-    retried = False
-    if max_tokens < THINKING_TOKENS and _needs_room(response, raw, max_tokens):
-        response = client.chat.completions.create(
-            model=model, temperature=temperature, max_tokens=THINKING_TOKENS,
-            messages=messages)
-        raw = nebius.reply_text(response.choices[0].message)
-        retried = True
-    latency_ms = (time.perf_counter() - started) * 1000
-    usage = response.usage
+    reply = nebius.chat(messages, model=model, max_tokens=max_tokens,
+                        temperature=temperature, parses=_extract_json)
+    raw = reply.raw
 
     common = {
         "model": model,
-        "latency_ms": latency_ms,
-        "prompt_tokens": usage.prompt_tokens if usage else None,
-        "completion_tokens": usage.completion_tokens if usage else None,
+        "latency_ms": reply.latency_ms,
+        "prompt_tokens": reply.prompt_tokens,
+        "completion_tokens": reply.completion_tokens,
         "raw": raw,
-        "extra": {"retried_with_room": retried, "framing": framing, "crop": crop},
+        "extra": {"retried_with_room": reply.retried_with_room, "framing": framing,
+                  "crop": crop},
     }
 
     try:

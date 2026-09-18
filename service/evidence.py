@@ -19,7 +19,8 @@ import statistics
 from pathlib import Path
 from typing import Any, Iterable
 
-from brain import nebius, registry
+from brain import inspector, nebius, registry
+from cell.limits import WELDABLE_MM
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -436,15 +437,16 @@ def vision_study() -> dict[str, Any]:
         arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
         variants.append({"framing": key[0], "crop": key[1], "label": VARIANT_LABELS[key],
                          "arms": arms})
-    running = CELL_VARIANT if CELL_VARIANT in by_variant else next(iter(by_variant))
+    wanted = cell_variant()
+    running = wanted if wanted in by_variant else next(iter(by_variant))
     current = next(v for v in variants if (v["framing"], v["crop"]) == running)
     return {"available": True, "arms": current["arms"], "cell_model": cell,
             "cell_variant": current["label"], "variants": variants}
 
 
-# The prompt and framing the cell inspects with. Changed here when the study
-# below says a different one is better, and the summary follows it.
-CELL_VARIANT: tuple[str, bool] = ("rendering", True)
+def cell_variant() -> tuple[str, bool]:
+    """The prompt and framing the cell inspects with, from the same settings."""
+    return inspector.default_framing(), inspector.bead_window() is not None
 
 
 def cell_inspection_rows() -> list[dict[str, Any]]:
@@ -452,7 +454,7 @@ def cell_inspection_rows() -> list[dict[str, Any]]:
     cell = nebius_vision_label()
     for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
         rows = _read(path.name)
-        if (rows and "injected" in rows[0] and _variant_of(rows[0]) == CELL_VARIANT
+        if (rows and "injected" in rows[0] and _variant_of(rows[0]) == cell_variant()
                 and registry.display(rows[0].get("model", "")) == cell):
             return rows
     return _read("inspections.jsonl")
@@ -505,7 +507,6 @@ ROBUSTNESS_ARMS: dict[str, tuple[str, str]] = {
     "refined": ("robustness_refined.jsonl", "faces fitted from all their points"),
 }
 
-WELDABLE_MM = 1.0
 
 
 def _mean_holds(row: dict[str, Any]) -> bool:

@@ -34,10 +34,11 @@ import json
 import sys
 import time
 from pathlib import Path
+from typing import Optional
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from brain.viewplanner import plan_next_view  # noqa: E402
+from brain.viewplanner import THRESHOLD_TEXT, plan_next_view  # noqa: E402
 from scripts.eval_router_truth import decision_points  # noqa: E402
 
 MODELS = [
@@ -46,28 +47,25 @@ MODELS = [
     "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
 ]
 
-# The boundary the prompt never gave.
-THRESHOLD = """
-
-A single view is already enough, and you should accept it, when all of these hold:
-included_angle_deg is within 5 of 90, inlier_balance is at least 0.60, both fit RMS
-values are under 0.5 mm, and path_length_mm is at least 300. Asking for another
-look costs cycle time, so ask only when one of those is actually violated."""
+# The boundary the prompt never gave. It is the cell's own text now, so the
+# study reads it from the planner rather than keeping a copy that could drift.
+THRESHOLD = THRESHOLD_TEXT
 
 
-def ask(point: dict, model: str, with_threshold: bool) -> tuple[bool, bool, float]:
+def ask(point: dict, model: str,
+        with_threshold: bool) -> tuple[Optional[bool], Optional[bool], float]:
     """One decision, through the planner the cell itself calls.
 
     Returns whether it accepted, whether that was the right call against ground
-    truth, and how long it took.
+    truth, and how long it took. A call that failed returns None for both, and
+    is reported rather than scored: a transport error is not a decision.
     """
     started = time.perf_counter()
     try:
         decision = plan_next_view(
-            point["evidence"], point["remaining"], model=model,
-            system_extra=THRESHOLD if with_threshold else "")
+            point["evidence"], point["remaining"], model=model, threshold=with_threshold)
     except Exception:  # noqa: BLE001
-        return False, False, (time.perf_counter() - started) * 1000
+        return None, None, (time.perf_counter() - started) * 1000
     ms = (time.perf_counter() - started) * 1000
     said_look_again = not decision.accept
     return decision.accept, said_look_again == point["should_look_again"], ms
@@ -90,17 +88,23 @@ def main() -> int:
     records = []
     for model in MODELS:
         for with_threshold in (False, True):
-            correct = accepted = 0
+            correct = accepted = errors = 0
             for point in points:
                 took, ok, ms = ask(point, model, with_threshold)
-                correct += ok
-                accepted += took
+                if took is None:
+                    errors += 1
+                else:
+                    correct += ok
+                    accepted += took
                 records.append({"model": model, "threshold_stated": with_threshold,
                                 "trial": point["trial"], "accept": took,
-                                "correct": ok, "latency_ms": round(ms)})
+                                "correct": ok, "error": took is None,
+                                "latency_ms": round(ms)})
             label = "threshold stated" if with_threshold else "as written"
+            scored = len(points) - errors
             print(f"{model.split('/')[-1][:30]:>30} {label:>22} "
-                  f"{correct:>6}/{len(points):<3} {accepted:>6}/{len(points):<3}",
+                  f"{correct:>6}/{scored:<3} {accepted:>6}/{scored:<3}"
+                  f"{f'  {errors} calls failed' if errors else ''}",
                   flush=True)
 
     out = Path(args.out)

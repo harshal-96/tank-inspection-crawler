@@ -26,6 +26,7 @@ operator who cannot tell those apart cannot act on either.
 from __future__ import annotations
 
 import json
+import re
 import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional
@@ -79,9 +80,32 @@ class Brief:
     search_ms: float = 0.0
     total_ms: float = 0.0
     error: Optional[str] = None
+    # False when the sources paragraph cites nothing, or cites a source that
+    # was not given. The prompt asks for a citation on every claim; this is
+    # the check that it happened, because a brief nobody can trace is advice.
+    citations_ok: bool = True
 
     def as_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+_CITATION = re.compile(r"\[(\d+)\]")
+
+
+def check_citations(brief: "Brief") -> "Brief":
+    """Mark a brief whose sources paragraph cannot be traced to a given source."""
+    text = brief.what_the_sources_say
+    if not text:
+        return brief
+    cited = {int(n) for n in _CITATION.findall(text)}
+    valid = set(range(1, len(brief.sources) + 1))
+    if not cited or not cited <= valid:
+        brief.citations_ok = False
+        brief.confidence = "low"
+        note = ("The sources paragraph carries a missing or invalid citation; check it "
+                "against the numbered sources before acting on it.")
+        brief.caveat = f"{brief.caveat} {note}".strip()
+    return brief
 
 
 # ------------------------------------------------------------------ the questions
@@ -174,18 +198,12 @@ def write_brief(topic: str, query: str, measured: str,
 
     brief.model = model or nebius.text_model()
     try:
-        client = nebius.client()
-        response = client.chat.completions.create(
-            model=brief.model,
-            temperature=0.0,
-            max_tokens=MAX_TOKENS,
-            reasoning_effort="none",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": user},
-            ],
-        )
-        raw = nebius.reply_text(response.choices[0].message) or ""
+        reply = nebius.chat(
+            [{"role": "system", "content": SYSTEM_PROMPT},
+             {"role": "user", "content": user}],
+            model=brief.model, max_tokens=MAX_TOKENS, reasoning_effort="none",
+            parses=nebius.extract_json)
+        raw = reply.raw or ""
     except Exception as exc:  # noqa: BLE001
         brief.error = f"{type(exc).__name__}: {exc}"
         brief.total_ms = round((time.perf_counter() - started) * 1000, 1)
@@ -210,6 +228,7 @@ def write_brief(topic: str, query: str, measured: str,
     brief.do_now = [str(s).strip() for s in steps if str(s).strip()][:5]
     brief.confidence = str(data.get("confidence") or "low").strip().lower()
     brief.caveat = str(data.get("caveat") or "").strip()
+    check_citations(brief)
     brief.total_ms = round((time.perf_counter() - started) * 1000, 1)
     return brief
 

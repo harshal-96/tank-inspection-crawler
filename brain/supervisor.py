@@ -17,6 +17,7 @@ from sqlmodel import Session
 
 from brain import nebius
 from brain.tools import TOOL_SCHEMAS, dispatch
+from cell.limits import PROBLEM_MM, WELDABLE_MM
 
 MAX_TOOL_ROUNDS = 6
 MAX_TOKENS = 1200
@@ -60,7 +61,7 @@ photographs the bead and a vision model judges it.
 
 What the numbers mean.
 - Correction error is the distance in millimetres between where the detector said the \
-joint was and where it really was. Under 1 mm is good. Over 3 mm is a problem.
+joint was and where it really was. Under {weldable} mm is good. Over {problem} mm is a problem.
 - Lateral drift compares the recent parts against earlier ones. Random scatter is \
 normal. A steady one-directional shift is mechanical: a locator wearing, a fixture \
 settling, or a clamp losing pressure. That is worth flagging even when every \
@@ -90,6 +91,7 @@ what you suggest. No headings, no bullet lists unless asked, no restating the qu
 - If the cell is running well, say so briefly rather than manufacturing concern.
 - Write with plain ASCII punctuation only. Never use em dashes or en dashes. Use
 commas, colons or full stops instead."""
+SYSTEM_PROMPT = SYSTEM_PROMPT.format(weldable=f"{WELDABLE_MM:g}", problem=f"{PROBLEM_MM:g}")
 
 REPORT_PROMPT = """Write the end-of-shift report for this cell.
 

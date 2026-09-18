@@ -112,13 +112,16 @@ def main() -> int:
         for record in records:
             handle.write(json.dumps(record) + "\n")
 
-    correct = sum(1 for r in records if r["correct"])
-    clean = [r for r in records if r["injected"] == "none"]
-    faulty = [r for r in records if r["injected"] != "none"]
+    judged = [r for r in records if r["verdict"] != "uncertain"]
+    declined = len(records) - len(judged)
+    correct = sum(1 for r in judged if r["correct"])
+    clean = [r for r in judged if r["injected"] == "none"]
+    faulty = [r for r in judged if r["injected"] != "none"]
     false_alarm = sum(1 for r in clean if r["called"] != "none")
     missed = sum(1 for r in faulty if r["called"] == "none")
 
-    print(f"\n{correct}/{len(records)} verdicts match what was injected")
+    print(f"\n{correct}/{len(judged)} judged verdicts match what was injected"
+          f"{f', {declined} declined' if declined else ''}")
     print(f"  clean parts   {len(clean):>3}, called defective {false_alarm} "
           f"(a false alarm scraps a good part)")
     print(f"  faulty parts  {len(faulty):>3}, called clean {missed} "

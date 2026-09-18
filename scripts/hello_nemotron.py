@@ -172,7 +172,8 @@ def check_vision() -> bool:
 
     img = _test_image(Path("data/captures/preflight_bead.png"))
     try:
-        result = inspect_weld(img)
+        # A drawn test image, not the cell's camera: send it whole.
+        result = inspect_weld(img, crop=False)
     except Exception as exc:  # noqa: BLE001
         print(f"{BAD} vision call failed: {type(exc).__name__}: {exc}")
         return False

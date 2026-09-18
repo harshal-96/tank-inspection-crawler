@@ -34,7 +34,6 @@ import argparse
 import json
 import statistics
 import sys
-import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -86,22 +85,14 @@ def show_confound(parts: int, seeds: list[int]) -> list[dict]:
 
 
 def ask(rows: list[dict], model: str) -> dict:
-    client = nebius.client()
-    started = time.perf_counter()
-    response = client.chat.completions.create(
-        model=model,
-        temperature=0.0,
-        max_tokens=400,
-        reasoning_effort="none",
-        messages=[
-            {"role": "system", "content": prompt_for(rows)},
-            {"role": "user", "content": user_prompt(rows)},
-        ],
-    )
-    raw = nebius.reply_text(response.choices[0].message)
-    latency = (time.perf_counter() - started) * 1000
+    reply = nebius.chat(
+        [{"role": "system", "content": prompt_for(rows)},
+         {"role": "user", "content": user_prompt(rows)}],
+        model=model, max_tokens=400, reasoning_effort="none", parses=nebius.extract_json)
+    raw = reply.raw
     data = parse_verdict(raw)
-    data["latency_ms"] = round(latency)
+    data["latency_ms"] = round(reply.latency_ms)
+    data["retried_with_room"] = reply.retried_with_room
     return data
 
 

@@ -17,8 +17,6 @@ rather than grading the result afterwards.
 from __future__ import annotations
 
 import json
-import re
-import time
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -33,6 +31,62 @@ MAX_TOKENS = 1200
 # reasoning_effort "none" produces the answer directly, and it cut the reply from
 # 900 tokens of preamble to 86 tokens of correct JSON.
 REASONING_EFFORT = "none"
+
+# What makes a single view good enough to weld on. The prompt below used to
+# say "excellent" and never said what that meant, and every part starts with
+# one view, so read literally it asked for a second look on every part. The
+# 120B took it literally and scored 0 of 39; given these numbers it scored 20,
+# and the 3.5 Lightning went from 1 to 39. The numbers are the cell's own idea
+# of a good view and they are stated to the model in the same words a study
+# can switch off, so the prompt can always be compared against itself.
+SINGLE_VIEW_OK = {
+    "angle_tol_deg": 5.0,    # included angle within this of square
+    "min_balance": 0.60,     # both faces seen
+    "max_rms_mm": 0.5,       # each face fitted a plane this well
+    "min_path_mm": 300.0,    # this much of the joint in frame
+}
+
+THRESHOLD_TEXT = f"""
+
+A single view is already enough, and you should accept it, when all of these hold:
+included_angle_deg is within {SINGLE_VIEW_OK["angle_tol_deg"]:g} of 90, inlier_balance \
+is at least {SINGLE_VIEW_OK["min_balance"]:.2f}, both fit RMS
+values are under {SINGLE_VIEW_OK["max_rms_mm"]:g} mm, and path_length_mm is at least \
+{SINGLE_VIEW_OK["min_path_mm"]:g}. Asking for another
+look costs cycle time, so ask only when one of those is actually violated."""
+
+
+def view_meets_rule(view: dict[str, Any]) -> bool:
+    """The same limits, applied by arithmetic. Missing signals fail."""
+    try:
+        angle = float(view["included_angle_deg"])
+        balance = float(view["inlier_balance"])
+        rms = max(float(view["face_a_fit_rms_mm"]), float(view["face_b_fit_rms_mm"]))
+        path = float(view["path_length_mm"])
+    except (KeyError, TypeError, ValueError):
+        return False
+    ok = SINGLE_VIEW_OK
+    return (abs(angle - 90.0) <= ok["angle_tol_deg"] and balance >= ok["min_balance"]
+            and rms < ok["max_rms_mm"] and path >= ok["min_path_mm"])
+
+
+def rule_decision(attempts: list[dict[str, Any]],
+                  available_deg: list[float]) -> tuple[bool, Optional[float]]:
+    """What the cell does when the planner cannot answer: the limits, by hand.
+
+    Accept if any view meets them. Otherwise take the untried angle farthest
+    from the ones already tried, because a face that was edge-on needs a real
+    swing to open it up. With nothing left to try, accept what there is.
+    """
+    if any(view_meets_rule(a) for a in attempts if not a.get("failed")):
+        return True, None
+    if not available_deg:
+        return True, None
+    tried = [float(a["view_deg"]) for a in attempts if a.get("view_deg") is not None]
+    if not tried:
+        return False, available_deg[0]
+    return False, max(available_deg, key=lambda d: min(abs(d - t) for t in tried))
+
 
 SYSTEM_PROMPT = """You direct a robot measuring a weld joint before it welds.
 
@@ -69,7 +123,7 @@ Reply with JSON only, no prose and no code fence:
 {"accept": true|false, "next_view_deg": <number from the available list, or null>,
  "reason": "one or two sentences citing the signals"}"""
 
-_FENCE = re.compile(r"^```(?:json)?\s*|\s*```$", re.MULTILINE)
+_extract_json = nebius.extract_json
 
 
 @dataclass
@@ -84,22 +138,6 @@ class ViewDecision:
     raw: str = ""
     parse_error: Optional[str] = None
     extra: dict[str, Any] = field(default_factory=dict)
-
-
-def _extract_json(text: str) -> dict[str, Any]:
-    cleaned = _FENCE.sub("", text.strip()).strip()
-    try:
-        return json.loads(cleaned)
-    except json.JSONDecodeError:
-        pass
-    start, depth = cleaned.find("{"), 0
-    if start == -1:
-        raise ValueError("no JSON object in reply")
-    for i, ch in enumerate(cleaned[start:], start):
-        depth += (ch == "{") - (ch == "}")
-        if depth == 0:
-            return json.loads(cleaned[start : i + 1])
-    raise ValueError("unbalanced JSON object in reply")
 
 
 def spread_mm(attempts: list[dict[str, Any]]) -> Optional[float]:
@@ -135,49 +173,44 @@ def plan_next_view(
     model: Optional[str] = None,
     temperature: float = 0.0,
     system_extra: str = "",
+    threshold: bool = True,
 ) -> ViewDecision:
     """Accept the measurement, or name the next angle to try.
 
-    Raises on transport failure. A malformed or out-of-range reply is returned as a
-    decision to accept, because a planner that cannot answer must not be allowed to
-    hold the line indefinitely.
+    Raises on transport failure. A reply that cannot be read is not turned into
+    a decision to accept: the cell falls back to the same limits the prompt
+    states, applied by arithmetic, and the decision records the parse error.
 
-    system_extra appends to the system prompt and is empty in the cell. It exists so
-    a study can vary the instruction while holding the call path fixed, which is the
-    only way a prompt can be compared against itself.
+    threshold=False sends the prompt as it was first written, without the
+    numbers; a study uses it to compare the prompt against itself. system_extra
+    appends to the system prompt and is empty in the cell.
     """
     model = model or nebius.text_model()
-    client = nebius.client()
-
-    started = time.perf_counter()
-    response = client.chat.completions.create(
-        model=model,
-        temperature=temperature,
-        max_tokens=MAX_TOKENS,
-        reasoning_effort=REASONING_EFFORT,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT + system_extra},
-            {"role": "user", "content": build_prompt(attempts, available_deg)},
-        ],
-    )
-    latency_ms = (time.perf_counter() - started) * 1000
-    raw = nebius.reply_text(response.choices[0].message)
-    usage = response.usage
+    system = SYSTEM_PROMPT + (THRESHOLD_TEXT if threshold else "") + system_extra
+    reply = nebius.chat(
+        [{"role": "system", "content": system},
+         {"role": "user", "content": build_prompt(attempts, available_deg)}],
+        model=model, max_tokens=MAX_TOKENS, temperature=temperature,
+        reasoning_effort=REASONING_EFFORT, parses=_extract_json)
+    raw = reply.raw
 
     common = {
         "model": model,
-        "latency_ms": latency_ms,
+        "latency_ms": reply.latency_ms,
         "raw": raw,
-        "prompt_tokens": usage.prompt_tokens if usage else 0,
-        "completion_tokens": usage.completion_tokens if usage else 0,
+        "prompt_tokens": reply.prompt_tokens or 0,
+        "completion_tokens": reply.completion_tokens or 0,
     }
 
     try:
         data = _extract_json(raw)
     except (ValueError, json.JSONDecodeError) as exc:
+        accept, next_view = rule_decision(attempts, available_deg)
         return ViewDecision(
-            accept=True,
-            reason="Planner reply could not be parsed; accepting what we have.",
+            accept=accept,
+            next_view_deg=next_view,
+            reason=("Planner reply could not be parsed; the cell's own limits "
+                    + ("accept this view." if accept else "ask for another look.")),
             parse_error=f"{type(exc).__name__}: {exc}",
             **common,
         )
