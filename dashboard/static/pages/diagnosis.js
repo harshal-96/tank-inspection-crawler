@@ -5,7 +5,7 @@ import { loadEvidence } from "../store.js";
 
 export const meta = {
   id: "diagnosis",
-  title: "Drift diagnosis",
+  title: "Which machine slipped",
   crumb: "Stage 5",
   group: "What happens to a part",
   tag: "12",
@@ -21,10 +21,12 @@ const SCENARIO_LABEL = {
 export function render() {
   return `
     <p class="lede">
-      Correcting every part hides the reason they need correcting. If the press is
-      slowly going out of adjustment, the cell will keep welding parts correctly and nobody
-      finds out until it has drifted too far to correct. So the cell reads the same
-      measurements a second time, across a whole run of parts, and says which machine is at fault. This is the one job the small model cannot do.
+      Correcting every part hides the reason they need correcting. Three machines can put a
+      weld in the wrong place. The <b>press brake</b> folds the sides up, and if its angle
+      setting slowly shifts, the joint tilts. The <b>fixture</b> clamps the part for welding,
+      and if it works loose the whole joint slides over. The <b>camera</b> can creep on its
+      post, in which case nothing is wrong with the part at all. Each one is a different walk
+      across the shop, so the cell reads a whole run of measurements and says which.
     </p>
 
     <div class="tiles" id="dg-tiles"></div>

@@ -437,6 +437,16 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
   outline: 2px solid var(--series-1); outline-offset: 2px;
 }
 
+/* The three machines, named under the process diagram. */
+.machines { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 2px; }
+.machine { background: var(--surface-1); border: 1px solid var(--hair); padding: 14px 16px 15px; }
+.machine .n {
+  display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;
+  color: var(--text-primary); margin-bottom: 6px;
+}
+.machine .n i { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+.machine p { margin: 0; font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; }
+
 /* Boxes in the process diagram are links, so they have to look like links when
    the pointer is on them. */
 a.flow-node { cursor: pointer; }

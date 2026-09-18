@@ -69,10 +69,12 @@ export function render() {
     <div class="grid">
       <div class="card w12">
         <header><h2>What happens to a part</h2></header>
-        <div class="hint">Every box links to the page that measured it. Dashed lines are the
-          two loops: a measurement the cell does not trust goes round again, and a drift it
-          names goes back to the machine that caused it.</div>
+        <div class="hint">Every box links to the page that measured it. The two dashed lines
+          are what makes the cell self-correcting: a measurement it does not trust goes round
+          for another look, and a machine it catches slipping gets adjusted before it spoils
+          the next part.</div>
         <div id="ov-flow"></div>
+        <div id="ov-machines"></div>
       </div>
     </div>
 
@@ -162,8 +164,8 @@ function flow(ev) {
   ];
   const bottom = [
     ["4", "Judge the bead", i.available ? V.pct(i.binary_accuracy) : "", true, "inspection"],
-    ["5", "Name the drift", h && h.available ? V.pct(h.arms[0].rate) : "", true, "diagnosis"],
-    ["6", "Say what to do", "with sources", true, "briefs"],
+    ["5", "Which machine slipped", h && h.available ? V.pct(h.arms[0].rate) : "", true, "diagnosis"],
+    ["6", "Tell the operator", "with sources", true, "briefs"],
   ];
 
   const node = (x, y, [no, title, figure, usesModel, page]) => `
@@ -235,8 +237,8 @@ function flow(ev) {
     stroke="var(--after)" stroke-width="1.7" fill="none" stroke-dasharray="5 4"
     marker-end="url(#ar-back)"/>`;
   out += `<text x="${LANE + 14}" y="${BACK + 19}" font-size="11" font-weight="600"
-    fill="var(--after)">back to the press or the fixture, before the next part is bent
-    wrong the same way</text>`;
+    fill="var(--after)">go and adjust that machine, before it spoils the next part
+    the same way</text>`;
 
   // What arrives, at the top left where the part enters, not beside the torch.
   out += `<text x="${LANE}" y="24" font-size="10.5" font-weight="600"
@@ -248,6 +250,42 @@ function flow(ev) {
     fill="var(--text-muted)">the arc runs</text>`;
 
   V.paint(host, V.svg(W, H, out));
+  machines();
+}
+
+/** Which machine, in plain words.
+
+  "Drift" and "the drifting machine" told a reader nothing. There are exactly
+  three machines that can put the weld in the wrong place, they fail in different
+  ways, and a fitter has to walk to a different part of the shop for each one.
+  That is the whole reason the cell names which.
+*/
+function machines() {
+  const host = V.$("ov-machines");
+  if (!host) return;
+  const rows = [
+    ["The press brake", "var(--series-2)",
+     "Folds the flat sheet up into a tray. If its angle setting slowly shifts, every part "
+     + "comes out bent a little differently, and the joint tilts: the top of it moves while "
+     + "the bottom stays put."],
+    ["The fixture", "var(--series-3)",
+     "The jig that clamps the part down for welding. If it works loose or gets knocked, the "
+     + "part sits in the wrong place, and the whole joint slides over together, top and "
+     + "bottom by the same amount."],
+    ["The camera mount", "var(--series-4)",
+     "Nothing is wrong with the part at all. The camera has crept on its post, so the "
+     + "measurement is wrong. This looks identical to a loose fixture, which is why the cell "
+     + "has a fixed reference marker to tell them apart."],
+  ];
+  host.innerHTML = `
+    <div class="hint" style="margin:18px 0 10px">The three machines that can put a weld in
+      the wrong place. Each fails in its own way and each is a different walk across the
+      shop, which is why naming the right one is worth a model call.</div>
+    <div class="machines">${rows.map(([name, colour, what]) => `
+      <div class="machine">
+        <span class="n"><i style="background:${colour}"></i>${V.esc(name)}</span>
+        <p>${V.esc(what)}</p>
+      </div>`).join("")}</div>`;
 }
 
 /** The two things a reader should have before over-reading the headline. */
