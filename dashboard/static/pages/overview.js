@@ -21,6 +21,16 @@ export function render() {
       cell that looks at each one first and welds where the joint actually is.
     </p>
     <div class="tiles" id="ov-tiles"></div>
+
+    <div class="grid">
+      <div class="card w12" id="bg-honest">
+        <header><h2>Before quoting that first number</h2></header>
+        <div class="hint">The two things this project found out about itself that a reader
+          should have before anything else on this dashboard.</div>
+        <div id="ov-caveats"></div>
+      </div>
+    </div>
+
     <div class="grid">
       <div class="card w7">
         <header><h2>What a taught path would have missed, against what the cell found</h2></header>
@@ -56,6 +66,54 @@ export async function mount() {
   dumbbell(ev);
   hist(ev);
   studies(ev);
+  caveats(ev);
+}
+
+/** The two things a reader should have before over-reading the headline. */
+function caveats(ev) {
+  const host = V.$("ov-caveats");
+  if (!host) return;
+  const cards = [];
+
+  const b = ev.error_budget;
+  if (b && b.available) {
+    const realistic = b.budgets.find((x) => x.label.startsWith("Typical stereo"));
+    const best = b.budgets.find((x) => x.label.startsWith("Laser"));
+    cards.push([
+      "The seam figure is one link in a chain",
+      `The tracker finds the joint to ${V.fmt(b.budgets[0].total_mm, 2)} mm. Add hand eye `
+      + `calibration, robot repeatability, standoff drift and what the arc does, and the `
+      + `chain comes to ${V.fmt(realistic.total_mm, 2)} mm on a realistic sensor against a `
+      + `${b.industry_requirement_mm} mm requirement. With the laser profiler the sweep says `
+      + `this needs, ${V.fmt(best.total_mm, 2)} mm. The largest term is calibration, it is `
+      + `systematic, and this cell cannot measure it.`,
+      "#/budget",
+    ]);
+  }
+
+  const c = ev.confound;
+  if (c && c.available) {
+    cards.push([
+      "A drifting camera looks exactly like a drifting fixture",
+      `Both move the whole seam equally at bottom and top. On the seam alone they are the `
+      + `same numbers, so the diagnosis answers "fixture" to both and sends a fitter to the `
+      + `wrong machine. A reference feature on the machine base separates them: the drifting `
+      + `camera went from ${c.camera_without.correct}/${c.camera_without.n} identified to `
+      + `${c.camera_with.correct}/${c.camera_with.n}, same model, one extra column.`,
+      "#/budget",
+    ]);
+  }
+
+  if (!cards.length) {
+    host.innerHTML = `<div class="empty">Not yet measured.</div>`;
+    return;
+  }
+  host.innerHTML = `<div class="steps">${cards.map(([title, body, href]) => `
+    <div class="step">
+      <div class="t" style="margin-top:0">${V.esc(title)}</div>
+      <div class="d">${V.esc(body)}</div>
+      <div class="o"><a href="${href}" style="text-decoration:none">read the study \u2192</a></div>
+    </div>`).join("")}</div>`;
 }
 
 function tiles(ev) {
@@ -185,6 +243,21 @@ function studies(ev) {
      `${V.pct(ev.inspection.binary_accuracy)} pass/defect, ${V.pct(ev.inspection.named_accuracy)} named`,
      "warn", "#/inspection"],
   ];
+  if (ev.error_budget && ev.error_budget.available) {
+    const realistic = ev.error_budget.budgets.find((b) => b.label.startsWith("Typical stereo"));
+    rows.push(["Full error budget", "5 terms, 2 measured here",
+      "published figures for calibration, repeatability and standoff",
+      `${V.fmt(ev.error_budget.budgets[0].total_mm, 2)} mm quoted \u2192 `
+      + `${V.fmt(realistic.total_mm, 2)} mm for the chain`,
+      "bad", "#/budget"]);
+  }
+  if (ev.confound && ev.confound.available) {
+    rows.push(["Camera against fixture", "4 causes \u00d7 4 runs \u00d7 2 arms",
+      "the injected fault, with and without a reference feature",
+      `${ev.confound.arms[0].correct}/${ev.confound.arms[0].n} \u2192 `
+      + `${ev.confound.arms[1].correct}/${ev.confound.arms[1].n} with the instrument`,
+      "good", "#/budget"]);
+  }
   const trainedRun = (ev.drift.edge || []).find((r) => r.tier === "edge");
   const untrainedRun = (ev.drift.edge || []).find((r) => r.tier === "edge_base");
   if (trainedRun) {

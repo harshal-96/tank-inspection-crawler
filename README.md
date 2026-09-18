@@ -229,6 +229,10 @@ over fifty parts.
 | Taught path, no correction | 22.80 mm | 36.37 | 50.91 | 0 of 50 |
 | Tracked from depth | **0.67 mm** | 0.83 | **0.89** | **50 of 50** |
 
+That is the tracker, on exact rendered depth. It is one link in a chain, and the
+whole chain comes to 2.8 mm on a realistic sensor. See "What the 0.67 mm does not
+include" below before quoting it as the accuracy of the cell.
+
 Every part tracked, every station, none refused. The worst single station across all
 thousand reads 1.05 mm.
 
@@ -423,6 +427,63 @@ own feature to find, its own process model in place of `cell/weld_params.py`, it
 own defect vocabulary and its own calibration. Claiming otherwise would be the same
 mistake as quoting an accuracy figure measured on exact depth.
 
+### What the 0.67 mm does not include
+
+That figure is true about the tracker and would be a misrepresentation of the cell.
+Published work on vision guided welding is explicit that achieved accuracy depends
+on the whole chain: sensor resolution, calibration quality, standoff stability,
+part surface, robot repeatability. This project measured two of those carefully and
+was silent about the rest.
+
+Systematic terms add. Independent random terms combine in quadrature. Which of the
+two a term is decides whether making more parts helps, and several of these are
+systematic.
+
+| | Total | Meets 1.5 mm? |
+| --- | --- | --- |
+| What the seam study alone suggests | 0.68 mm | yes |
+| Perfect sensor, nothing compensated | 2.23 mm | no |
+| Typical stereo camera, compensated | 2.82 mm | no |
+| Laser profiler, compensated | **1.16 mm** | yes |
+
+Industrial vision guidance for weld tracking is asked for about 1.5 mm. Only the
+last row meets it, which is the same conclusion the sensor sweep reached from the
+other direction.
+
+The largest single term is **hand eye calibration at 0.85 mm**: systematic, bigger
+than the entire tracking error, taken from published residuals rather than measured
+here, and not fixable by this cell. Every term in `cell/error_budget.py` carries
+where its number came from. The first version of that file labelled its own laser
+row "measured here" when it is a published figure, which is a fair demonstration of
+how quietly that goes wrong.
+
+### A drifting camera looks exactly like a drifting fixture
+
+This one is worse than an omission, because the cell answers it confidently.
+
+A fixture going off moves the part. A camera going off moves the measurement. Both
+appear in the seam as the whole joint translating, by the same amount at the bottom
+and the top, with the tilt flat. Measured on the seam alone they are not merely
+similar, they are the same numbers: across four runs the discriminators differ by
+0.00. So the drift diagnosis answers "fixture" to both and would send a fitter to
+re-shim a fixture that is fine while the camera mount goes on moving.
+
+No model fixes that, because the information is not in the data. What fixes it is an
+instrument: a reference feature bolted to the machine base rather than to the
+fixture, which the same camera reads on every part. Nothing about the press or the
+fixture can move it; only the camera can.
+
+Asked to name one of four causes, Nemotron 3 Super 120B-A12B:
+
+| | Score | Drifting camera identified |
+| --- | --- | --- |
+| On the seam alone | 8 of 16 | **0 of 4** |
+| With the reference | **14 of 16** | **4 of 4** |
+
+Same model, same prompt structure, one extra column. What was missing was not
+intelligence. And it is the same instrument that would catch the calibration term
+above going out, so the two findings are one blind spot seen from two directions.
+
 ### Reproducing all of it
 
 ```bash
@@ -452,6 +513,9 @@ python scripts/eval_robustness.py --out data/robustness_refined.jsonl
 
 # whether welding where the joint will be beats welding where it was
 python scripts/eval_compensation.py
+
+# the camera-versus-fixture confound, and the instrument that resolves it
+python scripts/eval_confound.py
 ```
 
 Seam finding is geometric: two faces fitted from depth and intersected, walked along
