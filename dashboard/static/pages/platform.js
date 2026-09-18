@@ -94,10 +94,10 @@ const ROWS = [
 export function render() {
   return `
     <p class="lede">
-      Four Nemotron sizes are served on Token Factory and this cell uses all four,
-      for different jobs, because measuring them showed they are not interchangeable.
-      Every row below is a call the cell actually makes. The last column is the
-      measurement that decided it, not a preference.
+      Four sizes of Nemotron are served on Token Factory, and this cell uses all
+      four for different jobs, because testing showed they are not interchangeable. Every
+      row below is a call the cell actually makes. The last column is the measurement that
+      decided it, not a preference.
     </p>
 
     <div class="tiles" id="pf-tiles"></div>
@@ -105,8 +105,8 @@ export function render() {
     <div class="grid">
       <div class="card w12">
         <header><h2>Every model call this cell makes</h2></header>
-        <div class="hint">Nothing here is aspirational. If a row is on this page the code
-          calls it, and the page that measured it is linked from the findings page.</div>
+        <div class="hint">Every row is something the code actually calls, not something planned. The page
+          that measured each one is linked from Findings.</div>
         <div id="pf-table"></div>
       </div>
 
@@ -120,8 +120,8 @@ export function render() {
 
       <div class="card w6">
         <header><h2>What the platform would not do</h2></header>
-        <div class="hint">Recorded because the limits shaped the build, and because a reader
-          deciding whether to use the same platform needs them more than they need the wins.</div>
+        <div class="hint">These limits shaped what got built. Anyone deciding whether to use the same
+          platform needs to know them more than they need to hear the successes.</div>
         <div id="pf-limits"></div>
       </div>
     </div>`;

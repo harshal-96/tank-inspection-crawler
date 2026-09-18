@@ -16,9 +16,10 @@ export const meta = {
 export function render() {
   return `
     <p class="lede">
-      The corner the seam runs along is not where the program says it is, and it is not
-      straight. Twenty stations are measured on every part, each from the same single
-      look, and each one is scored against the seam's true position in the cell.
+      The joint is the line where two folded panels meet. It is not where the program
+      says it is, and it is not straight. The cell measures it at twenty points along its
+      length, all from a single camera view, and each point is compared against where the
+      joint truly is.
     </p>
 
     <div class="grid">
@@ -37,8 +38,9 @@ export function render() {
 
       <div class="card w4">
         <header><h2>What is left, and why</h2></header>
-        <div class="hint">Correcting the path removes the offset. It cannot remove the bow, because
-          the seam itself is curved. The bow is the floor this method sits on.</div>
+        <div class="hint">Correcting the path removes the offset, but it cannot remove the bow, because
+          the seam itself is curved. That bow is the limit on how accurate this method
+          can get.</div>
         <div id="sm-decomp"></div>
         <footer id="sm-decomp-meta"></footer>
       </div>

@@ -14,11 +14,11 @@ export const meta = {
 export function render() {
   return `
     <p class="lede">
-      The measurement is cold. The weld is not. Heat put into the bottom of the seam
-      rotates both folded sides about their fold lines, so the top of the joint walks
-      inward long before the torch reaches it. A cell that measures a point and then
-      drives to it is aiming at where that point <b>used to be</b>. So the path is
-      offset by the distortion predicted for the moment the arc arrives at each station.
+      The measurement is taken cold. The weld is not. Heat from the arc makes
+      both folded sides rotate about their fold lines, so the top of the joint moves inward
+      before the torch ever reaches it. A cell that measures a point and drives straight to
+      it is aiming at where that point used to be. So the path is shifted in advance, by
+      the amount of distortion expected at the moment the torch arrives at each point.
     </p>
 
     <div class="tiles" id="cp-tiles"></div>

@@ -41,11 +41,11 @@ const STAGES = [
 export function render() {
   return `
     <p class="lede">
-      The problem is not that the robot is inaccurate. It is that the part is not where
-      the program says, because sheet is cut flat, folded, and springs back by an amount
-      that is not the same twice. A taught path welds air on one part and into the corner
-      on the next. Everything below exists to close that loop without touching the arm's
-      own repeatability.
+      The robot is accurate. The problem is that the part is not where the program
+      assumes it is. Sheet metal is cut flat, folded, and springs back by a slightly
+      different amount every time. A fixed taught path welds thin air on one part and into
+      the corner on the next. Everything here exists to close that gap, without touching
+      the robot's own accuracy.
     </p>
 
     <div class="grid">
@@ -56,8 +56,8 @@ export function render() {
 
       <div class="card w6">
         <header><h2>Ground truth, per study</h2></header>
-        <div class="hint">The reason any number on this dashboard means something is that the answer
-          was decided before the model was asked.</div>
+        <div class="hint">Every number on this dashboard means something only because the correct answer
+          was fixed before the model was asked.</div>
         <div id="me-truth"></div>
       </div>
 
@@ -68,8 +68,8 @@ export function render() {
 
       <div class="card w12">
         <header><h2>Does this only work for welding?</h2></header>
-        <div class="hint">Worth answering plainly, because the honest answer is neither yes nor
-          the salesman's no. What generalises is the loop. What does not is every number in it.</div>
+        <div class="hint">Worth answering plainly. The honest answer is not a simple yes, and not the flat
+          no a salesman would give. What generalises is the loop. What does not is every number in it.</div>
         <div id="me-general"></div>
         <footer id="me-general-meta"></footer>
       </div>

@@ -57,10 +57,11 @@ function liveBand() {
 export function render() {
   return `
     <p class="lede">
-      A robot welding a folded tray runs a path that was taught once. The press does
-      not hand it the same part twice: springback, camber and fit-up move the corner
-      the seam lives on. These are the results of running <b>fifty parts</b> through a
-      cell that looks at each one first and welds where the joint actually is.
+      A welding robot follows the same path every time. The parts do not arrive the
+      same every time. Sheet metal is folded in a press, and every fold springs back by a
+      slightly different amount, so the joint that needs welding sits in a different place
+      on every part. This cell photographs each part first, works out where its joint
+      actually is, and welds there. Below are the results from <b>fifty parts</b>.
     </p>
     <div id="ov-live"></div>
     <div class="tiles" id="ov-tiles"></div>
@@ -68,8 +69,7 @@ export function render() {
     <div class="grid">
       <div class="card w12" id="bg-honest">
         <header><h2>Before quoting that first number</h2></header>
-        <div class="hint">The two things this project found out about itself that a reader
-          should have before anything else on this dashboard.</div>
+        <div class="hint">Two things worth knowing before you read any of the numbers below.</div>
         <div id="ov-caveats"></div>
       </div>
     </div>
@@ -96,8 +96,8 @@ export function render() {
 
       <div class="card w12">
         <header><h2>Every claim on this dashboard, and what it was scored against</h2></header>
-        <div class="hint">Nothing here is a demo reading of itself. Each study has a ground truth
-          that was decided before the model was asked.</div>
+        <div class="hint">Every study is scored against a correct answer that was fixed before the
+          model was asked. None of this is the cell marking its own work.</div>
         <div id="ov-studies"></div>
       </div>
     </div>`;
@@ -127,12 +127,14 @@ function caveats(ev) {
     const best = b.budgets.find((x) => x.label.startsWith("Laser"));
     cards.push([
       "The seam figure is one link in a chain",
-      `The tracker finds the joint to ${V.fmt(b.budgets[0].total_mm, 2)} mm. Add hand eye `
-      + `calibration, robot repeatability, standoff drift and what the arc does, and the `
-      + `chain comes to ${V.fmt(realistic.total_mm, 2)} mm on a realistic sensor against a `
-      + `${b.industry_requirement_mm} mm requirement. With the laser profiler the sweep says `
-      + `this needs, ${V.fmt(best.total_mm, 2)} mm. The largest term is calibration, it is `
-      + `systematic, and this cell cannot measure it.`,
+      `The tracker finds the joint to ${V.fmt(b.budgets[0].total_mm, 2)} mm. But that is `
+      + `one link in a chain. Add hand-eye calibration, the robot's own repeatability, `
+      + `standoff drift and what the heat of the arc does, and the whole chain comes to `
+      + `${V.fmt(realistic.total_mm, 2)} mm on a realistic sensor, against a requirement of `
+      + `${b.industry_requirement_mm} mm. Swap in the laser profiler that the sensor sweep `
+      + `says this needs, and it falls to ${V.fmt(best.total_mm, 2)} mm. The biggest single `
+      + `term is calibration. It is the same error on every part, so averaging more parts `
+      + `does not remove it, and this cell has no way to measure it.`,
       "#/budget",
     ]);
   }
@@ -141,11 +143,13 @@ function caveats(ev) {
   if (c && c.available) {
     cards.push([
       "A drifting camera looks exactly like a drifting fixture",
-      `Both move the whole seam equally at bottom and top. On the seam alone they are the `
-      + `same numbers, so the diagnosis answers "fixture" to both and sends a fitter to the `
-      + `wrong machine. A reference feature on the machine base separates them: the drifting `
-      + `camera went from ${c.camera_without.correct}/${c.camera_without.n} identified to `
-      + `${c.camera_with.correct}/${c.camera_with.n}, same model, one extra column.`,
+      `A fixture slipping moves the part. A camera slipping moves the measurement. Both `
+      + `shift the whole joint by the same amount top and bottom, so on the seam alone they `
+      + `produce identical numbers. The cell answers "fixture" to both, and sends a fitter `
+      + `to spend a shift on a machine that was fine. Bolting one reference marker to the `
+      + `machine base fixes it, because only the camera can appear to move it: drifting `
+      + `cameras identified went from ${c.camera_without.correct}/${c.camera_without.n} to `
+      + `${c.camera_with.correct}/${c.camera_with.n}, same model, one extra column of data.`,
       "#/budget",
     ]);
   }

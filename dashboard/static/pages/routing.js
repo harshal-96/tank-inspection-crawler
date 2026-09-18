@@ -15,11 +15,11 @@ export const meta = {
 export function render() {
   return `
     <p class="lede">
-      After the cell looks at a part it has to answer one question: is this measurement
-      good enough to weld on, or is another look worth the cycle time? The question is
-      cheap, so it goes to the smallest model first. This study asks whether that is
-      defensible, by scoring every arm against what a second look <b>actually</b> did to
-      the fit rather than against a bigger model's opinion.
+      Once the cell has photographed a part it has to decide one thing: is this
+      measurement good enough to weld on, or is it worth taking another look? Another look
+      costs cycle time. The question is cheap to ask, so it goes to the smallest model
+      first. This page tests whether that is the right call, by scoring every model against
+      what a second look actually achieved rather than against a bigger model's opinion.
     </p>
 
     <div class="tiles" id="rt-tiles"></div>
@@ -80,7 +80,8 @@ export function render() {
 
       <div class="card w6">
         <header><h2>What the model said, in its own words</h2></header>
-        <div class="hint">A verdict with no reasoning attached is a verdict nobody can audit.</div>
+        <div class="hint">What each model said, in its own words. A verdict with no reasoning attached
+          cannot be checked by anyone.</div>
         <div id="rt-reasons"></div>
       </div>
     </div>`;

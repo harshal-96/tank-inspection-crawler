@@ -43,12 +43,12 @@ const AXIS_WHAT = {
 export function render() {
   return `
     <p class="lede">
-      Every seam number on this dashboard was measured on exact rendered depth, which
-      makes them ceilings rather than results. A joint finder scored on perfect input
-      has not been scored on anything. So the whole fifty-part campaign was run again
-      at each of twenty-eight sensor degradations, and the error followed until it broke.
-      The threshold was fixed before the sweep ran: the wire is <b>1.0 mm</b> across, so
-      a path further than that from the joint is not on the joint.
+      Every seam number on this dashboard was measured on perfect depth data. That
+      makes them best cases rather than results, because a joint finder tested on perfect
+      input has not really been tested. So the fifty-part run was repeated at twenty-eight
+      levels of sensor degradation, to find where it breaks. The pass mark was fixed before
+      the sweep started: the welding wire is 1.0 mm across, so a path further than that
+      from the joint misses it.
     </p>
 
     <div class="tiles" id="lm-tiles"></div>
@@ -76,8 +76,8 @@ export function render() {
 
       <div class="card w5">
         <header><h2>Whole sensors, every failure mode at once</h2></header>
-        <div class="hint">The single-axis curves are diagnostic. These are the combinations a
-          real camera actually presents.</div>
+        <div class="hint">The curves above change one thing at a time, which is what makes them useful for
+          diagnosis. These are the combinations a real camera actually produces.</div>
         <div id="lm-named"></div>
       </div>
     </div>`;

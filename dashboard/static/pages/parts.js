@@ -30,9 +30,9 @@ let onlyFlagged = false;
 export function render() {
   return `
     <p class="lede">
-      Fifty parts came off the press and through the cell. Each card is one of them:
-      how far a taught path would have been off, where the measurement landed, how the
-      seam ran, and what the arc was asked to do about it.
+      Fifty parts came off the press and went through the cell. Each card is one part:
+      how far off a fixed taught path would have been, where the cell measured the joint,
+      how the seam ran along its length, and what the torch was told to do about it.
     </p>
 
     <div class="grid">

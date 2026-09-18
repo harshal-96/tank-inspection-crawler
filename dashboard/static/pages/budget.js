@@ -14,13 +14,13 @@ export const meta = {
 export function render() {
   return `
     <p class="lede">
-      The seam study says the tracker finds the joint to <b>0.68 mm</b>. That is a true
-      number about one link in a chain, and quoting it as the accuracy of the cell would
-      be a misrepresentation. Published work on vision guided welding is explicit that
-      what you get depends on the whole chain: sensor, calibration, standoff, part
-      surface, robot repeatability. This repository measured two of those carefully and
-      was silent about the rest. Here is the whole thing, with the provenance of every
-      term on it.
+      The seam study says the cell finds the joint to 0.68 mm. That number is true,
+      and it covers one link in a chain. Quoting it as the accuracy of the cell would be
+      misleading. Published work on vision guided welding is clear that what you actually
+      get depends on the whole chain: the sensor, the calibration, the standoff, the part
+      surface, the robot's own repeatability. This project measured two of those carefully
+      and said nothing about the rest. Here is the whole chain, with a source for every
+      term in it.
     </p>
 
     <div class="tiles" id="bg-tiles"></div>
@@ -30,7 +30,7 @@ export function render() {
         <header><h2>The chain, under four sets of assumptions</h2></header>
         <div class="hint">Systematic terms add, because an offset that is the same on every
           part is not averaged away by making more parts. Independent random terms combine in
-          quadrature. Which of the two a term is decides whether it matters.</div>
+          quadrature. Whether a term is systematic or random decides how much it ends up mattering.</div>
         <div id="bg-chain"></div>
         <div class="legend">
           <span><i style="background:var(--series-1)"></i>measured in this repository</span>

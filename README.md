@@ -1,7 +1,7 @@
 # Self-Correcting Production Cell
 
-A robotic welding cell that measures every part before it welds, judges its own work
-afterwards, and escalates to a supervisor agent when the line starts to drift.
+A robotic welding cell that photographs every part before it welds, checks its own work
+afterwards, and raises the alarm when a machine upstream starts going out of adjustment.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 
@@ -62,25 +62,33 @@ drift and what the arc itself does, and the chain comes to 2.82 mm against a 1.5
 requirement. The largest term is calibration, it is systematic, and this cell cannot
 measure it.
 
-Everything here is measured. Where a claim did not survive being checked it has been
-retracted in place rather than quietly dropped, and the check that killed it is shown
-next to it.
+Every number here was measured. Where a claim turned out to be wrong, it has been
+retracted on the spot rather than quietly deleted, with the test that disproved it
+printed next to it.
 
 ## The problem
 
-A robot welds where it was taught to weld. A part does not always arrive where it was
-taught to be. Sheet metal is cut flat and its sides are folded up, and the press leaves
-residual springback and camber on every fold, so the real seam (the line where two
-folded edges meet) sits away from the taught path and the weld lands off target. Over
-fifty parts measured here the taught path misses by 23 mm on average and 51 mm at worst.
+A welding robot is taught a path once and then drives that same path on every part.
+That works if every part arrives in exactly the same place. They do not.
 
-Worse, the seam is not merely displaced, it is bent. It bows off the straight line
-between its own ends, so a program that locates the part perfectly and then drives a
-straight path still walks off the joint. The usual answers are tighter tolerances
-upstream or a skilled operator watching the line. Both are expensive, and neither
-scales, and neither straightens a seam that the press has curved.
+These parts start as flat sheet metal. The sides are folded up in a press, and every
+fold springs back by a slightly different amount, so no two parts come out identical.
+The joint that needs welding, which is the line where two folded edges meet, ends up
+somewhere different on each one. Across the fifty parts measured here, the taught path
+missed the real joint by **23 mm on average and 51 mm at worst**. The weld would land on
+flat panel instead of in the joint.
 
-This project takes the other route: assume the part will move, and measure it.
+There is a second problem on top of that. The joint is not just in the wrong place, it
+is also slightly curved: the press leaves it bowed. So even a robot that found the start
+and end of the joint perfectly, and drove a straight line between them, would still
+wander off it in the middle.
+
+The usual fixes are to hold tighter tolerances at the press, or to have a skilled
+operator watch the line and correct it. Both cost money, neither scales, and neither of
+them straightens a joint the press has already bent.
+
+This project does something else: it assumes the part will be in the wrong place, and
+measures where it actually is before welding.
 
 ![The cell in plan and elevation](docs/figures/cell_layout.png)
 

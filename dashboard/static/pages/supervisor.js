@@ -22,10 +22,10 @@ const PROMPTS = [
 export function render() {
   return `
     <p class="lede">
-      The supervisor has no private copy of anything. It answers by querying the same
-      tables this dashboard draws, and it can search published welding standards when a
-      question needs a number it should not invent. Every answer it gives can be checked
-      against a page you can open yourself.
+      The supervisor has no private copy of anything. It answers by querying the
+      same tables this dashboard draws from, and it can search published welding standards
+      when a question needs a figure it should not invent. Every answer it gives can be
+      checked against a page you can open yourself.
     </p>
 
     <div class="grid">

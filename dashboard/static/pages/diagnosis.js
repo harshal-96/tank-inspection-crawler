@@ -21,11 +21,11 @@ const SCENARIO_LABEL = {
 export function render() {
   return `
     <p class="lede">
-      Correcting each part hides the problem that made it. If the press brake is walking,
-      the cell will weld every part correctly and nobody will notice until the angle runs
-      out of correction. So the same measurements are read a second time, across a run,
-      to name the cause. This is the one question where the small model is <b>not</b> good
-      enough, and the study is here because it says so.
+      Correcting every part hides the reason they need correcting. If the press is
+      slowly going out of adjustment, the cell will keep welding parts correctly and nobody
+      finds out until it has drifted too far to correct. So the cell reads the same
+      measurements a second time, across a whole run of parts, and says which machine is at
+      fault. This is the one job the small model cannot do, and this page says so.
     </p>
 
     <div class="tiles" id="dg-tiles"></div>

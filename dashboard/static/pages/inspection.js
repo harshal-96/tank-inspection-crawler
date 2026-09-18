@@ -20,10 +20,10 @@ const DEFECT_LABEL = {
 export function render() {
   return `
     <p class="lede">
-      After the arc stops the bead is photographed and judged. The number that makes this
-      mean anything is that every defect was injected on purpose, so each verdict is scored
-      against a record written before the model saw the image. A shop cares which way the
-      mistake goes: a false alarm scraps a good part, a miss ships a bad one.
+      After the arc stops, the weld bead is photographed and judged. Every defect
+      was put there deliberately, so each verdict can be checked against a record written
+      before the model saw the picture. Two kinds of mistake matter differently: a false
+      alarm throws away a good part, and a miss ships a bad one.
     </p>
 
     <div class="tiles" id="in-tiles"></div>
@@ -38,7 +38,7 @@ export function render() {
 
       <div class="card w6">
         <header><h2>Naming the defect is harder than spotting one</h2></header>
-        <div class="hint">Both numbers are real and they are not the same claim. The cell uses the
+        <div class="hint">Both numbers are real, but they are not the same claim. The cell uses the
           pass/defect call to route a part; the named defect is advice for the person who fixes it.</div>
         <div id="in-split"></div>
         <footer id="in-split-meta"></footer>
@@ -58,8 +58,8 @@ export function render() {
       <div class="card w12">
         <header><h2>Two vision models, the same score, opposite behaviour</h2></header>
         <div class="hint">The account serves two models that can see. On these fifty beads they
-          name the same number of defects correctly. That number means completely different
-          things, which is the argument for never quoting a single accuracy figure.</div>
+          name the same number of defects correctly. The same number means very different things for each of them, which is why a
+          single accuracy figure should never be quoted on its own.</div>
         <div id="in-vision"></div>
         <footer id="in-vision-meta"></footer>
       </div>

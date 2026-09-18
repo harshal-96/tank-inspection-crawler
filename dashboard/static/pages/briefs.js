@@ -29,12 +29,12 @@ const TRIGGER_LABEL = {
 export function render() {
   return `
     <p class="lede">
-      A measurement that nobody can act on is a measurement nobody uses. When the cell
-      refuses a joint, names a drifting machine, or keeps calling the same defect, it
-      writes the question out of its own numbers, fetches the documents that answer it,
-      and turns them into steps somebody can take at a machine in the next ten minutes.
-      Every claim carries the source it came from, because an instruction an operator
-      cannot check is an instruction nobody is allowed to follow.
+      A measurement nobody can act on gets ignored. So when the cell refuses a joint,
+      names a drifting machine, or keeps reporting the same defect, it writes the question
+      out of its own numbers, searches published welding guidance for the answer, and turns
+      that into steps somebody can follow at the machine. Every statement carries a link to
+      where it came from, because an operator should not be asked to follow an instruction
+      they cannot check.
     </p>
 
     <div class="tiles" id="br-tiles"></div>
@@ -42,8 +42,9 @@ export function render() {
     <div class="grid">
       <div class="card w12">
         <header><h2>How a brief is built</h2></header>
-        <div class="hint">Three steps, each one somebody else's job. No model is asked what
-          is wrong; the measurement already says.</div>
+        <div class="hint">Three steps, each one a different job. The measurement already says what is
+          wrong, so no model is asked to diagnose. The model's job is to work out what to
+          do about it.</div>
         <div id="br-how"></div>
       </div>
 
