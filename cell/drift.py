@@ -132,8 +132,8 @@ def build_stream(parts: int, scenario: str, seed: int,
     rng = random.Random(seed)
     drift = (PressDrift(lean_deg_per_part=0.012 * severity, side="right",
                         starts_at=parts // 4)
-             if scenario == "press" else None)
-    if scenario not in (*SCENARIOS, "camera"):
+             if scenario in ("press", "mixed") else None)
+    if scenario not in (*SCENARIOS, "camera", "mixed"):
         raise ValueError(f"unknown scenario {scenario!r}")
     trays = plan_shift(parts, seed=seed, drift=drift)
 
@@ -150,7 +150,7 @@ def build_stream(parts: int, scenario: str, seed: int,
         # How the part sat in the fixture. Ordinary scatter, plus a creep in one
         # direction if the fixture is the thing going off.
         settle = rng.gauss(0.0, 0.004)
-        if scenario == "fixture" and index >= parts // 4:
+        if scenario in ("fixture", "mixed") and index >= parts // 4:
             settle += 0.0006 * severity * (index - parts // 4)
 
         # Offsets of the seam from nominal, at the bottom of the joint and the top,
@@ -306,6 +306,96 @@ def quiet_seed(parts: int, start: int) -> int:
         if is_quiet(rows):
             return seed
     raise SystemExit("no quiet seed found; widen the search")
+
+
+# ---------------------------------------------------------------- the hard set
+#
+# The published evaluation has no marginal case in it. Every run sits at least
+# 0.58 away from the decision boundary and most sit one to two away, so a fixed
+# threshold cannot fail on it, and every score measured against it is a score on a
+# test a ruler passes. These families are built to sit ON the boundary, where a
+# ruler and a diagnostician can actually come apart.
+#
+#   clear          a fault well clear of the threshold. The old kind, kept as a
+#                  control so the hard set can be read against something.
+#   marginal       a fault that is real and does NOT clear the threshold. Truth is
+#                  the injected cause; a ruler says "none".
+#   lucky_noise    nothing injected, but scatter pushes a channel over the line.
+#                  Truth is "none"; a ruler names a fault.
+#   subtle_camera  a camera creeping slowly enough to sit near the line rather
+#                  than reading twenty times scatter.
+#   mixed          a press AND a fixture going out together. The rule's branches
+#                  are exclusive and have nowhere to put this.
+#
+# Cases are found by rejection: generate, measure the ratio that matters, keep it
+# only if it lands in the band. The label is always what was injected, never what
+# the ratio says, because the whole point is to find where those two disagree.
+
+HARD_FAMILIES = ("clear", "marginal", "lucky_noise", "subtle_camera", "mixed")
+
+HARD_BANDS = {
+    "clear": (3.5, 40.0),
+    "marginal": (1.1, 2.4),
+    "lucky_noise": (2.0, 4.0),
+    "subtle_camera": (1.4, 3.2),
+}
+
+
+def _signal_ratio(scenario: str, d: dict[str, float]) -> float:
+    """The channel the injected fault is supposed to move."""
+    if scenario == "press":
+        return d["tilt_ratio"]
+    if scenario == "camera":
+        return d.get("reference_ratio", 0.0)
+    if scenario == "mixed":
+        return min(d["tilt_ratio"], d["shift_ratio"])
+    return d["shift_ratio"]
+
+
+def build_hard_case(family: str, scenario: str, seed: int, parts: int = 30,
+                    attempts: int = 400) -> tuple[list[dict], str, dict] | None:
+    """One run from a named family, or None if no seed in range landed in the band.
+
+    Returns the rows, the injected truth, and the measured ratios, so a caller can
+    report what the case actually looked like rather than asserting it.
+    """
+    lo, hi = HARD_BANDS.get(family, (0.0, 1e9))
+    rng = random.Random(seed)
+    for attempt in range(attempts):
+        trial_seed = seed * 1000 + attempt
+        if is_held_out(trial_seed):
+            continue
+        if family == "lucky_noise":
+            rows, truth = build_stream(parts, "none", trial_seed, 1.0, reference=True)
+            d = discriminators(rows)
+            loudest = max(d["tilt_ratio"], d["shift_ratio"], d["reference_ratio"])
+            if lo <= loudest <= hi:
+                return rows, truth, d
+            continue
+
+        # A camera creeping is measured against the reference's own scatter, which
+        # is far tighter than the seam's, so the severity that puts it near the
+        # boundary is an order of magnitude smaller than for the other faults.
+        if family == "subtle_camera":
+            severity = rng.uniform(0.01, 0.06)
+        elif family == "marginal":
+            severity = rng.uniform(0.15, 0.55)
+        else:
+            severity = rng.uniform(1.2, 2.5)
+        rows, truth = build_stream(parts, scenario, trial_seed, severity, reference=True)
+        d = discriminators(rows)
+        ratio = _signal_ratio(scenario, d)
+        if not (lo <= ratio <= hi):
+            continue
+        # A marginal case must be marginal on the signal and quiet elsewhere, or it
+        # is just a different fault wearing the wrong label.
+        others = [v for k, v in d.items() if k.endswith("_ratio")]
+        if family == "marginal" and max(others) > 2.6:
+            continue
+        if family == "clear" and scenario != "mixed" and sorted(others)[-2] > 2.0:
+            continue
+        return rows, truth, d
+    return None
 
 
 # The seeds the four published evaluation runs landed on. Training data must not

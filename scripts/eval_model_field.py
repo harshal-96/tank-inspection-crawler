@@ -66,8 +66,20 @@ CANDIDATES = [
 
 CONFUSABLE = ("fixture", "camera")
 
+# A call that never returns is worse than a model that answers badly, because it
+# stops the comparison rather than losing it. The SDK default is ten minutes, and
+# one queued model behind it stalled a twelve-model run for a quarter of an hour
+# with nothing to show. Bounded here, and a model that keeps timing out is dropped
+# rather than allowed to hold up the rest.
+CALL_TIMEOUT_S = 45.0
+GIVE_UP_AFTER = 3
 
-def ask(rows: list[dict], model: str) -> dict:
+# Room for a model that reasons before it answers. Four hundred is plenty for the
+# JSON and nowhere near enough for the thinking some families do first.
+THINKING_TOKENS = 3000
+
+
+def ask(rows: list[dict], model: str, timeout_s: float = CALL_TIMEOUT_S) -> dict:
     """One question, one model.
 
     reasoning_effort is a Nemotron parameter and other families reject it, so the
@@ -81,13 +93,13 @@ def ask(rows: list[dict], model: str) -> dict:
     ]
     started = time.perf_counter()
     try:
-        response = client.chat.completions.create(
+        response = client.with_options(timeout=timeout_s).chat.completions.create(
             model=model, temperature=0.0, max_tokens=400,
             reasoning_effort="none", messages=messages,
         )
     except Exception:  # noqa: BLE001
         try:
-            response = client.chat.completions.create(
+            response = client.with_options(timeout=timeout_s).chat.completions.create(
                 model=model, temperature=0.0, max_tokens=700, messages=messages,
             )
         except Exception as exc:  # noqa: BLE001
@@ -96,14 +108,42 @@ def ask(rows: list[dict], model: str) -> dict:
                     "latency_ms": round((time.perf_counter() - started) * 1000)}
 
     raw = nebius.reply_text(response.choices[0].message) or ""
+
+    # A reply that does not parse is usually not a model that cannot answer. It is
+    # a model that reasons out loud and ran out of budget before reaching the JSON.
+    # reasoning_effort is a Nemotron parameter; every other family ignores it and
+    # thinks in the output instead. The first pass of this comparison scored GLM
+    # and gpt-oss at zero for exactly that, which would have been a false claim
+    # about them. So an unparseable reply buys one more attempt with room to think.
+    if not _has_json(raw):
+        try:
+            response = client.with_options(timeout=timeout_s * 2).chat.completions.create(
+                model=model, temperature=0.0, max_tokens=THINKING_TOKENS,
+                messages=messages,
+            )
+            raw = nebius.reply_text(response.choices[0].message) or raw
+        except Exception:  # noqa: BLE001 - keep the first reply and report it
+            pass
+
     latency = (time.perf_counter() - started) * 1000
     start, end = raw.find("{"), raw.rfind("}")
     try:
         data = json.loads(raw[start:end + 1])
     except (ValueError, json.JSONDecodeError):
-        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:160]}
+        data = {"cause": "unparsed", "confidence": 0.0, "evidence": raw[:200]}
     data["latency_ms"] = round(latency)
     return data
+
+
+def _has_json(raw: str) -> bool:
+    start, end = raw.find("{"), raw.rfind("}")
+    if start == -1 or end <= start:
+        return False
+    try:
+        json.loads(raw[start:end + 1])
+        return True
+    except (ValueError, json.JSONDecodeError):
+        return False
 
 
 def safe(text: object) -> str:
@@ -112,10 +152,17 @@ def safe(text: object) -> str:
 
 def run(model: str, parts: int, seeds: list[int]) -> dict:
     records = []
+    consecutive_failures = 0
     for seed in seeds:
         for scenario in SCENARIOS_WITH_CAMERA:
+            if consecutive_failures >= GIVE_UP_AFTER:
+                break
             rows, truth = build_stream(parts, scenario, seed, reference=True)
             verdict = ask(rows, model)
+            if verdict.get("cause") == "error":
+                consecutive_failures += 1
+            else:
+                consecutive_failures = 0
             records.append({
                 "model": model, "scenario": truth, "seed": seed,
                 "said": verdict.get("cause"), "correct": verdict.get("cause") == truth,
@@ -127,10 +174,25 @@ def run(model: str, parts: int, seeds: list[int]) -> dict:
     said = Counter(r["said"] for r in records)
     confusable = [r for r in records if r["scenario"] in CONFUSABLE]
     errors = sum(1 for r in records if r["said"] in ("error", "unparsed"))
+
+    # A reply nobody could parse is not a wrong answer, and scoring it as one
+    # misrepresents the model rather than the harness. gpt-oss answered four cases
+    # and got all four right; counting its twelve truncated replies as failures
+    # published it at 4 of 16, which is a false claim about a model that was
+    # correct every time it managed to speak. Both numbers are kept: the raw one
+    # is what the cell would actually get, and the other is what the model knows.
+    answered = [r for r in records if r["said"] not in ("error", "unparsed")]
+    answered_confusable = [r for r in confusable
+                           if r["said"] not in ("error", "unparsed")]
     return {
         "model": model,
         "n": len(records),
         "correct": sum(1 for r in records if r["correct"]),
+        "answered": len(answered),
+        "correct_of_answered": sum(1 for r in answered if r["correct"]),
+        "confusable_answered": len(answered_confusable),
+        "correct_confusable_of_answered": sum(
+            1 for r in answered_confusable if r["correct"]),
         "confusable_correct": sum(1 for r in confusable if r["correct"]),
         "confusable_n": len(confusable),
         "degenerate": len({r["said"] for r in records}) == 1,
@@ -156,21 +218,28 @@ def main() -> int:
 
     print(f"{len(models)} models, {len(seeds) * len(SCENARIOS_WITH_CAMERA)} cases each, "
           f"four causes with the reference column.\n")
-    print(f"{'model':>38} {'score':>7} {'pair':>6} {'answers':>8} {'median ms':>10}  note")
-    print("-" * 92)
+    print(f"{'model':>38} {'raw':>7} {'of answered':>12} {'pair':>6} "
+          f"{'answers':>8} {'median ms':>10}  note")
+    print("-" * 104)
 
     results = []
     for model in models:
+        started = time.perf_counter()
         result = run(model, args.parts, seeds)
+        result["wall_s"] = round(time.perf_counter() - started, 1)
         results.append(result)
         note = ""
         if result["unusable"]:
             note = f"{result['unusable']} replies unusable"
         elif result["degenerate"]:
             note = f"said {result['always_said']!r} every time"
+        of_answered = (f"{result['correct_of_answered']}/{result['answered']}"
+                       if result["answered"] else "-")
         print(f"{model[-38:]:>38} {result['correct']:>3}/{result['n']:<3} "
-              f"{result['confusable_correct']:>2}/{result['confusable_n']:<3} "
-              f"{result['distinct_answers']:>8} {result['median_latency_ms']:>10.0f}  {note}")
+              f"{of_answered:>12} "
+              f"{result['correct_confusable_of_answered']:>2}/{result['confusable_answered']:<3} "
+              f"{result['distinct_answers']:>8} {result['median_latency_ms']:>10.0f}  {note}",
+              flush=True)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -184,7 +253,8 @@ def main() -> int:
 
     usable = [r for r in results if not r["degenerate"] and not r["unusable"]]
     if usable:
-        best = max(usable, key=lambda r: (r["correct"], -r["median_latency_ms"]))
+        best = max(usable, key=lambda r: (r["correct_of_answered"] / max(1, r["answered"]),
+                                          -r["median_latency_ms"]))
         print(f"\nbest that is actually diagnosing: {best['model']} "
               f"at {best['correct']}/{best['n']}, median {best['median_latency_ms']:.0f} ms")
     degenerate = [r["model"] for r in results if r["degenerate"]]
