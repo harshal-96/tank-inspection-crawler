@@ -32,7 +32,7 @@ numbers. A Token Factory key turns on the half that calls a model.
 | --- | --- | --- |
 | Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
 | Routing to the right model size | 34 of 39 for the smallest model | ground truth, not a larger model's opinion |
-| Post-weld inspection | 82% pass or defect on 50 beads | the defect that was injected |
+| Post-weld inspection | 92% pass or defect on 50 beads, 37 of 50 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
 | Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
 | Which machine is drifting, on hard cases | **best model 72%, a fixed rule 56%** | cases sampled onto the decision boundary |
@@ -188,7 +188,7 @@ run of parts, and explain any of it to the person responsible for the line.
 | View planning, inside the control loop | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
 | Shift-level diagnosis, press vs fixture | Nebius Token Factory | Nemotron 3 Super 120B-A12B | yes |
 | Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
-| Post-weld inspection | Nebius Token Factory | google/gemma-3-27b-it | yes |
+| Post-weld inspection | Nebius Token Factory | MiniMaxAI/MiniMax-M3 | yes |
 | Writing a corrective action brief from fetched documents | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
 | Shift-level diagnosis, without a network | trained on Token Factory, runs on the cell's GPU | Qwen3-1.7B + LoRA | yes |
 | Looking up standards the cell cannot measure | Tavily | search | yes |
@@ -198,10 +198,10 @@ Four NVIDIA Nemotron sizes are served on Token Factory and this project uses thr
 them, for different jobs, because measuring them showed they are not interchangeable.
 Nothing in this table is aspirational.
 
-The inspection model is not an NVIDIA one, and it is not a frontier model either. Both
-are constraints rather than preferences. Every model the account serves was sent one
-clean bead and one with a hole burnt through it, along the real inspection path
-(`python scripts/probe_vision_field.py`, result in `data/vision_field.jsonl`):
+The inspection model is not an NVIDIA one, and that is a constraint rather than a
+preference. Every model the account serves was sent one clean bead and one with a hole
+burnt through it, along the real inspection path (`python scripts/probe_vision_field.py`,
+result in `data/vision_field.jsonl`):
 
 <!-- vision-field:begin -->
 | What happened | Models |
@@ -213,33 +213,49 @@ clean bead and one with a hole burnt through it, along the real inspection path
 
 All four Nemotron sizes and every frontier text model refuse the picture before any
 model runs. Reasoning about the measurement, which is text, therefore runs on Nemotron;
-reasoning about the photograph runs on the best of the models that will look at it.
+reasoning about the picture runs on the best of the six that will look at it.
 
-"Best" is measured. Every model that would take the picture was then given the same
-fifty beads and the same question. A model may answer that it cannot judge a bead, and
-that is scored in its own column rather than as right or wrong, because on a shop floor
-a declined bead is a part someone has to go and look at:
+"Best" is measured, and the first measurement was wrong about the models. The prompt as
+first written called the picture a photograph and offered "uncertain" as a way out. The
+bead pictures are renders from the simulator, and the stronger models said so and took
+the way out; Gemma and MiniCPM played along. That was the prompt's fault, not the
+models'. So the same fifty beads were run again under a prompt that tells every model
+what it is looking at, and once more with the bead shown up close, which is the window
+a bead camera would be aimed at. Same pictures, same question, same scoring; only the
+framing changed, and it changed for every model. Each cell is defects named right, of
+the beads the model would judge:
+
+<!-- vision-variants:begin -->
+| | prompt as first written | told it is a rendering | told it is a rendering, shown the bead up close |
+| --- | --- | --- | --- |
+| **MiniMax-M3** | 1 of 1 judged, 49 declined; 0 missed | 34 of 50 judged; 9 missed | 37 of 50 judged; 4 missed |
+| Gemma 3 27B | 31 of 50 judged; 4 missed | 35 of 50 judged; 3 missed | 36 of 50 judged; 4 missed |
+| MiniCPM-V 4.5 | 31 of 50 judged; 19 missed | 31 of 50 judged; 19 missed | 31 of 50 judged; 14 missed |
+| Kimi K2.6 | 31 of 40 judged, 10 declined; 7 missed | 32 of 46 judged, 4 declined; 9 missed | 33 of 42 judged, 8 declined; 5 missed |
+| DeepSeek V4.1 Flash | 17 of 26 judged, 24 declined; 1 missed | 35 of 50 judged; 3 missed | 35 of 50 judged; 3 missed |
+| GLM-5.3 Flash | 12 of 21 judged, 29 declined; 2 missed | 35 of 49 judged, 1 declined; 3 missed | 33 of 44 judged, 6 declined; 3 missed |
+<!-- vision-variants:end -->
+
+Told the truth, nobody declines and every model improves. Under the prompt the cell now
+uses:
 
 <!-- vision-beads:begin -->
 | | Beads judged | Named right | Pass/defect right | False alarms | Missed | Declined | Defect types named | Median time |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **Gemma 3 27B** | 50 of 50 | 31 | 41 | 5 | 4 | 0 | 4 | 2.1 s |
-| MiniCPM-V 4.5 | 50 of 50 | 31 | 31 | 0 | 19 | 0 | 0 | 1.8 s |
-| Kimi K2.6 | 40 of 50 | 31 | 33 | 0 | 7 | 10 | 1 | 11.2 s |
-| DeepSeek V4.1 Flash | 26 of 50 | 17 | 25 | 0 | 1 | 24 | 3 | 5.5 s |
-| GLM-5.3 Flash | 21 of 50 | 12 | 19 | 0 | 2 | 29 | 3 | 12.1 s |
-| MiniMax-M3 | 1 of 50 | 1 | 1 | 0 | 0 | 49 | 0 | 3.0 s |
+| **MiniMax-M3** | 50 of 50 | 37 | 46 | 0 | 4 | 0 | 5 | 2.5 s |
+| Gemma 3 27B | 50 of 50 | 36 | 45 | 1 | 4 | 0 | 5 | 1.8 s |
+| DeepSeek V4.1 Flash | 50 of 50 | 35 | 47 | 0 | 3 | 0 | 3 | 3.7 s |
+| MiniCPM-V 4.5 | 50 of 50 | 31 | 36 | 0 | 14 | 0 | 2 | 1.5 s |
+| GLM-5.3 Flash | 44 of 50 | 33 | 41 | 0 | 3 | 6 | 3 | 8.8 s |
+| Kimi K2.6 | 42 of 50 | 33 | 37 | 0 | 5 | 8 | 3 | 11.8 s |
 <!-- vision-beads:end -->
 
-Gemma judged every bead and named the most defect types. MiniCPM reaches the same
-headline score by calling every bead a pass: it never once uses the word defect, so it
-raises no false alarms and ships nineteen bad parts. Kimi K2.6 also names 31 right, but
-only over the forty beads it would judge, and it needed a 3000-token reasoning budget
-and five times Gemma's time to do it. DeepSeek V4.1 Flash is the most accurate of all
-when it commits, 25 of 26 on pass or defect, and it commits on barely half the beads.
-GLM and MiniMax mostly decline, saying the bead is a rendering. A single accuracy figure
-cannot tell these apart, which is why every score in this repository is reported as more
-than one number.
+MiniMax-M3, DeepSeek V4.1 Flash and Gemma tie within the noise of fifty beads; a paired
+test on the same beads gives p between 0.5 and 1.0 for every pair. The cell inspects
+with MiniMax-M3: the most defects named right, no false alarms, and 2.5 seconds a bead.
+MiniCPM reaches 31 by calling nearly every bead a pass and ships fourteen bad parts. A
+single accuracy figure cannot tell these apart, which is why every score in this
+repository is reported as more than one number.
 
 One thing the comparison had to be fair about: a reasoning model spends its output
 budget thinking before it answers, and under the 400 tokens the inspector sends it came

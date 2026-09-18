@@ -19,7 +19,7 @@ import statistics
 from pathlib import Path
 from typing import Any, Iterable
 
-from brain import registry
+from brain import nebius, registry
 
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
@@ -313,7 +313,7 @@ def drift_study() -> dict[str, Any]:
 
 def inspection_study() -> dict[str, Any]:
     """Named defects scored against the defect that was injected on purpose."""
-    rows = _read("inspections.jsonl")
+    rows = cell_inspection_rows()
     if not rows:
         return {"available": False}
 
@@ -394,29 +394,73 @@ def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
     }
 
 
+VARIANT_LABELS = {
+    ("as_written", False): "prompt as first written",
+    ("rendering", False): "told it is a rendering",
+    ("rendering", True): "told it is a rendering, shown the bead up close",
+}
+
+
+def _variant_of(row: dict[str, Any]) -> tuple[str, bool]:
+    return (row.get("framing") or "as_written", bool(row.get("crop")))
+
+
 def vision_study() -> dict[str, Any]:
-    """Every model that will take an image, on the same fifty beads.
+    """Every model that will take an image, on the same fifty beads, under each prompt.
 
     The files are found rather than listed, so a model scored later is in the
-    comparison the moment its run finishes; each carries the model it was run
-    with. Gemma stays first because it is the one the cell uses. The rest are
-    in order of how many beads they were willing to judge, which turns out to
-    be the column that separates them.
+    comparison the moment its run finishes; each row carries the model and the
+    prompt it was run with. The first prompt called the picture a photograph
+    and offered "uncertain" as a way out, and the stronger models took it: the
+    picture is a rendering and they said so. So the same fifty beads were run
+    again under a prompt that tells every model what it is looking at, with
+    and without the bead shown up close. All three are reported; `arms` is the
+    variant the cell runs with.
     """
-    arms = []
+    by_variant: dict[tuple[str, bool], list[dict[str, Any]]] = {}
     for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
         rows = _read(path.name)
-        if rows and "injected" in rows[0]:
-            arms.append(_score_inspection(rows, rows[0].get("model", path.stem)))
-    if not arms:
+        if not rows or "injected" not in rows[0]:
+            continue
+        variant = _variant_of(rows[0])
+        by_variant.setdefault(variant, []).append(
+            _score_inspection(rows, rows[0].get("model", path.stem)))
+    if not by_variant:
         return {"available": False}
     cell = nebius_vision_label()
-    arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
-    return {"available": True, "arms": arms, "cell_model": cell}
+    variants = []
+    for key in VARIANT_LABELS:
+        arms = by_variant.get(key)
+        if not arms:
+            continue
+        arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
+        variants.append({"framing": key[0], "crop": key[1], "label": VARIANT_LABELS[key],
+                         "arms": arms})
+    running = CELL_VARIANT if CELL_VARIANT in by_variant else next(iter(by_variant))
+    current = next(v for v in variants if (v["framing"], v["crop"]) == running)
+    return {"available": True, "arms": current["arms"], "cell_model": cell,
+            "cell_variant": current["label"], "variants": variants}
+
+
+# The prompt and framing the cell inspects with. Changed here when the study
+# below says a different one is better, and the summary follows it.
+CELL_VARIANT: tuple[str, bool] = ("rendering", True)
+
+
+def cell_inspection_rows() -> list[dict[str, Any]]:
+    """The fifty verdicts from the model and prompt the cell inspects with."""
+    cell = nebius_vision_label()
+    for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
+        rows = _read(path.name)
+        if (rows and "injected" in rows[0] and _variant_of(rows[0]) == CELL_VARIANT
+                and registry.display(rows[0].get("model", "")) == cell):
+            return rows
+    return _read("inspections.jsonl")
 
 
 def nebius_vision_label() -> str:
-    return registry.display("google/gemma-3-27b-it")
+    """The inspector the cell runs with, as the studies name it."""
+    return registry.display(nebius.vision_model())
 
 
 def vision_field_study() -> dict[str, Any]:

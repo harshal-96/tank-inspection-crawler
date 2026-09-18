@@ -537,3 +537,6 @@ a.flow-node:focus-visible rect { stroke: var(--series-1); stroke-width: 2.4; }
 #tip.on { opacity: 1; }
 #tip b { color: var(--text-primary); font-family: var(--mono); font-weight: 500; }
 #tip .k { color: var(--text-muted); }
+
+/* A table row for the model the cell uses, outside the summary page. */
+table tr.won td { font-weight: 600; color: var(--text-primary); }

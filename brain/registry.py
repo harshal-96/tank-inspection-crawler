@@ -62,8 +62,11 @@ LADDER = (
 
 # Everything else the project calls, grouped by the job it does.
 VISION = (
+    Model("minimax", "MiniMaxAI/MiniMax-M3", "MiniMax-M3", "undisclosed",
+          "Reads the finished weld bead: 37 of 50 named right, no false alarms, 2.5 s",
+          "MiniMax", aliases=("MiniMax-M3",)),
     Model("gemma", "google/gemma-3-27b-it", "Gemma 3 27B", "27B",
-          "Reads the finished weld bead and judges it", "Google",
+          "The first inspector; ties with MiniMax once the prompt tells the truth, 1.8 s", "Google",
           aliases=("gemma-3-27b-it",)),
     Model("minicpm", "openbmb/MiniCPM-V-4_5", "MiniCPM-V 4.5", "8B",
           "Scored on the same beads as a second opinion", "OpenBMB",
@@ -91,7 +94,7 @@ FIELD = (
           aliases=("DeepSeek-V4-Pro",)),
     Model("deepseek_flash", "deepseek-ai/DeepSeek-V4.1-Flash", "DeepSeek V4.1 Flash",
           "undisclosed",
-          "Boundary test; also judged 26 of 50 beads, 25 of them right on pass or defect",
+          "Boundary test; on the beads 47 of 50 right on pass or defect, 3.7 s",
           "DeepSeek", aliases=("DeepSeek-V4.1-Flash",)),
     Model("qwen397", "Qwen/Qwen3.5-397B-A17B", "Qwen3.5 397B", "397B-A17B",
           "Boundary test only", "Alibaba",
@@ -105,16 +108,15 @@ FIELD = (
 # putting all of them through the inspection path (scripts/probe_vision_field.py)
 # and then scored on the same fifty beads as Gemma. The earlier claim that only
 # two models could see was measured on five candidates and stated as if it
-# covered the account.
+# covered the account. The roles quote the corrected prompt, which tells the
+# model the picture is a rendering; under the first prompt these models
+# mostly declined, and that was the prompt's fault.
 VISION_FIELD = (
-    Model("minimax", "MiniMaxAI/MiniMax-M3", "MiniMax-M3", "undisclosed",
-          "Takes the picture, declined 49 of 50 beads as a rendering", "MiniMax",
-          aliases=("MiniMax-M3",)),
     Model("glm_flash", "zai-org/GLM-5.3-Flash", "GLM-5.3 Flash", "undisclosed",
-          "Judged 21 of 50 beads, 12 named right, declined the rest", "Zhipu",
+          "33 of 44 named right, still declines some beads, 8.8 s", "Zhipu",
           aliases=("GLM-5.3-Flash",)),
     Model("kimi", "moonshotai/Kimi-K2.6", "Kimi K2.6", "undisclosed",
-          "Judged 40 of 50 beads, 31 named right; five times Gemma's time", "Moonshot",
+          "33 of 42 named right, still declines some beads, 11.8 s", "Moonshot",
           aliases=("Kimi-K2.6",)),
 )
 

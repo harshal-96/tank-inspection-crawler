@@ -419,8 +419,10 @@ function models(ev) {
     // declined bead is a part a person has to look at.
     const f = ev.vision_field;
     const seen = f && f.available ? `${f.counts.judged + f.counts.declined} of the ${f.n} models on the account will take a picture. ` : "";
+    const looking = v.arms.filter((a) => a.judged === a.n && a.defects_named > 0).length;
     blocks.push(["After welding: is this bead good?",
-      seen + "Only one of them judged every bead and named defects. It is the one the cell uses.",
+      seen + `Under the prompt the cell uses, ${looking} of ${v.arms.length} judge every bead and `
+      + "name defects. The one in bold is the one the cell uses.",
       ["Model", "Beads it judged", "Named right", "Bad parts shipped"],
       v.arms.map((a) => [a.model, `${a.judged}/${a.n}`, `${a.named_correct}/${a.judged}`,
         String(a.missed), a.model === v.cell_model])]);

@@ -60,9 +60,9 @@ const ROWS = [
   {
     job: "Judging the finished bead",
     platform: "Nebius Token Factory",
-    model: "google/gemma-3-27b-it",
+    model: "MiniMaxAI/MiniMax-M3",
     cadence: "once per part",
-    why: "of the models on the account that will take a picture, the only one that judged all fifty beads and named defects",
+    why: "ties with DeepSeek V4.1 Flash and Gemma 3 27B on the fifty beads once the prompt says the picture is a rendering; most defects named right, no false alarms, 2.5 s a bead",
     tone: "",
   },
   {

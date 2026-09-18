@@ -65,6 +65,17 @@ export function render() {
       </div>
 
       <div class="card w12">
+        <header><h2>Was it the model, or the prompt?</h2></header>
+        <div class="hint">The first prompt called the picture a photograph and offered
+          &ldquo;uncertain&rdquo; as a way out. The picture is a rendering, and the stronger
+          models said so and took the way out. The same fifty beads were run again under a
+          prompt that tells every model what it is looking at, then once more with the bead
+          shown up close. Each model gets one row per prompt.</div>
+        <div id="in-variants"></div>
+        <footer id="in-variants-meta"></footer>
+      </div>
+
+      <div class="card w12">
         <header><h2>Why the inspector is not a frontier model</h2></header>
         <div class="hint">Every model the account serves was sent one clean bead and one with a
           hole burnt through it, along the real inspection path. Most refuse the picture before
@@ -101,6 +112,7 @@ export async function mount() {
   errors();
   classes();
   vision();
+  variants();
   field();
   V.$("in-filter").querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
@@ -307,6 +319,45 @@ function vision() {
     <b>${shy.missed}</b>, and took ${V.fmt(shy.median_latency_ms / 1000, 0)} seconds a bead.
     A declined bead is a part someone has to go and look at.`);
   V.$("in-vision-meta").innerHTML = parts.join(" ");
+}
+
+function variants() {
+  const host = V.$("in-variants");
+  const v = ev.vision;
+  if (!host) return;
+  if (!v || !v.available || !v.variants || v.variants.length < 2) {
+    host.innerHTML = `<div class="empty">Only one prompt has been scored.</div>`;
+    return;
+  }
+  const models = [];
+  v.variants.forEach((vt) => vt.arms.forEach((a) => {
+    if (!models.includes(a.model)) models.push(a.model);
+  }));
+  const head = v.variants.map((vt) => `<th class="num">${V.esc(vt.label)}</th>`).join("");
+  const cell = (a) => {
+    if (!a) return `<td class="num" style="color:var(--text-muted)">not run</td>`;
+    const declined = a.declined ? `, <span style="color:var(--text-muted)">${a.declined} declined</span>` : "";
+    return `<td class="num" data-tip="<b>${a.named_correct}</b> named right of ${a.judged} judged<br>
+      ${a.binary_correct} right on pass or defect<br>${a.false_alarms} false alarms, ${a.missed} missed
+      <br>${a.declined} declined">${a.named_correct}/${a.judged}${declined}</td>`;
+  };
+  const rows = models.map((m) => {
+    const isCell = m === v.cell_model;
+    return `<tr${isCell ? ' class="won"' : ""}><td>${V.esc(m)}</td>
+      ${v.variants.map((vt) => cell(vt.arms.find((a) => a.model === m))).join("")}</tr>`;
+  }).join("");
+  host.innerHTML = `<table><thead><tr><th>Model</th>${head}</tr></thead><tbody>${rows}</tbody></table>
+    <div class="legend" style="margin-top:8px"><span>named right / beads it judged, of 50. Hover a cell
+    for false alarms and misses.</span></div>`;
+  V.bindTips(host);
+
+  const first = v.variants[0], last = v.variants[v.variants.length - 1];
+  const sum = (vt, k) => vt.arms.reduce((t, a) => t + a[k], 0);
+  const declinedFirst = sum(first, "declined"), declinedLast = sum(last, "declined");
+  V.$("in-variants-meta").innerHTML =
+    `Under the first prompt the six models declined <b>${declinedFirst}</b> beads between them.
+     Once told the picture is a rendering, <b>${declinedLast}</b>. The cell inspects with the
+     prompt marked <b>${V.esc(v.cell_variant)}</b>.`;
 }
 
 function field() {

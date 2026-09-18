@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from service import evidence  # noqa: E402
 
 README = Path(__file__).resolve().parent.parent / "README.md"
+NL = chr(10)
 
 
 def field_table() -> str:
@@ -42,9 +43,35 @@ def beads_table() -> str:
     return "\n".join(lines)
 
 
+def variants_table() -> str:
+    v = evidence.vision_study()
+    variants = v.get("variants", [])
+    models: list[str] = []
+    for vt in variants:
+        for a in vt["arms"]:
+            if a["model"] not in models:
+                models.append(a["model"])
+    head = " | ".join(vt["label"] for vt in variants)
+    lines = [f"| | {head} |", "| --- |" + " --- |" * len(variants)]
+    for m in models:
+        cells = []
+        for vt in variants:
+            a = next((x for x in vt["arms"] if x["model"] == m), None)
+            if a is None:
+                cells.append("not run")
+                continue
+            note = f", {a['declined']} declined" if a["declined"] else ""
+            cells.append(f"{a['named_correct']} of {a['judged']} judged{note}; "
+                         f"{a['missed']} missed")
+        name = f"**{m}**" if m == v["cell_model"] else m
+        lines.append(f"| {name} | " + " | ".join(cells) + " |")
+    return NL.join(lines)
+
+
 def main() -> int:
     text = README.read_text(encoding="utf-8")
-    for tag, body in (("vision-field", field_table()), ("vision-beads", beads_table())):
+    for tag, body in (("vision-field", field_table()), ("vision-beads", beads_table()),
+                      ("vision-variants", variants_table())):
         pattern = re.compile(rf"(<!-- {tag}:begin -->\n).*?(<!-- {tag}:end -->)", re.S)
         text, n = pattern.subn(lambda m, b=body: f"{m.group(1)}{b}\n{m.group(2)}", text, count=1)
         if not n:

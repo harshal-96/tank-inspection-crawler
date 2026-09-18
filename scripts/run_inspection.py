@@ -38,6 +38,11 @@ def main() -> int:
     parser.add_argument("--model", default=None,
                         help="Vision model to judge with. Token Factory serves more than "
                              "one; they do not agree, and which one is used is a result.")
+    parser.add_argument("--framing", default="rendering", choices=("as_written", "rendering"),
+                        help="Which system prompt: as first written, or one that tells the "
+                             "model the picture is a rendering and closes the uncertain exit.")
+    parser.add_argument("--crop", action=argparse.BooleanOptionalAction, default=True,
+                        help="Send the bead window at twice the size instead of the whole part.")
     args = parser.parse_args()
 
     manifest_path = Path(args.manifest)
@@ -61,7 +66,7 @@ def main() -> int:
         if not image.exists():
             continue
         injected = row.get("injected_defect") or "none"
-        result = inspect_weld(image, model=args.model)
+        result = inspect_weld(image, model=args.model, framing=args.framing, crop=args.crop)
         called = result.defect_type.value
         correct = called == injected
 
@@ -78,10 +83,13 @@ def main() -> int:
             # A reasoning model that spent its first budget thinking was asked
             # again with room. Recorded so the report can say which arm needed it.
             "retried_with_room": bool(result.extra.get("retried_with_room")),
+            "framing": args.framing,
+            "crop": args.crop,
         })
         room = " *" if result.extra.get("retried_with_room") else ""
         print(f"{row['trial']:>5} {injected:>14} {result.verdict.value:>9} "
-              f"{called:>14} {'yes' if correct else 'NO':>4} {result.latency_ms:>6.0f}{room}")
+              f"{called:>14} {'yes' if correct else 'NO':>4} {result.latency_ms:>6.0f}{room}",
+              flush=True)
 
         if client is not None:
             serial = client.create_part(serial=f"P-{row['trial']:06d}")

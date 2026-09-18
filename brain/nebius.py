@@ -31,7 +31,10 @@ DEFAULT_BASE_URL = "https://api.tokenfactory.nebius.com/v1/"
 # for Nemotron-3-Nano-Omni is text-only. The vision default below is therefore a
 # non-NVIDIA model. See docs/nebius.md.
 DEFAULT_TEXT_MODEL = "nvidia/Nemotron-3_5-Lightning"
-DEFAULT_VISION_MODEL = "google/gemma-3-27b-it"
+# On the same fifty beads, under a prompt that tells the model the picture is
+# a rendering, MiniMax-M3, DeepSeek V4.1 Flash and Gemma 3 27B tie within noise.
+# MiniMax names the most defects right with no false alarms at 2.5 s a bead.
+DEFAULT_VISION_MODEL = "MiniMaxAI/MiniMax-M3"
 
 # The OpenAPI spec caps the image_url string at this length.
 MAX_IMAGE_URL_CHARS = 13_981_514
@@ -96,6 +99,14 @@ def encode_image(path: str | Path) -> str:
 
 def image_part(path: str | Path, detail: str = "auto") -> dict[str, Any]:
     return {"type": "image_url", "image_url": {"url": encode_image(path), "detail": detail}}
+
+
+def image_part_from_bytes(data: bytes, mime: str = "png", detail: str = "auto") -> dict[str, Any]:
+    """The same content part for an image made in memory, such as a crop."""
+    url = f"data:image/{mime};base64,{base64.b64encode(data).decode('ascii')}"
+    if len(url) > MAX_IMAGE_URL_CHARS:
+        raise ValueError("image too large to send inline")
+    return {"type": "image_url", "image_url": {"url": url, "detail": detail}}
 
 
 def strip_reasoning(content: Optional[str]) -> str:

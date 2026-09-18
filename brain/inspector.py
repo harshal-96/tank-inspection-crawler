@@ -40,6 +40,44 @@ A bead is a pass ONLY if it runs continuously end to end and shows none of the a
 Report the single most severe defect visible. If the image is too dark, blurred or \
 cropped to judge, return the verdict "uncertain"."""
 
+# The prompt above calls the picture a photograph and offers "uncertain" as a way
+# out. The bead pictures are renders from the simulator, and the stronger models
+# say so and take the way out: "a computer-generated rendering, impossible to
+# verify". That is the prompt's fault. This framing tells the model what it is
+# looking at and closes the exit, and it is offered to every model the same way.
+RENDER_PROMPT = SYSTEM_PROMPT.replace(
+    "photographed after welding.",
+    "as pictured after welding.\n\n"
+    "The picture is a rendering from the welding simulator this cell is tested against, "
+    "not a photograph. The bead is drawn as a raised strip along the vertical joint between "
+    "two plates, and each defect is rendered into it with the shape described below. Judge "
+    "the rendering exactly as you would a photograph. That the image is synthetic, flat or "
+    "low in texture is not a reason to answer uncertain; answer uncertain only if no bead "
+    "is in the frame.",
+)
+
+FRAMINGS = {"as_written": SYSTEM_PROMPT, "rendering": RENDER_PROMPT}
+
+# The camera frames the whole part and the bead is a strip about twenty pixels
+# wide down the middle of a 640 pixel frame. This is the window a bead camera
+# would be aimed at: the strip, with the plates either side of it, doubled.
+BEAD_WINDOW = (200, 30, 440, 610)
+
+
+def bead_crop(image_path: str | Path) -> bytes:
+    """The bead and the plate either side of it, at twice the size, as PNG bytes."""
+    from io import BytesIO
+
+    from PIL import Image
+
+    with Image.open(image_path) as im:
+        window = im.convert("RGB").crop(BEAD_WINDOW)
+        window = window.resize((window.width * 2, window.height * 2), Image.LANCZOS)
+        buf = BytesIO()
+        window.save(buf, format="PNG")
+        return buf.getvalue()
+
+
 USER_PROMPT = (
     "Inspect this weld. Reply with JSON only, no prose and no code fence:\n"
     '{"verdict": "pass" | "defect" | "uncertain", '
@@ -160,6 +198,8 @@ def inspect_weld(
     detail: str = "high",
     temperature: float = 0.0,
     max_tokens: int = 400,
+    framing: str = "rendering",
+    crop: bool = True,
 ) -> InspectionResult:
     """Send one post-weld image for a verdict.
 
@@ -167,16 +207,25 @@ def inspect_weld(
     verdict with parse_error set, so one bad response cannot stall a campaign.
     A reply that is empty because the model spent its budget reasoning is sent
     again with a larger one, and the result records that it was.
+
+    The defaults are the prompt that tells the model the picture is a rendering
+    and the bead shown up close, because on the same fifty beads every model
+    did better under them; the as-written prompt is kept so the comparison can
+    be re-run.
     """
     model = model or nebius.vision_model()
     client = nebius.client()
+    if framing not in FRAMINGS:
+        raise ValueError(f"framing must be one of {sorted(FRAMINGS)}, not {framing!r}")
+    picture = (nebius.image_part_from_bytes(bead_crop(image_path), "png", detail=detail)
+               if crop else nebius.image_part(image_path, detail=detail))
     messages = [
-        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "system", "content": FRAMINGS[framing]},
         {
             "role": "user",
             "content": [
                 {"type": "text", "text": USER_PROMPT},
-                nebius.image_part(image_path, detail=detail),
+                picture,
             ],
         },
     ]
@@ -201,7 +250,7 @@ def inspect_weld(
         "prompt_tokens": usage.prompt_tokens if usage else None,
         "completion_tokens": usage.completion_tokens if usage else None,
         "raw": raw,
-        "extra": {"retried_with_room": retried},
+        "extra": {"retried_with_room": retried, "framing": framing, "crop": crop},
     }
 
     try:

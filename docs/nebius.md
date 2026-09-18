@@ -67,7 +67,13 @@ Serverless and confirmed for this project:
 | Role | `model_id` | In / out per 1M | Context | Tools |
 | --- | --- | --- | --- | --- |
 | Supervisor agent | `nvidia/Nemotron-3_5-Lightning` | $0.06 / $0.24 | 1M | yes |
-| Weld inspection | `google/gemma-3-27b-it` | $0.10 / $0.30 | 110K | yes |
+| Weld inspection | `MiniMaxAI/MiniMax-M3` | see the catalog | see the catalog | yes |
+| Weld inspection, the first choice | `google/gemma-3-27b-it` | $0.10 / $0.30 | 110K | yes |
+
+Gemma was the inspector until the fifty beads were re-run under a prompt that tells the
+model the picture is a rendering. Under it MiniMax-M3, DeepSeek V4.1 Flash and Gemma tie
+within noise, and MiniMax names the most defects right with no false alarms; the README
+has the tables.
 
 Twelve of the twenty-four catalog entries carry a `dedicated-endpoint` use case. Whether
 that means dedicated-only or merely dedicated-also is undocumented. Neither model above
