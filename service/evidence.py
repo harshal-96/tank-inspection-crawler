@@ -584,6 +584,23 @@ HARD_ARM_LABELS = {
 }
 
 
+HARD_FILES = ("hard_drift.jsonl", "hard_drift_frontier.jsonl",
+              "hard_drift_frontier2.jsonl", "hard_drift_frontier3.jsonl")
+
+HARD_ARM_LABELS = {
+    "rule": "the threshold as arithmetic",
+    "cloud": "Nemotron 3 Super 120B",
+    "nemotron-3-super-120": "Nemotron 3 Super 120B",
+    "cloud_blind": "Super 120B, boundary withheld",
+    "edge": "Qwen3-1.7B + LoRA, on the cell",
+    "Nemotron-3-Ultra-550": "Nemotron 3 Ultra 550B",
+    "DeepSeek-V4-Pro": "DeepSeek V4 Pro",
+    "DeepSeek-V4.1-Flash": "DeepSeek V4.1 Flash",
+    "Qwen3.5-397B-A17B": "Qwen3.5 397B",
+    "gpt-oss-120b": "gpt-oss 120B",
+}
+
+
 def hard_study() -> dict[str, Any]:
     """The same question on cases built to sit ON the decision boundary.
 
@@ -592,41 +609,63 @@ def hard_study() -> dict[str, Any]:
     boundary and a fixed rule cannot fail. This set is built the other way, by
     rejection sampling into chosen bands, and it is the only drift evidence here
     that separates a diagnostician from a ruler.
+
+    Passes are pooled rather than cherry-picked, and each arm carries its per-run
+    scores, because at temperature zero the same model on the same cases has come
+    back 16, 16, 17 and 18. A gap of one or two between two models is inside that
+    spread and means nothing. A run in which the endpoint returned errors rather
+    than answers is dropped: a model that refuses an API option or was addressed by
+    the wrong identifier is not a model that cannot diagnose, and one such run was
+    nearly published here as a score of zero.
     """
-    rows = _read("hard_drift.jsonl")
-    if not rows:
+    passes: dict[str, list[list[dict[str, Any]]]] = {}
+    for name in HARD_FILES:
+        rows = _read(name)
+        if not rows:
+            continue
+        grouped: dict[str, list[dict[str, Any]]] = {}
+        for r in rows:
+            grouped.setdefault(str(r.get("arm")), []).append(r)
+        for arm, got in grouped.items():
+            if any(str(r.get("said", "")).startswith("error") for r in got):
+                continue
+            passes.setdefault(HARD_ARM_LABELS.get(arm, arm), []).append(got)
+    if not passes:
         return {"available": False}
 
     families = [f for f in HARD_FAMILY_ORDER
-                if any(r.get("family") == f for r in rows)]
+                if any(r.get("family") == f
+                       for runs in passes.values() for got in runs for r in got)]
     arms = []
-    for name in ("rule", "cloud", "cloud_blind", "edge"):
-        got = [r for r in rows if r.get("arm") == name]
-        if not got:
-            continue
+    for label, runs in passes.items():
+        flat = [r for got in runs for r in got]
         by_family = {}
         for f in families:
-            in_f = [r for r in got if r["family"] == f]
+            in_f = [r for r in flat if r["family"] == f]
             if in_f:
                 by_family[f] = {"n": len(in_f),
                                 "correct": sum(1 for r in in_f if r["correct"])}
         said: dict[str, int] = {}
-        for r in got:
+        for r in flat:
             said[str(r.get("said"))] = said.get(str(r.get("said")), 0) + 1
         arms.append({
-            "arm": name,
-            "label": HARD_ARM_LABELS.get(name, name),
-            "n": len(got),
-            "correct": sum(1 for r in got if r["correct"]),
+            "label": label,
+            "runs": len(runs),
+            "per_run": [sum(1 for r in got if r["correct"]) for got in runs],
+            "cases_per_run": len(runs[0]),
+            "n": len(flat),
+            "correct": sum(1 for r in flat if r["correct"]),
+            "rate": sum(1 for r in flat if r["correct"]) / len(flat),
             "by_family": by_family,
             "said": said,
-            "median_latency_ms": _median([r.get("ms") for r in got]),
-            "cases": got,
+            "fell_back": any(r.get("effort") == "default" for r in flat),
+            "median_latency_ms": _median([r.get("ms") for r in flat]),
         })
-    if not arms:
-        return {"available": False}
+    arms.sort(key=lambda a: -a["rate"])
+    spread = max((max(a["per_run"]) - min(a["per_run"])
+                  for a in arms if len(a["per_run"]) > 1), default=0)
     return {"available": True, "families": list(families), "arms": arms,
-            "n": arms[0]["n"]}
+            "cases": arms[0]["cases_per_run"], "worst_spread": spread}
 
 
 def view_prompt_study() -> dict[str, Any]:

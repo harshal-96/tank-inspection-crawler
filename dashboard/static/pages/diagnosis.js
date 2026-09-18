@@ -315,9 +315,9 @@ function hard() {
     host.innerHTML = `<div class="empty">The boundary test has not been run.</div>`;
     return;
   }
-  const cell = 62, padL = 210, padT = 52;
+  const cell = 62, padL = 240, padT = 52;
   const fams = h.families;
-  const w = padL + fams.length * cell + 96;
+  const w = padL + fams.length * cell + 120;
   const height = padT + h.arms.length * cell + 30;
   let out = "";
 
@@ -331,13 +331,17 @@ function hard() {
     out += `<text class="axis-label" x="${x}" y="${y}" text-anchor="middle" font-size="9.5"
       data-tip="${V.esc(FAMILY_NOTE[f] || f)}">${V.esc(f.replace("_", " "))}</text>`;
   });
-  out += `<text class="axis-label" x="${padL + fams.length * cell + 46}" y="${padT - 12}"
-    text-anchor="middle" font-size="9.5">total</text>`;
+  out += `<text class="axis-label" x="${padL + fams.length * cell + 58}" y="${padT - 12}"
+    text-anchor="middle" font-size="9.5">pooled</text>`;
 
   h.arms.forEach((arm, i) => {
     const y = padT + i * cell;
+    const star = arm.fell_back ? " *" : "";
     out += `<text class="axis-label" x="${padL - 12}" y="${y + cell / 2 + 3.5}"
-      text-anchor="end" font-size="10">${V.esc(arm.label)}</text>`;
+      text-anchor="end" font-size="10"
+      data-tip="${V.esc(`<b>${arm.label}</b><br><span class='k'>each pass</span> `
+        + `<b>${arm.per_run.join(", ")}</b> of ${arm.cases_per_run}`)}"
+      >${V.esc(arm.label)}${star}</text>`;
     fams.forEach((f, j) => {
       const got = arm.by_family[f];
       const x = padL + j * cell;
@@ -351,39 +355,57 @@ function hard() {
         : `color-mix(in oklab, var(--good) ${14 + t * 46}%, var(--surface-1))`;
       out += `<rect x="${x + 2}" y="${y + 2}" width="${cell - 4}" height="${cell - 4}" rx="8"
         fill="${colour}" stroke="var(--bg)" stroke-width="2"
-        data-tip="<b>${V.esc(arm.label)}</b><br>${V.esc(f.replace("_", " "))}:
-          <b>${got.correct}/${got.n}</b><br>${V.esc(FAMILY_NOTE[f] || "")}"/>`;
+        data-tip="${V.esc(`<b>${arm.label}</b><br>${f.replace("_", " ")}: `
+          + `<b>${got.correct}/${got.n}</b><br>${FAMILY_NOTE[f] || ""}`)}"/>`;
       out += `<text x="${x + cell / 2}" y="${y + cell / 2 + 4.5}" text-anchor="middle"
         font-size="12.5" font-weight="600"
         fill="${got.correct === 0 ? "var(--text-primary)" : "#ffffff"}"
         >${got.correct}/${got.n}</text>`;
     });
-    const tx = padL + fams.length * cell + 46;
-    out += `<text x="${tx}" y="${y + cell / 2 + 4.5}" text-anchor="middle" font-size="13"
-      font-weight="700" fill="var(--text-primary)">${arm.correct}/${arm.n}</text>`;
+    const tx = padL + fams.length * cell + 58;
+    out += `<text x="${tx}" y="${y + cell / 2 + 1}" text-anchor="middle" font-size="13"
+      font-weight="700" fill="var(--text-primary)">${V.pct(arm.rate)}</text>`;
+    out += `<text x="${tx}" y="${y + cell / 2 + 14}" text-anchor="middle" font-size="9.5"
+      fill="var(--text-muted)">${arm.per_run.join(" ")} of ${arm.cases_per_run}</text>`;
   });
-  out += V.axisTitle(padL, height - 8, "each column is a family of cases, built to land in one band");
+  out += V.axisTitle(padL, height - 8,
+    `each column is a family of cases, built to land in one band; every pass is pooled`);
   V.paint(host, V.svg(w, height, out));
 
-  const rule = h.arms.find((a) => a.arm === "rule");
-  const cloud = h.arms.find((a) => a.arm === "cloud");
-  const edge = h.arms.find((a) => a.arm === "edge");
+  const find = (frag) => h.arms.find((a) => a.label.includes(frag));
+  const rule = find("threshold as arithmetic");
+  const edge = find("on the cell");
+  const best = h.arms[0];
   const bits = [];
-  if (cloud && rule) {
-    bits.push(`The 120B earns its place by a margin the easy set could not show:
-      <b>${cloud.correct}/${cloud.n}</b> against <b>${rule.correct}/${rule.n}</b> for the rule,
-      and <b>${cloud.by_family.mixed.correct}/${cloud.by_family.mixed.n}</b> on runs with two
-      machines drifting where a rule has no branch for it and falls through to
-      &ldquo;nothing wrong&rdquo;.`);
+  if (rule && best) {
+    // Counted rather than asserted. An earlier draft of this sentence claimed every
+    // hosted model beat the rule, and one of them does not.
+    const hosted = h.arms.filter((a) => a !== rule);
+    const above = hosted.filter((a) => a.rate > rule.rate);
+    const below = hosted.filter((a) => a.rate <= rule.rate);
+    bits.push(`The rule is perfectly repeatable and perfectly limited: <b>${rule.per_run[0]}
+      of ${rule.cases_per_run}</b> on every pass, because it is arithmetic. The best model
+      reaches <b>${V.pct(best.rate)}</b>, and <b>${above.length} of ${hosted.length}</b> arms
+      beat the rule at all${below.length
+        ? ` while ${below.map((a) => `<b>${V.esc(a.label)}</b>`).join(" and ")} `
+          + `${below.length > 1 ? "do" : "does"} not`
+        : ""}. That gap is the finding the easy set could not produce. None of them is
+      close to answering the question.`);
   }
   if (edge) {
     const said = edge.said.none || 0;
-    bits.push(`The trained edge model's full marks on the easy set were an artefact of it. Here it
-      answers <b>none</b> to ${said} of ${edge.n} runs, including every marginal fault. It learned
-      the threshold and nothing past it, which is the behaviour an easy set cannot tell apart from
-      diagnosis.`);
+    bits.push(`The trained edge model's full marks on the easy set were an artefact of it.
+      Here it answers <b>none</b> to ${said} of ${edge.n} runs, including every marginal
+      fault: it learned the threshold and nothing past it, which is exactly the behaviour
+      an easy set cannot tell apart from diagnosis.`);
   }
-  bits.push(`Nobody passes <b>subtle camera</b>, and it is reported rather than dropped.`);
+  if (h.worst_spread) {
+    bits.push(`Read the gaps with the spread in mind. At temperature zero the same model on
+      the same cases varies by up to <b>${h.worst_spread}</b> between passes, so a difference
+      of one or two here is not a difference. An arm marked <b>*</b> was called without the
+      reasoning option its endpoint rejects; the question, the data and the scoring are
+      identical for every arm.`);
+  }
   V.$("dg-hard-meta").innerHTML = bits.join(" ");
 }
 
