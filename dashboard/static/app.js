@@ -85,11 +85,9 @@ function topbar(page) {
 
 /* ------------------------------------------------------------------- theme */
 
-/** What the page is showing right now, whether chosen or inherited. */
+/** What the page is showing. Light unless dark was explicitly chosen. */
 function activeTheme() {
-  const chosen = document.documentElement.dataset.theme;
-  if (chosen === "light" || chosen === "dark") return chosen;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 
 function themeIcon() {

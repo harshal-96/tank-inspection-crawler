@@ -54,11 +54,11 @@ const STUDIO = {
 };
 
 function studio() {
-  const chosen = document.documentElement.dataset.theme;
-  const dark = chosen === "dark"
-    || (chosen !== "light"
-        && window.matchMedia("(prefers-color-scheme: dark)").matches);
-  return dark ? STUDIO.dark : STUDIO.light;
+  // Matches the stylesheet: light unless dark was explicitly chosen. The system
+  // preference is deliberately not consulted, or a dark desktop would give a dark
+  // viewport inside a light page.
+  return document.documentElement.dataset.theme === "dark"
+    ? STUDIO.dark : STUDIO.light;
 }
 
 export class Cell3D {

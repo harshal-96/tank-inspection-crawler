@@ -2,10 +2,10 @@
    The restraint is deliberate: a surface this dense earns its structure from
    spacing and a hairline, not from a border round every object.
 
-   Both themes are designed, not inverted. Light is the bare :root so it is what
-   a viewer with no preference gets; dark is redefined twice, once behind
-   prefers-color-scheme for the system setting and once behind [data-theme] so an
-   explicit choice wins in either direction.
+   Both themes are designed, not inverted. Light is the page, full stop: it does
+   NOT follow prefers-color-scheme, because a reader on a dark desktop was getting
+   a dark dashboard when they had asked for a light one. Dark is opt in, through
+   the switch in the top bar, and the choice is remembered.
 
    Series colours are assigned to a model by identity and never reshuffled when a
    filter changes the series count. Each set is validated separately against its
@@ -25,9 +25,12 @@
   --line:        #dfe3e7;
   --hair:        #e9ecef;
 
-  --text-primary:   #141a20;
-  --text-secondary: #4d5862;
-  --text-muted:     #78838d;
+  /* Measured on the white card: 19.7, 12.6 and 6.0 to one. The muted step used
+     to sit at 3.87, under the 4.5 floor for normal text, and it is what every
+     hint and axis label on the dashboard is set in. */
+  --text-primary:   #080b0f;
+  --text-secondary: #2c343c;
+  --text-muted:     #5b656e;
 
   /* categorical, fixed order, validated against the light surface */
   --series-1: #1f6fd0;  /* Nano */
@@ -60,46 +63,6 @@
 
   --rail: 238px;
   --radius: 12px;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --bg:          #0b0e13;
-    --surface-1:   #10141b;
-    --surface-2:   #141922;
-    --surface-3:   #1a212b;
-    --line:        #1b222c;
-    --hair:        #161c25;
-
-    --text-primary:   #e8edf3;
-    --text-secondary: #97a4b4;
-    --text-muted:     #63717f;
-
-    --series-1: #3987e5;
-    --series-2: #d95926;
-    --series-3: #199e70;
-    --series-4: #c98500;
-    --series-5: #d55181;
-
-    --good:     #3fb950;
-    --warning:  #d29922;
-    --critical: #e5534b;
-
-    --before: #6b7683;
-    --after:  #7fc400;
-
-    --bar:          #0b0e13e6;
-    --glass:        #0b0f15bd;
-    --scroll-thumb: #1f2833;
-    --cell-ink:     #ffffff;
-    --band:         #232c38;
-    --hover:        #ffffff04;
-    --tip-bg:       #0d1218;
-    --tip-line:     #25303d;
-    --tip-shadow:   #000000a0;
-  }
 }
 
 :root[data-theme="dark"] {
