@@ -22,13 +22,14 @@ export function render() {
       joint truly is.
     </p>
 
-    <div class="grid">
-      <div class="tiles" id="sm-tiles"></div>
+        <div class="tiles" id="sm-tiles"></div>
 
+    <div class="grid">
       <div class="card w8">
-        <header><h2>Point error, part by part</h2></header>
-        <div class="hint">Each column is a part; each mark is one of its twenty points. The dark
-          band is where the middle half of that part's points landed.</div>
+        <header><h2>Every part came in under the width of the wire</h2></header>
+        <div class="hint">One column per part. The blue dot is that part's average error, the
+          grey band is where most of its twenty points fell, the small dots are the points
+          themselves. The dashed line is 1 mm, the diameter of the welding wire.</div>
         <div id="sm-strip"></div>
         <div class="legend">
           <span><i class="line" style="background:var(--series-1)"></i>the part's mean</span>
@@ -37,20 +38,23 @@ export function render() {
       </div>
 
       <div class="card w4">
-        <header><h2>What the correction cannot remove</h2></header>
-        <div class="hint">Correcting the path removes the offset, but it cannot remove the bow, because
-          the seam itself is curved. That bow is the limit on how accurate this method
-          can get.</div>
+                <header><h2>Where the last 0.67 mm comes from</h2></header>
+        <div class="hint">Measuring the joint removes the offset. It cannot remove the bow: the
+          press leaves the joint curved, and a straight path between two correct ends still
+          cuts across the curve. Most of what is left is that bow.</div>
         <div id="sm-decomp"></div>
         <footer id="sm-decomp-meta"></footer>
       </div>
 
       <div class="card w12">
         <header>
-          <h2>Point detail</h2>
+                    <h2>One part, point by point</h2>
           <span class="grow"></span>
           <select id="sm-part"></select>
         </header>
+        <div class="hint">Left: how far each of the twenty points sits off a straight line
+          between the seam's ends. Middle: how open the joint was at each point. Right: how
+          much heat the torch put in there. Pick a part at the top right.</div>
         <div class="grid" style="margin-top:6px">
           <div class="w4" style="min-width:0">
             <div id="sm-path"></div>
@@ -74,9 +78,10 @@ export function render() {
       </div>
 
       <div class="card w6">
-        <header><h2>Blind, one fixed look, and look-then-decide</h2></header>
-        <div class="hint">The same fifty parts under three policies, scored against the corner's
-          true coordinates.</div>
+                <header><h2>Three ways to find the corner</h2></header>
+        <div class="hint">Weld where the program says without looking. Look once. Or look, then
+          decide whether to look again. The same fifty parts, scored against where the corner
+          truly was.</div>
         <div id="sm-locating"></div>
         <footer id="sm-locating-meta"></footer>
       </div>
@@ -103,7 +108,6 @@ export function update() { picker(); detail(); }
 function tiles() {
   const s = ev.seam;
   if (!s.available) return;
-  const perception = s.perception_ms || {};
   V.$("sm-tiles").innerHTML = [
     tile("Tracked to", V.fmt(s.tracked.mean_mm, 3), "after",
       `mean over ${s.stations_measured.toLocaleString()} points`, "mm"),
@@ -111,15 +115,7 @@ function tiles() {
       `worst part ${V.fmt(s.taught.max_mm, 1)} mm`, "mm"),
     tile("Parts under 1 mm, every point", `${s.tracked.sub_mm_parts}/${s.n_parts}`, "good",
       `worst single point ${V.fmt(s.tracked.worst_station_mm, 2)} mm`),
-    tile("The seam's own bow", V.fmt(s.bow.mean_mm, 2), "",
-      `worst ${V.fmt(s.bow.max_mm, 2)} mm, and no straight path removes it`, "mm"),
-    perception.median
-      ? tile("Depth frame to weld path", V.fmt(perception.median, 0), "",
-          `median, worst ${V.fmt(perception.max, 0)} ms, on the cell's own CPU`, "ms")
-      : "",
-    tile("Points refused", String(s.refused_stations), s.refused_stations ? "warn" : "good",
-      `of ${s.stations_measured.toLocaleString()}, where the joint was too open to bridge`),
-  ].filter(Boolean).join("");
+      ].filter(Boolean).join("");
 }
 
 const tile = (label, value, tone, sub, unit = "") => `<div class="tile">
@@ -138,8 +134,10 @@ function strip() {
   const cw = (w - padL - padR) / parts.length;
 
   let out = V.gridY(padL, w - padR, yOf, ticks, "", (v) => v.toFixed(1));
-  out += `<line class="gridline" x1="${padL}" y1="${yOf(1)}" x2="${w - padR}" y2="${yOf(1)}"
-    stroke="var(--warning)" stroke-dasharray="3 3" opacity=".6"/>`;
+    out += `<line class="gridline" x1="${padL}" y1="${yOf(1)}" x2="${w - padR}" y2="${yOf(1)}"
+    stroke="var(--warning)" stroke-dasharray="3 3" opacity=".6"/>
+    <text x="${w - padR - 4}" y="${yOf(1) - 5}" text-anchor="end" font-size="10"
+      fill="var(--warning)">1 mm, the width of the wire</text>`;
 
   parts.forEach((p, i) => {
     const x = padL + i * cw + cw / 2;
@@ -255,16 +253,16 @@ function locating() {
   const l = ev.locating;
   if (!l.available) { V.$("sm-locating").innerHTML = `<div class="empty">Not run.</div>`; return; }
   const rows = [
-    { label: "Blind, taught only", value: l.blind.mean_mm, colour: V.BEFORE,
+        { label: "No look, weld where taught", value: l.blind.mean_mm, colour: V.BEFORE,
       display: V.fmt(l.blind.mean_mm, 1) + " mm", tip: `${l.blind.sub_mm}/${l.n} under 1 mm` },
-    { label: "One fixed look", value: l.one_look.mean_mm, colour: "var(--series-1)",
+        { label: "Look once", value: l.one_look.mean_mm, colour: "var(--series-1)",
       display: V.fmt(l.one_look.mean_mm, 2) + " mm",
       tip: `<b>${l.one_look.sub_mm}</b>/${l.n_parts} parts under 1 mm, worst ${V.fmt(l.one_look.max_mm, 2)} mm` },
-    { label: "Look then decide", value: l.routed.mean_mm, colour: "var(--series-5)",
+        { label: "Look, then decide", value: l.routed.mean_mm, colour: "var(--series-5)",
       display: V.fmt(l.routed.mean_mm, 2) + " mm",
       tip: `<b>${l.routed.sub_mm}</b>/${l.n_parts} parts under 1 mm, worst ${V.fmt(l.routed.max_mm, 2)} mm` },
   ];
-  V.paint(V.$("sm-locating"), V.ranked(rows, { width: 400, rowH: 32, padL: 132 }));
+    V.paint(V.$("sm-locating"), V.ranked(rows, { width: 400, rowH: 32, padL: 176 }));
   V.$("sm-locating-meta").innerHTML =
     `The gap that matters is the first one: <b>${V.fmt(l.blind.mean_mm, 1)} mm</b> down to
      <b>${V.fmt(l.one_look.mean_mm, 2)} mm</b>, bought by looking once. Deciding whether to look again

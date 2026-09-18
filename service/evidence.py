@@ -54,11 +54,11 @@ DRIFT_SEVERE: dict[str, tuple[str, str]] = {
 }
 
 ARM_LABELS: dict[str, str] = {
-    "nano": "Nano on every look",
-    "lightning": "Lightning on every look",
-    "super": "Super on every look",
-    "ultra": "Ultra on every look",
-    "routed": "Routed by evidence",
+    "nano": "Nemotron Nano 30B, every call",
+    "lightning": "Nemotron 3.5 Lightning, every call",
+    "super": "Nemotron Super 120B, every call",
+    "ultra": "Nemotron Ultra 550B, every call",
+    "routed": "Routing, what the cell does",
 }
 
 DEFECT_CLASSES = ["none", "skip", "undercut", "porosity", "spatter", "burn_through"]
