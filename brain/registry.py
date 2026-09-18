@@ -94,7 +94,7 @@ FIELD = (
           aliases=("DeepSeek-V4-Pro",)),
     Model("deepseek_flash", "deepseek-ai/DeepSeek-V4.1-Flash", "DeepSeek V4.1 Flash",
           "undisclosed",
-          "Boundary test; on the beads 47 of 50 right on pass or defect, 3.7 s",
+          "Names the machine that slipped, once a shift: 45 of 64 on the boundary test",
           "DeepSeek", aliases=("DeepSeek-V4.1-Flash",)),
     Model("qwen397", "Qwen/Qwen3.5-397B-A17B", "Qwen3.5 397B", "397B-A17B",
           "Boundary test only", "Alibaba",

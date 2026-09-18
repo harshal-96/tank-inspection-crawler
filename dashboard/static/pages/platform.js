@@ -36,18 +36,10 @@ const ROWS = [
   {
     job: "Which machine is going out of adjustment?",
     platform: "Nebius Token Factory",
-    model: "nvidia/nemotron-3-super-120b-a12b",
+    model: "deepseek-ai/DeepSeek-V4.1-Flash",
     cadence: "once per shift",
-    why: "the smallest cloud model that reads the evidence rather than guessing: 8 of 12",
+    why: "45 of 64 on the cases built to sit on the boundary, beats the arithmetic rule at p 0.035, about 3 s a diagnosis, and the cheapest of the three models that do",
     tone: "s3",
-  },
-  {
-    job: "Reserved for a disagreement worth the time",
-    platform: "Nebius Token Factory",
-    model: "nvidia/Nemotron-3-Ultra-550b-a55b",
-    cadence: "rare",
-    why: "111 s for the same 39 calls routing answered in 55 s, and less accurately",
-    tone: "s4",
   },
   {
     job: "Writing the corrective action brief from fetched documents",

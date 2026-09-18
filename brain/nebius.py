@@ -93,6 +93,17 @@ def text_model() -> str:
     return os.getenv("NEMOTRON_TEXT_MODEL", "").strip() or DEFAULT_TEXT_MODEL
 
 
+# The once-a-shift question, which machine is going out of adjustment, on the
+# 64 boundary cases: Qwen3.5 397B 46 of 64, DeepSeek V4.1 Flash 45, Ultra 45,
+# Super 120B 44. Only the first three beat the arithmetic rule at p < 0.05.
+# DeepSeek V4.1 Flash is the cheapest of them, so it is the default.
+DEFAULT_DIAGNOSIS_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash"
+
+
+def diagnosis_model() -> str:
+    return os.getenv("CELL_DIAGNOSIS_MODEL", "").strip() or DEFAULT_DIAGNOSIS_MODEL
+
+
 def vision_model() -> str:
     return os.getenv("NEMOTRON_VISION_MODEL", "").strip() or DEFAULT_VISION_MODEL
 

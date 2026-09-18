@@ -62,7 +62,7 @@ from cell.drift import (  # noqa: E402
     user_prompt,
 )
 
-CLOUD_MODEL = "nvidia/nemotron-3-super-120b-a12b"
+CLOUD_MODEL = nebius.DEFAULT_DIAGNOSIS_MODEL
 ADAPTER = "data/finetune/adapter"
 BASE_MODEL = "Qwen/Qwen3-1.7B"
 

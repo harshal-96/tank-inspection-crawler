@@ -186,7 +186,7 @@ run of parts, and explain any of it to the person responsible for the line.
 | Layer | Platform | Model | Runs today |
 | --- | --- | --- | --- |
 | View planning, inside the control loop | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
-| Shift-level diagnosis, press vs fixture | Nebius Token Factory | Nemotron 3 Super 120B-A12B | yes |
+| Shift-level diagnosis, which machine slipped | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
 | Post-weld inspection | Nebius Token Factory | MiniMaxAI/MiniMax-M3 | yes |
 | Writing a corrective action brief from fetched documents | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
