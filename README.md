@@ -969,6 +969,12 @@ Copy the environment template and fill in your key:
 cp .env.example .env
 ```
 
+Everything that describes a site rather than the code is in that file: which models to
+call, how long to wait on one call, what the bead camera sees (BEAD_SOURCE is
+`rendering` on the simulator this repository ships with and `photograph` on a cell),
+the crop box the inspector sends, and the millimetre limits every page and prompt read.
+Placing the cell somewhere else is editing that file, not the code.
+
 Verify cloud access before anything else:
 
 ```bash
