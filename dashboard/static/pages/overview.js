@@ -68,10 +68,11 @@ export function render() {
 
     <div class="grid">
       <div class="card w12">
-        <header><h2>What happens to a part, in order</h2></header>
-        <div class="hint">Six stages. Each one links to the page that measured it, with the
-          number that page reports. This is the same order as the rail on the left.</div>
-        <div id="ov-pipeline"></div>
+        <header><h2>What happens to a part</h2></header>
+        <div class="hint">Every box links to the page that measured it. Dashed lines are the
+          two loops: a measurement the cell does not trust goes round again, and a drift it
+          names goes back to the machine that caused it.</div>
+        <div id="ov-flow"></div>
       </div>
     </div>
 
@@ -117,7 +118,7 @@ export function update() { liveBand(); }
 export async function mount() {
   const [ev] = await Promise.all([loadEvidence(), refreshLive()]);
   liveBand();
-  pipeline(ev);
+  flow(ev);
   tiles(ev);
   dumbbell(ev);
   hist(ev);
@@ -125,55 +126,128 @@ export async function mount() {
   caveats(ev);
 }
 
-/** The six stages a part goes through, each with the one number that page reports.
+/** The process, drawn. Two loops are the whole point of the cell.
 
-  The studies were a flat list of seven, numbered in the order they were built
-  rather than the order they happen in, so nothing on this dashboard said what
-  the cell actually does from one end to the other.
+  This was a list of six numbered rows, which is a table of contents pretending to
+  be a process. What a list cannot show is that the flow turns back on itself
+  twice: a measurement the planner does not trust goes round for another look, and
+  a drift the cell names goes back to the machine upstream that caused it. Those
+  loops are why it is called self-correcting.
+
+  The layout reserves lanes before it places anything: a return lane down the left
+  for the upstream loop, a band above the first row for the look-again loop, and a
+  band below the last row for the caption. The first version drew the return path
+  straight through two of the boxes.
 */
-function pipeline(ev) {
-  const host = V.$("ov-pipeline");
+function flow(ev) {
+  const host = V.$("ov-flow");
   if (!host) return;
-  const s = ev.seam, r = ev.router, i = ev.inspection, c = ev.compensation, h = ev.hard;
-  const stages = [
-    ["seam", "Find the joint",
-     "A depth camera fits a plane to each folded face and intersects them, at twenty points along the seam.",
-     s.available ? `${V.fmt(s.tracked.mean_mm, 3)} mm` : null,
-     s.available ? `from ${V.fmt(s.taught.mean_mm, 1)} mm for a taught path` : ""],
-    ["routing", "Decide whether to trust it",
-     "The measurement carries signals about its own quality. A model reads them and either accepts it or asks for another look.",
-     r.available ? `${r.arms[0].correct}/${r.arms[0].n}` : null,
-     "calls scored against what a second look actually achieved"],
-    ["compensation", "Aim ahead of the heat",
-     "The arc rotates both folded sides as it goes, so the path is shifted by the distortion expected when the torch arrives.",
-     c && c.available ? "0.55 → 0.03 mm" : null,
-     "residual at nominal, over 120 trials"],
-    ["inspection", "Judge the finished bead",
-     "The weld is photographed and scored against the defect that was injected before the picture was taken.",
-     i.available ? V.pct(i.binary_accuracy) : null,
-     i.available ? `pass or defect on ${i.n} beads` : ""],
-    ["diagnosis", "Name the machine that is drifting",
-     "The same measurements are read again across a whole run, to say which machine upstream needs touching.",
-     h && h.available ? V.pct(h.arms[0].rate) : null,
-     h && h.available ? `best of ${h.arms.length} arms on the boundary test` : ""],
-    ["briefs", "Say what to do about it",
-     "The question is written out of the cell's own numbers, answered from published welding guidance, and cited.",
-     null, "every statement carries its source"],
+  const s = ev.seam, r = ev.router, i = ev.inspection, h = ev.hard;
+
+  const LANE = 34;                 // the return path down the left
+  const X0 = 78;                   // where boxes start, clear of the lane
+  const bw = 174, bh = 74, gap = 30;
+  const LOOP = 92;                 // the look-again band, above row one
+  const row1 = 146, row2 = 300;
+  const BACK = row2 + bh + 40;     // the upstream return, below row two
+  const W = X0 + 4 * (bw + gap) + 34, H = BACK + 46;
+
+  const xOf = (n) => X0 + n * (bw + gap);
+  const mid1 = row1 + bh / 2, mid2 = row2 + bh / 2;
+
+  const top = [
+    ["1", "Find the joint", s.available ? `${V.fmt(s.tracked.mean_mm, 3)} mm` : "", false, "seam"],
+    ["2", "Trust it?", r.available ? `${r.arms[0].correct}/${r.arms[0].n}` : "", true, "routing"],
+    ["3", "Aim ahead of heat", "0.55 \u2192 0.03 mm", false, "compensation"],
   ];
-  host.innerHTML = `<ol class="pipeline">${stages.map(([id, title, body, value, note], n) => `
-    <li>
-      <a href="#/${id}">
-        <span class="n">${n + 1}</span>
-        <span class="text">
-          <span class="t">${V.esc(title)}</span>
-          <span class="d">${V.esc(body)}</span>
-        </span>
-        <span class="fig">
-          ${value ? `<b>${value}</b>` : ""}
-          <span class="k">${V.esc(note)}</span>
-        </span>
-      </a>
-    </li>`).join("")}</ol>`;
+  const bottom = [
+    ["4", "Judge the bead", i.available ? V.pct(i.binary_accuracy) : "", true, "inspection"],
+    ["5", "Name the drift", h && h.available ? V.pct(h.arms[0].rate) : "", true, "diagnosis"],
+    ["6", "Say what to do", "with sources", true, "briefs"],
+  ];
+
+  const node = (x, y, [no, title, figure, usesModel, page]) => `
+    <a href="#/${page}" class="flow-node">
+      <rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="9"
+        fill="var(--surface-1)" stroke="${usesModel ? "var(--series-1)" : "var(--line)"}"
+        stroke-width="${usesModel ? 1.6 : 1}"/>
+      <text x="${x + 14}" y="${y + 22}" font-size="10.5" font-weight="600"
+        fill="var(--after)">${no}</text>
+      <text x="${x + 31}" y="${y + 22}" font-size="13" font-weight="600"
+        fill="var(--text-primary)">${V.esc(title)}</text>
+      <text x="${x + 14}" y="${y + 45}" font-size="14.5" font-weight="500"
+        fill="var(--text-primary)">${V.esc(figure)}</text>
+      <text x="${x + 14}" y="${y + 63}" font-size="9.5"
+        fill="var(--text-muted)">${usesModel ? "a model answers this" : "geometry only"}</text>
+    </a>`;
+
+  const arrow = (x1, y1, x2, y2) => `<path d="M ${x1} ${y1} L ${x2} ${y2}"
+    stroke="var(--line)" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>`;
+
+  let out = `<defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-muted)"/>
+    </marker>
+    <marker id="ar-look" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--series-1)"/>
+    </marker>
+    <marker id="ar-back" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5"
+      orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--after)"/>
+    </marker>
+  </defs>`;
+
+  // Row one, left to right, into the arc.
+  top.forEach((stage, n) => { out += node(xOf(n), row1, stage); });
+  for (let n = 0; n < top.length - 1; n++) {
+    out += arrow(xOf(n) + bw, mid1, xOf(n + 1) - 7, mid1);
+  }
+  const arcX = xOf(3) + 34;
+  out += arrow(xOf(2) + bw, mid1, arcX - 34, mid1);
+  out += `<circle cx="${arcX}" cy="${mid1}" r="28" fill="var(--surface-1)"
+    stroke="var(--warning)" stroke-width="1.6"/>`;
+  out += `<text x="${arcX}" y="${mid1 + 4}" text-anchor="middle" font-size="11.5"
+    font-weight="600" fill="var(--warning)">WELD</text>`;
+
+  // The arc drops into row two, round the right-hand side.
+  out += `<path d="M ${arcX} ${mid1 + 28} L ${arcX} ${row2 - 30}
+    L ${xOf(0) + bw / 2} ${row2 - 30} L ${xOf(0) + bw / 2} ${row2 - 7}"
+    stroke="var(--line)" stroke-width="1.6" fill="none" marker-end="url(#ar)"/>`;
+
+  bottom.forEach((stage, n) => { out += node(xOf(n), row2, stage); });
+  for (let n = 0; n < bottom.length - 1; n++) {
+    out += arrow(xOf(n) + bw, mid2, xOf(n + 1) - 7, mid2);
+  }
+
+  // Loop one, in its own band above row one.
+  out += `<path d="M ${xOf(1) + bw / 2} ${row1} L ${xOf(1) + bw / 2} ${LOOP}
+    L ${xOf(0) + bw / 2} ${LOOP} L ${xOf(0) + bw / 2} ${row1 - 7}"
+    stroke="var(--series-1)" stroke-width="1.5" fill="none" stroke-dasharray="4 3"
+    marker-end="url(#ar-look)"/>`;
+  out += `<text x="${xOf(1) + bw / 2 + 12}" y="${LOOP + 4}" font-size="11"
+    fill="var(--series-1)">not good enough: look again</text>`;
+
+  // Loop two, down the reserved lane on the left.
+  out += `<path d="M ${xOf(2) + bw / 2} ${row2 + bh} L ${xOf(2) + bw / 2} ${BACK}
+    L ${LANE} ${BACK} L ${LANE} ${row1 - 46}"
+    stroke="var(--after)" stroke-width="1.7" fill="none" stroke-dasharray="5 4"
+    marker-end="url(#ar-back)"/>`;
+  out += `<text x="${LANE + 14}" y="${BACK + 19}" font-size="11" font-weight="600"
+    fill="var(--after)">back to the press or the fixture, before the next part is bent
+    wrong the same way</text>`;
+
+  // What arrives, at the top left where the part enters, not beside the torch.
+  out += `<text x="${LANE}" y="24" font-size="10.5" font-weight="600"
+    fill="var(--text-muted)" letter-spacing="1">A PART ARRIVES</text>`;
+  out += `<text x="${LANE}" y="42" font-size="12" fill="var(--before)">its joint is
+    ${s.available ? V.fmt(s.taught.mean_mm, 1) : "22.8"} mm from where the program expects
+    it, and bowed</text>`;
+  out += `<text x="${arcX + 42}" y="${mid1 + 4}" font-size="11"
+    fill="var(--text-muted)">the arc runs</text>`;
+
+  V.paint(host, V.svg(W, H, out));
 }
 
 /** The two things a reader should have before over-reading the headline. */
