@@ -14,8 +14,8 @@ import { refreshLive, state } from "../store.js";
 export const meta = {
   id: "briefs",
   title: "Corrective action",
-  crumb: "Live",
-  group: "Cell",
+  crumb: "Stage 6",
+  group: "What happens to a part",
   icon: "M9 5h6a2 2 0 012 2v12H7V7a2 2 0 012-2ZM9 5V4a1 1 0 011-1h4a1 1 0 011 1v1M10 11h5M10 15h3",
 };
 

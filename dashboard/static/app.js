@@ -23,10 +23,17 @@ import * as briefs from "./pages/briefs.js";
 import * as method from "./pages/method.js";
 import * as platform from "./pages/platform.js";
 
-const PAGES = [overview, seam, routing, diagnosis, inspection, limits, compensation,
-               budget, cell, parts, briefs, supervisor, method, platform];
+// Pipeline order. A reader following the rail top to bottom follows a part
+// through the cell, which the old "Study 1..7" numbering did not: thermal
+// compensation was Study 6 and happens between the routing call and the weld.
+const PAGES = [overview, seam, routing, compensation, inspection, diagnosis, briefs,
+               limits, budget, cell, parts, supervisor, method, platform];
 const BY_ID = new Map(PAGES.map((p) => [p.meta.id, p]));
-const GROUPS = ["Result", "Studies", "Cell", "Reference"];
+const GROUPS = ["Result", "What happens to a part", "What it leaves out",
+                "The cell, live", "Reference"];
+
+/** The six stages, in order, for the previous and next links on each one. */
+const PIPELINE = ["seam", "routing", "compensation", "inspection", "diagnosis", "briefs"];
 
 let current = null;
 
@@ -67,6 +74,24 @@ function rail() {
       Fifty parts, one thousand measured stations.<br>
       Every figure is drawn from the run that produced it.
     </div>`;
+}
+
+/** Previous and next stage, so a reader can walk the pipeline without the rail. */
+function stageNav(page) {
+  const i = PIPELINE.indexOf(page.meta.id);
+  if (i === -1) return "";
+  const link = (id, side) => {
+    const p = BY_ID.get(id);
+    if (!p) return `<span></span>`;
+    return `<a class="stage-link ${side}" href="#/${id}">
+      <span class="k">${side === "prev" ? "previous stage" : "next stage"}</span>
+      <span class="t">${V.esc(p.meta.title)}</span></a>`;
+  };
+  return `<nav class="stage-nav">
+    ${i > 0 ? link(PIPELINE[i - 1], "prev") : "<span></span>"}
+    <span class="of">stage ${i + 1} of ${PIPELINE.length}</span>
+    ${i < PIPELINE.length - 1 ? link(PIPELINE[i + 1], "next") : "<span></span>"}
+  </nav>`;
 }
 
 function topbar(page) {
@@ -133,7 +158,7 @@ async function route() {
   V.$("topbar").innerHTML = topbar(page);
   V.$("tb-theme")?.addEventListener("click", flipTheme);
   const body = V.$("body");
-  body.innerHTML = page.render();
+  body.innerHTML = page.render() + stageNav(page);
   body.scrollIntoView({ block: "start" });
   window.scrollTo(0, 0);
   status();

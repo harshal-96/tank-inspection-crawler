@@ -67,6 +67,15 @@ export function render() {
     <div class="tiles" id="ov-tiles"></div>
 
     <div class="grid">
+      <div class="card w12">
+        <header><h2>What happens to a part, in order</h2></header>
+        <div class="hint">Six stages. Each one links to the page that measured it, with the
+          number that page reports. This is the same order as the rail on the left.</div>
+        <div id="ov-pipeline"></div>
+      </div>
+    </div>
+
+    <div class="grid">
       <div class="card w12" id="bg-honest">
         <header><h2>What these numbers leave out</h2></header>
         <div class="hint">Two things worth knowing before you read any of the numbers below.</div>
@@ -108,11 +117,63 @@ export function update() { liveBand(); }
 export async function mount() {
   const [ev] = await Promise.all([loadEvidence(), refreshLive()]);
   liveBand();
+  pipeline(ev);
   tiles(ev);
   dumbbell(ev);
   hist(ev);
   studies(ev);
   caveats(ev);
+}
+
+/** The six stages a part goes through, each with the one number that page reports.
+
+  The studies were a flat list of seven, numbered in the order they were built
+  rather than the order they happen in, so nothing on this dashboard said what
+  the cell actually does from one end to the other.
+*/
+function pipeline(ev) {
+  const host = V.$("ov-pipeline");
+  if (!host) return;
+  const s = ev.seam, r = ev.router, i = ev.inspection, c = ev.compensation, h = ev.hard;
+  const stages = [
+    ["seam", "Find the joint",
+     "A depth camera fits a plane to each folded face and intersects them, at twenty points along the seam.",
+     s.available ? `${V.fmt(s.tracked.mean_mm, 3)} mm` : null,
+     s.available ? `from ${V.fmt(s.taught.mean_mm, 1)} mm for a taught path` : ""],
+    ["routing", "Decide whether to trust it",
+     "The measurement carries signals about its own quality. A model reads them and either accepts it or asks for another look.",
+     r.available ? `${r.arms[0].correct}/${r.arms[0].n}` : null,
+     "calls scored against what a second look actually achieved"],
+    ["compensation", "Aim ahead of the heat",
+     "The arc rotates both folded sides as it goes, so the path is shifted by the distortion expected when the torch arrives.",
+     c && c.available ? "0.55 → 0.03 mm" : null,
+     "residual at nominal, over 120 trials"],
+    ["inspection", "Judge the finished bead",
+     "The weld is photographed and scored against the defect that was injected before the picture was taken.",
+     i.available ? V.pct(i.binary_accuracy) : null,
+     i.available ? `pass or defect on ${i.n} beads` : ""],
+    ["diagnosis", "Name the machine that is drifting",
+     "The same measurements are read again across a whole run, to say which machine upstream needs touching.",
+     h && h.available ? V.pct(h.arms[0].rate) : null,
+     h && h.available ? `best of ${h.arms.length} arms on the boundary test` : ""],
+    ["briefs", "Say what to do about it",
+     "The question is written out of the cell's own numbers, answered from published welding guidance, and cited.",
+     null, "every statement carries its source"],
+  ];
+  host.innerHTML = `<ol class="pipeline">${stages.map(([id, title, body, value, note], n) => `
+    <li>
+      <a href="#/${id}">
+        <span class="n">${n + 1}</span>
+        <span class="text">
+          <span class="t">${V.esc(title)}</span>
+          <span class="d">${V.esc(body)}</span>
+        </span>
+        <span class="fig">
+          ${value ? `<b>${value}</b>` : ""}
+          <span class="k">${V.esc(note)}</span>
+        </span>
+      </a>
+    </li>`).join("")}</ol>`;
 }
 
 /** The two things a reader should have before over-reading the headline. */

@@ -11,8 +11,8 @@ import { loadEvidence } from "../store.js";
 export const meta = {
   id: "limits",
   title: "Sensor limits",
-  crumb: "Study 5",
-  group: "Studies",
+  crumb: "Limits",
+  group: "What it leaves out",
   tag: "28",
   icon: "M12 3v4M12 17v4M3 12h4M17 12h4M6.3 6.3l2.8 2.8M14.9 14.9l2.8 2.8M17.7 6.3l-2.8 2.8M9.1 14.9l-2.8 2.8",
 };

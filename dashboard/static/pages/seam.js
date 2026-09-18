@@ -7,8 +7,8 @@ import { deviations } from "./cell.js";
 export const meta = {
   id: "seam",
   title: "Seam tracking",
-  crumb: "Study 1",
-  group: "Studies",
+  crumb: "Stage 1",
+  group: "What happens to a part",
   tag: "1k",
   icon: "M3 17c4-10 14 4 18-6",
 };

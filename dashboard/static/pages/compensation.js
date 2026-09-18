@@ -6,8 +6,8 @@ import { loadEvidence } from "../store.js";
 export const meta = {
   id: "compensation",
   title: "Thermal compensation",
-  crumb: "Study 6",
-  group: "Studies",
+  crumb: "Stage 3",
+  group: "What happens to a part",
   icon: "M12 3v10m0 0a3 3 0 100 6 3 3 0 000-6ZM9 8h6",
 };
 

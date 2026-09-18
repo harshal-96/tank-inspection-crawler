@@ -437,6 +437,75 @@ table.plain td { border-bottom: none; padding: 3px 14px 3px 0; }
   outline: 2px solid var(--series-1); outline-offset: 2px;
 }
 
+/* The six stages on the summary page. Numbered because the order is real: a part
+   goes through them in this sequence, and a number that is only decoration is
+   worse than none. */
+ol.pipeline { list-style: none; margin: 4px 0 0; padding: 0; }
+ol.pipeline li { border-top: 1px solid var(--hair); }
+ol.pipeline li:first-child { border-top: none; }
+ol.pipeline a {
+  display: grid; grid-template-columns: 30px 1fr 190px; gap: 0 16px;
+  align-items: start; padding: 14px 8px 14px 0; text-decoration: none;
+  border-radius: 8px;
+}
+ol.pipeline a:hover { background: var(--hover); }
+ol.pipeline a:focus-visible { outline: 2px solid var(--series-1); outline-offset: -2px; }
+ol.pipeline .n {
+  font-family: var(--mono); font-size: 12px; font-weight: 600;
+  color: var(--after); font-variant-numeric: tabular-nums;
+}
+/* Named .text, not .body: `.body` is already the main page container, which
+   carries 34px/40px/88px of padding, and a span that borrowed the name inherited
+   all of it. Every stage sat in its own acre until this was renamed. */
+ol.pipeline .text { display: block; min-width: 0; }
+ol.pipeline .t { display: block; font-size: 15px; font-weight: 600; color: var(--text-primary); }
+ol.pipeline .d {
+  display: block; font-size: 13px; color: var(--text-secondary);
+  margin-top: 3px; max-width: 62ch; line-height: 1.55;
+}
+ol.pipeline .fig { text-align: right; }
+ol.pipeline .fig b {
+  display: block; font-family: var(--mono); font-size: 17px; font-weight: 500;
+  color: var(--text-primary); font-variant-numeric: tabular-nums;
+}
+ol.pipeline .fig .k {
+  display: block; font-size: 11px; color: var(--text-muted);
+  margin-top: 3px; line-height: 1.45;
+}
+@media (max-width: 760px) {
+  ol.pipeline a { grid-template-columns: 26px 1fr; }
+  ol.pipeline .fig { grid-column: 2; text-align: left; margin-top: 8px; }
+  ol.pipeline .fig b { display: inline; margin-right: 8px; }
+  ol.pipeline .fig .k { display: inline; }
+}
+
+/* The pipeline runs in a fixed order, so every stage says where it sits in it and
+   links to the one either side. The rail shows the same order; this is for a
+   reader who is already reading rather than navigating. */
+.stage-nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 18px;
+  margin: 34px 0 6px; padding-top: 20px; border-top: 1px solid var(--line);
+}
+.stage-nav .of {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text-muted); white-space: nowrap;
+}
+.stage-link {
+  display: flex; flex-direction: column; gap: 2px; text-decoration: none;
+  max-width: 44%;
+}
+.stage-link.next { text-align: right; align-items: flex-end; }
+.stage-link .k {
+  font-family: var(--mono); font-size: 10px; letter-spacing: .09em;
+  text-transform: uppercase; color: var(--text-muted);
+}
+.stage-link .t { font-size: 14px; font-weight: 550; color: var(--text-secondary); }
+.stage-link:hover .t { color: var(--after); }
+.stage-link:focus-visible { outline: 2px solid var(--series-1); outline-offset: 3px; }
+@media (max-width: 640px) {
+  .stage-nav .of { display: none; }
+}
+
 /* ------------------------------------------------------------------ tooltip */
 
 #tip {

@@ -6,8 +6,8 @@ import { loadEvidence, refreshLive, state } from "../store.js";
 export const meta = {
   id: "inspection",
   title: "Post-weld inspection",
-  crumb: "Study 4",
-  group: "Studies",
+  crumb: "Stage 4",
+  group: "What happens to a part",
   tag: "50",
   icon: "M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Zm10 2.5a2.5 2.5 0 100-5 2.5 2.5 0 000 5Z",
 };

@@ -13,7 +13,7 @@ export const meta = {
   id: "parts",
   title: "The run",
   crumb: "Live",
-  group: "Cell",
+  group: "The cell, live",
   icon: "M4 5h16M4 12h16M4 19h10",
 };
 

@@ -6,8 +6,8 @@ import { loadEvidence } from "../store.js";
 export const meta = {
   id: "diagnosis",
   title: "Drift diagnosis",
-  crumb: "Study 3",
-  group: "Studies",
+  crumb: "Stage 5",
+  group: "What happens to a part",
   tag: "12",
   icon: "M3 18l5-6 4 3 5-8 4 5",
 };

@@ -7,7 +7,7 @@ export const meta = {
   id: "supervisor",
   title: "Cell supervisor",
   crumb: "Live",
-  group: "Cell",
+  group: "The cell, live",
   icon: "M12 3a6 6 0 016 6v2a6 6 0 01-12 0V9a6 6 0 016-6ZM5 20h14",
 };
 

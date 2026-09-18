@@ -6,8 +6,8 @@ import { loadEvidence } from "../store.js";
 export const meta = {
   id: "budget",
   title: "Error budget",
-  crumb: "Study 7",
-  group: "Studies",
+  crumb: "Limits",
+  group: "What it leaves out",
   icon: "M4 19V5m0 14h16M8 15V9m4 6V6m4 9v-4",
 };
 

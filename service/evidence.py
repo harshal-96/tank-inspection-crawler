@@ -19,6 +19,8 @@ import statistics
 from pathlib import Path
 from typing import Any, Iterable
 
+from brain import registry
+
 DATA_DIR = Path(__file__).resolve().parent.parent / "data"
 
 # Which drift file came from which model. The default run predates the per-model
@@ -265,7 +267,7 @@ def drift_study() -> dict[str, Any]:
             answers = {r["said"] for r in rows}
             out.append({
                 "tier": tier,
-                "model": label,
+                "model": registry.display(label),
                 "n": len(rows),
                 "correct": sum(1 for r in rows if r["correct"]),
                 "accuracy": sum(1 for r in rows if r["correct"]) / len(rows),
@@ -332,7 +334,7 @@ def inspection_study() -> dict[str, Any]:
     return {
         "available": True,
         "n": len(rows),
-        "model": rows[0].get("model"),
+        "model": registry.display(rows[0].get("model")),
         "labels": labels,
         "matrix": matrix,
         "named_correct": named,
@@ -370,7 +372,7 @@ def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
     faulty = [r for r in rows if r["injected"] != "none"]
     called_any = {r["called"] for r in rows}
     return {
-        "model": label,
+        "model": registry.display(label),
         "n": len(rows),
         "named_correct": sum(1 for r in rows if r["correct"]),
         "binary_correct": sum(1 for r in rows
@@ -557,7 +559,7 @@ def confound_study() -> dict[str, Any]:
         return {"available": False}
     return {
         "available": True,
-        "model": rows[0].get("model"),
+        "model": registry.display(rows[0].get("model")),
         "arms": [blind, seeing],
         "camera_without": blind["by_scenario"].get("camera", {}),
         "camera_with": seeing["by_scenario"].get("camera", {}),
@@ -591,18 +593,21 @@ HARD_ARM_LABELS = {
 # all, and mixing the two would average a defective test with its replacement.
 HARD_FILES = ("hard64_a.jsonl", "hard64_b.jsonl", "hard64_c.jsonl")
 
+# Only the arms that are not a model in their own right need naming here. Every
+# actual model goes through the registry, so a label used in one result file and a
+# different label for the same model in another both come out as one name.
 HARD_ARM_LABELS = {
     "rule": "the threshold as arithmetic",
     "cloud": "Nemotron 3 Super 120B",
-    "nemotron-3-super-120": "Nemotron 3 Super 120B",
-    "cloud_blind": "Super 120B, boundary withheld",
-    "edge": "Qwen3-1.7B + LoRA, on the cell",
-    "Nemotron-3-Ultra-550": "Nemotron 3 Ultra 550B",
-    "DeepSeek-V4-Pro": "DeepSeek V4 Pro",
-    "DeepSeek-V4.1-Flash": "DeepSeek V4.1 Flash",
-    "Qwen3.5-397B-A17B": "Qwen3.5 397B",
-    "gpt-oss-120b": "gpt-oss 120B",
+    "cloud_blind": "Nemotron 3 Super 120B, boundary withheld",
 }
+
+
+def hard_arm_label(arm: str) -> str:
+    """One name per arm, whatever the result file happened to call it."""
+    if arm in HARD_ARM_LABELS:
+        return HARD_ARM_LABELS[arm]
+    return registry.display(arm)
 
 
 def _mcnemar_exact(b: int, c: int) -> float:
@@ -678,7 +683,7 @@ def hard_study() -> dict[str, Any]:
         for arm, got in grouped.items():
             if any(str(r.get("said", "")).startswith("error") for r in got):
                 continue
-            passes.setdefault(HARD_ARM_LABELS.get(arm, arm), []).append(got)
+            passes.setdefault(hard_arm_label(arm), []).append(got)
     if not passes:
         return {"available": False}
 
@@ -739,7 +744,7 @@ def view_prompt_study() -> dict[str, Any]:
 
     models = []
     for model in dict.fromkeys(r["model"] for r in rows):
-        entry = {"model": model, "name": model.split("/")[-1]}
+        entry = {"model": model, "name": registry.display(model)}
         for stated in (False, True):
             got = [r for r in rows
                    if r["model"] == model and r["threshold_stated"] is stated]
@@ -751,6 +756,21 @@ def view_prompt_study() -> dict[str, Any]:
             }
         models.append(entry)
     return {"available": True, "models": models}
+
+
+def models_study() -> dict[str, Any]:
+    """Every model this project calls, once, with the job it does.
+
+    Counting the models used to give a different answer depending on which page
+    you counted from, because each study named them its own way.
+    """
+    rows = registry.summary()
+    groups: list[dict[str, Any]] = []
+    for row in rows:
+        if not groups or groups[-1]["group"] != row["group"]:
+            groups.append({"group": row["group"], "models": []})
+        groups[-1]["models"].append(row)
+    return {"available": True, "n": len(rows), "groups": groups}
 
 
 def all_studies() -> dict[str, Any]:
@@ -767,4 +787,5 @@ def all_studies() -> dict[str, Any]:
         "hard": hard_study(),
         "view_prompt": view_prompt_study(),
         "error_budget": error_budget_study(),
+        "models": models_study(),
     }

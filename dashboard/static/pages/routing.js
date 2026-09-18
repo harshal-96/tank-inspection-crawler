@@ -6,8 +6,8 @@ import { loadEvidence, refreshLive, state } from "../store.js";
 export const meta = {
   id: "routing",
   title: "Model routing",
-  crumb: "Study 2",
-  group: "Studies",
+  crumb: "Stage 2",
+  group: "What happens to a part",
   tag: "195",
   icon: "M4 6h6m0 0a2 2 0 104 0m-4 0a2 2 0 114 0m0 0h6M4 18h6m0 0a2 2 0 104 0m-4 0a2 2 0 114 0m0 0h6",
 };
