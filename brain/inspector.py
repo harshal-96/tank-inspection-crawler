@@ -129,6 +129,31 @@ def _coerce(data: dict[str, Any]) -> tuple[Verdict, DefectType, Optional[float]]
     return verdict, defect, severity
 
 
+# A reasoning model spends its visible budget thinking before it answers. Under
+# the 400 tokens this call sends, MiniMax and GLM came back with nothing in the
+# answer and a full reasoning field, which the parser reads as a failure and the
+# campaign scores as a wrong verdict. That is the trap that made gpt-oss look
+# like 0 of 28 on the drift question. So a reply that did not parse and shows
+# the budget was spent thinking is asked once more with room. One policy for
+# every model; what a model is asked never changes, only the envelope.
+THINKING_TOKENS = 3000
+
+
+def _needs_room(response: Any, raw: str, cap: int) -> bool:
+    """Did the model think instead of answering, rather than answer badly?"""
+    try:
+        _extract_json(raw)
+        return False
+    except (ValueError, json.JSONDecodeError):
+        pass
+    message = response.choices[0].message
+    thought = getattr(message, "reasoning_content", None) or getattr(message, "reasoning", None)
+    usage = response.usage
+    exhausted = bool(usage and usage.completion_tokens is not None
+                     and usage.completion_tokens >= cap)
+    return bool(thought) or exhausted
+
+
 def inspect_weld(
     image_path: str | Path,
     model: Optional[str] = None,
@@ -140,29 +165,34 @@ def inspect_weld(
 
     Raises on transport failure. A malformed reply is returned as an uncertain
     verdict with parse_error set, so one bad response cannot stall a campaign.
+    A reply that is empty because the model spent its budget reasoning is sent
+    again with a larger one, and the result records that it was.
     """
     model = model or nebius.vision_model()
     client = nebius.client()
+    messages = [
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {
+            "role": "user",
+            "content": [
+                {"type": "text", "text": USER_PROMPT},
+                nebius.image_part(image_path, detail=detail),
+            ],
+        },
+    ]
 
     started = time.perf_counter()
     response = client.chat.completions.create(
-        model=model,
-        temperature=temperature,
-        max_tokens=max_tokens,
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {
-                "role": "user",
-                "content": [
-                    {"type": "text", "text": USER_PROMPT},
-                    nebius.image_part(image_path, detail=detail),
-                ],
-            },
-        ],
-    )
-    latency_ms = (time.perf_counter() - started) * 1000
-
+        model=model, temperature=temperature, max_tokens=max_tokens, messages=messages)
     raw = nebius.reply_text(response.choices[0].message)
+    retried = False
+    if max_tokens < THINKING_TOKENS and _needs_room(response, raw, max_tokens):
+        response = client.chat.completions.create(
+            model=model, temperature=temperature, max_tokens=THINKING_TOKENS,
+            messages=messages)
+        raw = nebius.reply_text(response.choices[0].message)
+        retried = True
+    latency_ms = (time.perf_counter() - started) * 1000
     usage = response.usage
 
     common = {
@@ -171,6 +201,7 @@ def inspect_weld(
         "prompt_tokens": usage.prompt_tokens if usage else None,
         "completion_tokens": usage.completion_tokens if usage else None,
         "raw": raw,
+        "extra": {"retried_with_room": retried},
     }
 
     try:

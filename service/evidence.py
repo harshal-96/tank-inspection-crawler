@@ -361,49 +361,97 @@ def inspection_study() -> dict[str, Any]:
     }
 
 
-VISION_RUNS: dict[str, tuple[str, str]] = {
-    "gemma": ("inspections.jsonl", "google/gemma-3-27b-it"),
-    "minicpm": ("inspections_minicpm.jsonl", "openbmb/MiniCPM-V-4_5"),
-}
-
-
 def _score_inspection(rows: list[dict[str, Any]], label: str) -> dict[str, Any]:
-    clean = [r for r in rows if r["injected"] == "none"]
-    faulty = [r for r in rows if r["injected"] != "none"]
-    called_any = {r["called"] for r in rows}
+    """Score one model's fifty verdicts, keeping a refusal apart from a wrong answer.
+
+    A model may answer "uncertain", which the campaign records as calling no
+    defect. Counting that as a correct pass on a clean bead flattered the models
+    that refuse most; counting it as a miss on a faulty bead punished them for
+    honesty. So a declined bead is scored in neither column. Accuracy is over the
+    beads the model judged, and how many it judged is reported beside it.
+    """
+    judged = [r for r in rows if r.get("verdict") != "uncertain"]
+    declined = len(rows) - len(judged)
+    clean = [r for r in judged if r["injected"] == "none"]
+    faulty = [r for r in judged if r["injected"] != "none"]
+    called_any = {r["called"] for r in judged}
     return {
         "model": registry.display(label),
         "n": len(rows),
-        "named_correct": sum(1 for r in rows if r["correct"]),
-        "binary_correct": sum(1 for r in rows
+        "judged": len(judged),
+        "declined": declined,
+        "named_correct": sum(1 for r in judged if r["correct"]),
+        "binary_correct": sum(1 for r in judged
                               if (r["injected"] == "none") == (r["called"] == "none")),
         "false_alarms": sum(1 for r in clean if r["called"] != "none"),
         "missed": sum(1 for r in faulty if r["called"] == "none"),
         "clean": len(clean),
         "faulty": len(faulty),
         "defects_named": len(called_any - {"none"}),
-        "never_says_defect": called_any == {"none"},
+        "never_says_defect": bool(judged) and called_any == {"none"},
+        "retried_with_room": sum(1 for r in rows if r.get("retried_with_room")),
         "median_latency_ms": _median([r.get("latency_ms") for r in rows]),
     }
 
 
 def vision_study() -> dict[str, Any]:
-    """Both vision models the account serves, on the same fifty beads.
+    """Every model that will take an image, on the same fifty beads.
 
-    Worth its own study because the two scores are nearly identical and mean
-    opposite things. One of them reaches that score by naming defects and getting
-    some of them wrong; the other reaches it by never once using the word. A
-    single accuracy figure cannot tell those apart, which is the argument for
-    scoring the two kinds of mistake separately everywhere else on this dashboard.
+    The files are found rather than listed, so a model scored later is in the
+    comparison the moment its run finishes; each carries the model it was run
+    with. Gemma stays first because it is the one the cell uses. The rest are
+    in order of how many beads they were willing to judge, which turns out to
+    be the column that separates them.
     """
     arms = []
-    for _, (name, label) in VISION_RUNS.items():
-        rows = _read(name)
-        if rows:
-            arms.append(_score_inspection(rows, label))
+    for path in sorted(DATA_DIR.glob("inspections*.jsonl")):
+        rows = _read(path.name)
+        if rows and "injected" in rows[0]:
+            arms.append(_score_inspection(rows, rows[0].get("model", path.stem)))
     if not arms:
         return {"available": False}
-    return {"available": True, "arms": arms}
+    cell = nebius_vision_label()
+    arms.sort(key=lambda a: (a["model"] != cell, -a["judged"], -a["named_correct"]))
+    return {"available": True, "arms": arms, "cell_model": cell}
+
+
+def nebius_vision_label() -> str:
+    return registry.display("google/gemma-3-27b-it")
+
+
+def vision_field_study() -> dict[str, Any]:
+    """Which of the account's models will take an image at all.
+
+    One clean bead and one with a hole burnt through it, through the real
+    inspection path, for every model the key can call. The platform refuses the
+    image outright for most of them. Of those that accept it, some judge, some
+    say they cannot tell from a rendering, and that split is what decides which
+    are worth the fifty-bead run above.
+    """
+    rows = _read("vision_field.jsonl")
+    if not rows:
+        return {"available": False}
+    models = []
+    for r in rows:
+        clean, defect = r.get("clean", {}), r.get("defect", {})
+        if "error" in clean and "error" in defect:
+            outcome = "refused" if clean["error"] == "no image input" else "error"
+        else:
+            verdicts = {clean.get("verdict"), defect.get("verdict")}
+            outcome = "declined" if verdicts <= {"uncertain", None} else "judged"
+        models.append({
+            "model": registry.display(r["model"]),
+            "raw_model": r["model"],
+            "outcome": outcome,
+            "clean": clean.get("called") or clean.get("error"),
+            "defect": defect.get("called") or defect.get("error"),
+            "seconds": r.get("seconds"),
+        })
+    counts = {k: sum(1 for m in models if m["outcome"] == k)
+              for k in ("judged", "declined", "refused", "error")}
+    order = {"judged": 0, "declined": 1, "error": 2, "refused": 3}
+    models.sort(key=lambda m: (order[m["outcome"]], m["model"]))
+    return {"available": True, "n": len(models), "counts": counts, "models": models}
 
 
 # The sweep is run twice: once scoring the slice measurements alone, once with
@@ -781,6 +829,7 @@ def all_studies() -> dict[str, Any]:
         "drift": drift_study(),
         "inspection": inspection_study(),
         "vision": vision_study(),
+        "vision_field": vision_field_study(),
         "robustness": robustness_study(),
         "compensation": compensation_study(),
         "confound": confound_study(),

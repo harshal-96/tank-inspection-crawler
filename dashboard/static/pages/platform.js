@@ -62,7 +62,7 @@ const ROWS = [
     platform: "Nebius Token Factory",
     model: "google/gemma-3-27b-it",
     cadence: "once per part",
-    why: "one of two vision models the account serves, and the only one that will say the word defect",
+    why: "of the models on the account that will take a picture, the only one that judged all fifty beads and named defects",
     tone: "",
   },
   {

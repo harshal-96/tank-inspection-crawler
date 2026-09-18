@@ -56,12 +56,21 @@ export function render() {
       </div>
 
       <div class="card w12">
-        <header><h2>Two vision models on the same fifty beads</h2></header>
-        <div class="hint">The account serves two models that can see. On these fifty beads they
-          name the same number of defects correctly. The same number means very different things for each of them, which is why a
-          single accuracy figure should never be quoted on its own.</div>
+        <header><h2>Every model that will look at a bead, on the same fifty beads</h2></header>
+        <div class="hint">Each model that accepts a picture was given the same fifty photos and the
+          same question. A model may also refuse to judge a bead, which is neither right nor wrong:
+          it is a part someone has to go and look at. Those are the grey squares.</div>
         <div id="in-vision"></div>
         <footer id="in-vision-meta"></footer>
+      </div>
+
+      <div class="card w12">
+        <header><h2>Why the inspector is not a frontier model</h2></header>
+        <div class="hint">Every model the account serves was sent one clean bead and one with a
+          hole burnt through it, along the real inspection path. Most refuse the picture before
+          any model runs. This table is the whole field; the comparison above is the models that
+          got past it.</div>
+        <div id="in-field"></div>
       </div>
 
       <div class="card w12">
@@ -92,6 +101,7 @@ export async function mount() {
   errors();
   classes();
   vision();
+  field();
   V.$("in-filter").querySelectorAll("button").forEach((b) => {
     b.onclick = () => {
       filter = b.dataset.f;
@@ -242,20 +252,23 @@ function vision() {
   const h = arms.length * rowH + 44;
   const track = w - padL - padR;
   let out = V.axisTitle(padL, 16, "fifty beads: clean called clean, defect caught, "
-                                  + "false alarm, missed");
+                                  + "false alarm, missed, declined to judge");
 
   arms.forEach((a, i) => {
     const y = 34 + i * rowH;
+    const isCell = a.model === ev.vision.cell_model;
     out += `<text x="${padL - 12}" y="${y + 13}" text-anchor="end" font-size="12"
-      fill="var(--text-primary)" font-family="var(--sans)">${V.esc(a.model.split("/").pop())}</text>`;
+      fill="var(--text-primary)" font-family="var(--sans)"
+      font-weight="${isCell ? 700 : 400}">${V.esc(a.model)}${isCell ? " ●" : ""}</text>`;
     out += `<text x="${padL - 12}" y="${y + 29}" text-anchor="end" font-size="10.5"
-      fill="var(--text-muted)" font-family="var(--sans)">${a.named_correct}/${a.n} named correctly</text>`;
+      fill="var(--text-muted)" font-family="var(--sans)">${a.named_correct} right of the ${a.judged} it judged</text>`;
 
     const segments = [
       { n: a.clean - a.false_alarms, colour: "var(--good)", what: "clean, called clean" },
       { n: a.faulty - a.missed, colour: "var(--series-1)", what: "defect, caught" },
       { n: a.false_alarms, colour: "var(--warning)", what: "false alarm, a good part scrapped" },
       { n: a.missed, colour: "var(--critical)", what: "missed, a bad part shipped" },
+      { n: a.declined, colour: "var(--band)", what: "declined to judge, a part someone must look at" },
     ];
     let x = padL;
     segments.forEach((seg) => {
@@ -265,30 +278,75 @@ function vision() {
           fill="${seg.colour}" opacity=".9"
           data-tip="<b>${seg.n}</b> of ${a.n}: ${V.esc(seg.what)}"/>`;
         if (sw > 34) out += `<text x="${x + sw / 2}" y="${y + 16}" text-anchor="middle"
-          font-size="11" fill="#0b0e13" font-weight="600">${seg.n}</text>`;
+          font-size="11" fill="${seg.colour === "var(--band)" ? "var(--text-primary)" : "#0b0e13"}"
+          font-weight="600">${seg.n}</text>`;
         x += sw;
       }
     });
-    const verdict = a.never_says_defect
-      ? "never once used the word defect"
-      : `named ${a.defects_named} different defect types`;
+    const verdict = a.judged === 0 ? "judged nothing"
+      : a.never_says_defect ? "never once used the word defect"
+      : `named ${a.defects_named} different defect type${a.defects_named === 1 ? "" : "s"}`;
     out += `<text x="${padL}" y="${y + 44}" font-size="11" fill="var(--text-muted)"
       font-family="var(--sans)">${V.esc(verdict)} · median
-      ${V.fmt(a.median_latency_ms, 0)} ms</text>`;
+      ${V.fmt(a.median_latency_ms / 1000, 1)} s per bead</text>`;
   });
   V.paint(host, V.svg(w, h, out));
 
-  const quiet = arms.find((a) => a.never_says_defect);
-  const working = arms.find((a) => !a.never_says_defect);
-  if (quiet && working) {
-    V.$("in-vision-meta").innerHTML =
-      `Both models name <b>${quiet.named_correct}</b> of ${quiet.n} correctly.
-       <b>${V.esc(quiet.model.split("/").pop())}</b> gets there by calling every bead a pass:
-       zero false alarms, and <b>${quiet.missed}</b> bad parts shipped. It is faster and it is
-       useless. <b>${V.esc(working.model.split("/").pop())}</b> gets there by looking, at
-       <b>${working.false_alarms}</b> false alarms and <b>${working.missed}</b> misses.
-       Same score, opposite behaviour.`;
+  const cell = arms.find((a) => a.model === ev.vision.cell_model) || arms[0];
+  const quiet = arms.find((a) => a !== cell && a.never_says_defect && a.judged === a.n);
+  // The nearest rival is the one that got the most right while declining some.
+  const shy = arms.filter((a) => a !== cell && a.declined > 0)
+    .sort((p, q) => q.named_correct - p.named_correct)[0];
+  const parts = [`<b>${V.esc(cell.model)}</b> is the one the cell uses: it judged every bead,
+    named <b>${cell.named_correct}</b> of ${cell.n} right, with <b>${cell.false_alarms}</b> false
+    alarms and <b>${cell.missed}</b> misses.`];
+  if (quiet) parts.push(`<b>${V.esc(quiet.model)}</b> reaches ${quiet.named_correct} of
+    ${quiet.n} by calling every bead a pass, and ships <b>${quiet.missed}</b> bad parts.`);
+  if (shy) parts.push(`<b>${V.esc(shy.model)}</b> got ${shy.named_correct} right, but only of
+    the ${shy.judged} it would judge: it declined <b>${shy.declined}</b> beads, missed
+    <b>${shy.missed}</b>, and took ${V.fmt(shy.median_latency_ms / 1000, 0)} seconds a bead.
+    A declined bead is a part someone has to go and look at.`);
+  V.$("in-vision-meta").innerHTML = parts.join(" ");
+}
+
+function field() {
+  const host = V.$("in-field");
+  const f = ev.vision_field;
+  if (!host) return;
+  if (!f || !f.available) {
+    host.innerHTML = `<div class="empty">The account has not been probed yet:
+      <code>python scripts/probe_vision_field.py</code></div>`;
+    return;
   }
+  const say = {
+    judged: ["judged both beads", "var(--good)"],
+    declined: ["took the picture, would not judge a rendering", "var(--warning)"],
+    error: ["failed", "var(--critical)"],
+    refused: ["refuses any picture", "var(--text-muted)"],
+  };
+  const c = f.counts;
+  const rows = f.models.map((m) => {
+    const [label, colour] = say[m.outcome];
+    return `<tr>
+      <td><span class="dot" style="display:inline-block;margin-right:7px;background:${colour}"></span>${V.esc(m.raw_model)}</td>
+      <td>${label}</td>
+      <td class="num">${m.outcome === "refused" ? "" : V.esc(m.clean)}</td>
+      <td class="num">${m.outcome === "refused" ? "" : V.esc(m.defect)}</td>
+      <td class="num">${V.fmt(m.seconds, 1)}</td>
+    </tr>`;
+  }).join("");
+  host.innerHTML = `
+    <div class="kv" style="margin-bottom:10px">
+      <span><b>${f.n}</b> <span class="k">models on the account</span></span><span class="sep"></span>
+      <span><b>${c.refused}</b> <span class="k">refuse a picture</span></span><span class="sep"></span>
+      <span><b>${c.declined}</b> <span class="k">take it, will not judge</span></span><span class="sep"></span>
+      <span><b>${c.judged}</b> <span class="k">judge it</span></span>
+    </div>
+    <table class="plain">
+      <thead><tr><th>Model</th><th>What happened</th><th>Clean bead</th>
+        <th>Burnt-through bead</th><th>seconds</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
 }
 
 function cases() {

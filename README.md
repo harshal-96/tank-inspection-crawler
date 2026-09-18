@@ -198,25 +198,54 @@ Four NVIDIA Nemotron sizes are served on Token Factory and this project uses thr
 them, for different jobs, because measuring them showed they are not interchangeable.
 Nothing in this table is aspirational.
 
-The inspection model is not an NVIDIA one, and that is a constraint rather than a
-preference. Token Factory serves 24 models on this account; four are Nemotron and all
-four are text-only. Two are vision-capable and neither is NVIDIA's. Reasoning about the
-measurement, which is text, runs on Nemotron; reasoning about the photograph runs on the
-better of the two that can see.
+The inspection model is not an NVIDIA one, and it is not a frontier model either. Both
+are constraints rather than preferences. Every model the account serves was sent one
+clean bead and one with a hole burnt through it, along the real inspection path
+(`python scripts/probe_vision_field.py`, result in `data/vision_field.jsonl`):
 
-"Better" is measured, not assumed. Both were scored on the same fifty beads against the
-same injected defects, and they name the same number correctly, which is exactly why the
-comparison is worth keeping:
+<!-- vision-field:begin -->
+| What happened | Models |
+| --- | --- |
+| refuses any picture (15 of 23) | deepseek-ai/DeepSeek-V4-Pro, deepseek-ai/DeepSeek-V4-Pro-0813, nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B, nvidia/nemotron-3-super-120b-a12b, nvidia/Nemotron-3-Ultra-550b-a55b, nvidia/Nemotron-3_5-Lightning, NousResearch/Hermes-4-405B, Qwen/Qwen3-235B-A22B-Instruct-2507, Qwen/Qwen3-30B-A3B-Instruct-2507, Qwen/Qwen3.5-397B-A17B, deepseek-ai/DeepSeek-V4-Flash-0731, openai/gpt-oss-120b, zai-org/GLM-5.1, zai-org/GLM-5.2, zai-org/GLM-5.3 |
+| takes it, will not judge a rendering (2 of 23) | MiniMaxAI/MiniMax-M3, moonshotai/Kimi-K3 |
+| judges it (6 of 23) | deepseek-ai/DeepSeek-V4.1-Flash, zai-org/GLM-5.3-Flash, google/gemma-3-27b-it, moonshotai/Kimi-K2.6, openbmb/MiniCPM-V-4_5, moonshotai/Kimi-K2.7-Code |
+<!-- vision-field:end -->
 
-| | Named right | Pass/defect | False alarms | Missed | Defect types it will name |
-| --- | --- | --- | --- | --- | --- |
-| google/gemma-3-27b-it | 31 of 50 | 41 of 50 | 5 | 4 | 4 |
-| openbmb/MiniCPM-V-4_5 | 31 of 50 | 31 of 50 | 0 | **19** | **0** |
+All four Nemotron sizes and every frontier text model refuse the picture before any
+model runs. Reasoning about the measurement, which is text, therefore runs on Nemotron;
+reasoning about the photograph runs on the best of the models that will look at it.
 
-MiniCPM reaches the same headline score by calling every bead a pass. It never once
-uses the word defect, so it raises no false alarms and ships nineteen bad parts. It is
-also three times faster. A single accuracy figure cannot tell those two models apart,
-which is why every score in this repository is reported as two numbers.
+"Best" is measured. Every model that would take the picture was then given the same
+fifty beads and the same question. A model may answer that it cannot judge a bead, and
+that is scored in its own column rather than as right or wrong, because on a shop floor
+a declined bead is a part someone has to go and look at:
+
+<!-- vision-beads:begin -->
+| | Beads judged | Named right | Pass/defect right | False alarms | Missed | Declined | Defect types named | Median time |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| **Gemma 3 27B** | 50 of 50 | 31 | 41 | 5 | 4 | 0 | 4 | 2.1 s |
+| MiniCPM-V 4.5 | 50 of 50 | 31 | 31 | 0 | 19 | 0 | 0 | 1.8 s |
+| Kimi K2.6 | 40 of 50 | 31 | 33 | 0 | 7 | 10 | 1 | 11.2 s |
+| DeepSeek V4.1 Flash | 26 of 50 | 17 | 25 | 0 | 1 | 24 | 3 | 5.5 s |
+| GLM-5.3 Flash | 21 of 50 | 12 | 19 | 0 | 2 | 29 | 3 | 12.1 s |
+| MiniMax-M3 | 1 of 50 | 1 | 1 | 0 | 0 | 49 | 0 | 3.0 s |
+<!-- vision-beads:end -->
+
+Gemma judged every bead and named the most defect types. MiniCPM reaches the same
+headline score by calling every bead a pass: it never once uses the word defect, so it
+raises no false alarms and ships nineteen bad parts. Kimi K2.6 also names 31 right, but
+only over the forty beads it would judge, and it needed a 3000-token reasoning budget
+and five times Gemma's time to do it. DeepSeek V4.1 Flash is the most accurate of all
+when it commits, 25 of 26 on pass or defect, and it commits on barely half the beads.
+GLM and MiniMax mostly decline, saying the bead is a rendering. A single accuracy figure
+cannot tell these apart, which is why every score in this repository is reported as more
+than one number.
+
+One thing the comparison had to be fair about: a reasoning model spends its output
+budget thinking before it answers, and under the 400 tokens the inspector sends it came
+back with nothing, which the parser scored as a wrong verdict. So a reply that did not
+parse and spent its budget reasoning is sent once more with room. The prompt, the
+pictures and the scoring never change per model; only the envelope does.
 
 Cosmos is not served on Token Factory at all. Reaching Cosmos Reason or Cosmos Transfer
 means self-hosting on Nebius AI Cloud, which is a different platform and a larger piece
@@ -781,8 +810,13 @@ python scripts/eval_router_truth.py --campaign data/campaign50.jsonl
 python scripts/eval_drift.py --parts 30 --runs 4
 python scripts/draw_result_chart.py --campaign data/seam_campaign.jsonl
 
-# the second vision model, on the same beads
+# every other model that will take a picture, on the same beads
+python scripts/probe_vision_field.py
 python scripts/run_inspection.py --no-post --model openbmb/MiniCPM-V-4_5 --out data/inspections_minicpm.jsonl
+python scripts/run_inspection.py --no-post --model moonshotai/Kimi-K2.6 --out data/inspections_kimi.jsonl
+python scripts/run_inspection.py --no-post --model zai-org/GLM-5.3-Flash --out data/inspections_glm.jsonl
+python scripts/run_inspection.py --no-post --model MiniMaxAI/MiniMax-M3 --out data/inspections_minimax.jsonl
+python scripts/run_inspection.py --no-post --model deepseek-ai/DeepSeek-V4.1-Flash --out data/inspections_deepseek.jsonl
 
 # train the shift diagnosis, then score it on the cell's own GPU
 python scripts/make_drift_dataset.py --train 600 --val 80

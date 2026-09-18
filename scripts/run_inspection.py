@@ -75,9 +75,13 @@ def main() -> int:
             "reasoning": result.reasoning,
             "model": result.model,
             "latency_ms": result.latency_ms,
+            # A reasoning model that spent its first budget thinking was asked
+            # again with room. Recorded so the report can say which arm needed it.
+            "retried_with_room": bool(result.extra.get("retried_with_room")),
         })
+        room = " *" if result.extra.get("retried_with_room") else ""
         print(f"{row['trial']:>5} {injected:>14} {result.verdict.value:>9} "
-              f"{called:>14} {'yes' if correct else 'NO':>4} {result.latency_ms:>6.0f}")
+              f"{called:>14} {'yes' if correct else 'NO':>4} {result.latency_ms:>6.0f}{room}")
 
         if client is not None:
             serial = client.create_part(serial=f"P-{row['trial']:06d}")

@@ -90,8 +90,9 @@ FIELD = (
           "undisclosed", "Boundary test only", "DeepSeek",
           aliases=("DeepSeek-V4-Pro",)),
     Model("deepseek_flash", "deepseek-ai/DeepSeek-V4.1-Flash", "DeepSeek V4.1 Flash",
-          "undisclosed", "Boundary test only", "DeepSeek",
-          aliases=("DeepSeek-V4.1-Flash",)),
+          "undisclosed",
+          "Boundary test; also judged 26 of 50 beads, 25 of them right on pass or defect",
+          "DeepSeek", aliases=("DeepSeek-V4.1-Flash",)),
     Model("qwen397", "Qwen/Qwen3.5-397B-A17B", "Qwen3.5 397B", "397B-A17B",
           "Boundary test only", "Alibaba",
           aliases=("Qwen3.5-397B-A17B",)),
@@ -100,7 +101,24 @@ FIELD = (
           aliases=("gpt-oss-120b",)),
 )
 
-ALL = LADDER + VISION + EDGE + FIELD
+# Every other model on the account that will take an image at all, found by
+# putting all of them through the inspection path (scripts/probe_vision_field.py)
+# and then scored on the same fifty beads as Gemma. The earlier claim that only
+# two models could see was measured on five candidates and stated as if it
+# covered the account.
+VISION_FIELD = (
+    Model("minimax", "MiniMaxAI/MiniMax-M3", "MiniMax-M3", "undisclosed",
+          "Takes the picture, declined 49 of 50 beads as a rendering", "MiniMax",
+          aliases=("MiniMax-M3",)),
+    Model("glm_flash", "zai-org/GLM-5.3-Flash", "GLM-5.3 Flash", "undisclosed",
+          "Judged 21 of 50 beads, 12 named right, declined the rest", "Zhipu",
+          aliases=("GLM-5.3-Flash",)),
+    Model("kimi", "moonshotai/Kimi-K2.6", "Kimi K2.6", "undisclosed",
+          "Judged 40 of 50 beads, 31 named right; five times Gemma's time", "Moonshot",
+          aliases=("Kimi-K2.6",)),
+)
+
+ALL = LADDER + VISION + EDGE + FIELD + VISION_FIELD
 
 _BY_LABEL: dict[str, Model] = {}
 for _m in ALL:
@@ -133,7 +151,8 @@ def display(label: object, fallback: Optional[str] = None) -> str:
 def summary() -> list[dict]:
     """Every model, in the order a reader should meet them."""
     groups = [("Routed between, per part", LADDER), ("Reads the weld bead", VISION),
-              ("Runs on the cell itself", EDGE), ("Scored on the boundary test only", FIELD)]
+              ("Runs on the cell itself", EDGE), ("Scored on the boundary test only", FIELD),
+              ("Will take an image; scored on the beads", VISION_FIELD)]
     out = []
     for group, models in groups:
         for m in models:

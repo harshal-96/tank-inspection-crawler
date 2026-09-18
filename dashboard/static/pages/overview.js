@@ -115,8 +115,9 @@ export function render() {
     <div class="grid">
       <div class="card w12">
         <header><h2>Which model won each job</h2></header>
-        <div class="hint">Twelve models were scored. They are not interchangeable and bigger is
-          not better, so each question goes to whichever one measured best on it.</div>
+        <div class="hint"><span id="ov-models-n">Every model on the account was</span> scored.
+          They are not interchangeable and bigger is not better, so each question goes to
+          whichever one measured best on it.</div>
         <div id="ov-models"></div>
       </div>
     </div>
@@ -396,6 +397,8 @@ function machines() {
 function models(ev) {
   const host = V.$("ov-models");
   if (!host) return;
+  const n = V.$("ov-models-n");
+  if (n && ev.models && ev.models.available) n.textContent = `${ev.models.n} models were`;
   const r = ev.router, v = ev.vision, h = ev.hard;
   const blocks = [];
 
@@ -411,13 +414,16 @@ function models(ev) {
         `${a.correct}/${a.n}`, String(a.n - a.correct), i === 0])]);
   }
   if (v && v.available && v.arms.length > 1) {
-    const quiet = v.arms.find((a) => a.never_says_defect) || v.arms[1];
-    const work = v.arms.find((a) => a !== quiet);
+    // Every model that will take an image, on the same fifty beads. Judged is
+    // how many beads it gave a verdict on at all; the rest it declined, and a
+    // declined bead is a part a person has to look at.
+    const f = ev.vision_field;
+    const seen = f && f.available ? `${f.counts.judged + f.counts.declined} of the ${f.n} models on the account will take a picture. ` : "";
     blocks.push(["After welding: is this bead good?",
-      "Both name the same number correctly. Only one of them is looking.",
-      ["Model", "Named right", "Bad parts shipped"],
-      [[work.model, `${work.named_correct}/${work.n}`, String(work.missed), true],
-       [quiet.model, `${quiet.named_correct}/${quiet.n}`, String(quiet.missed), false]]]);
+      seen + "Only one of them judged every bead and named defects. It is the one the cell uses.",
+      ["Model", "Beads it judged", "Named right", "Bad parts shipped"],
+      v.arms.map((a) => [a.model, `${a.judged}/${a.n}`, `${a.named_correct}/${a.judged}`,
+        String(a.missed), a.model === v.cell_model])]);
   }
   if (h && h.available) {
     const rule = h.arms.find((a) => a.label.includes("arithmetic"));
@@ -438,8 +444,8 @@ function models(ev) {
       <div class="jn">${V.esc(note)}</div>
       <table><thead><tr>${head.map((h2, i) =>
         `<th${i ? ' class="num"' : ""}>${V.esc(h2)}</th>`).join("")}</tr></thead>
-      <tbody>${rows.map(([a, b, c, win]) => `<tr${win ? ' class="won"' : ""}>
-        <td>${V.esc(a)}</td><td class="num">${V.esc(b)}</td><td class="num">${V.esc(c)}</td>
+      <tbody>${rows.map((row) => `<tr${row[row.length - 1] ? ' class="won"' : ""}>
+        ${row.slice(0, -1).map((v, i) => `<td${i ? ' class="num"' : ""}>${V.esc(v)}</td>`).join("")}
       </tr>`).join("")}</tbody></table>
     </div>`).join("")}</div>`;
 }
@@ -670,11 +676,11 @@ function studies(ev) {
       "bad", "#/diagnosis"]);
   }
   if (ev.vision && ev.vision.available && ev.vision.arms.length > 1) {
-    const quiet = ev.vision.arms.find((a) => a.never_says_defect);
-    rows.push(["Two vision models", `${ev.vision.arms.length} models × ${ev.vision.arms[0].n} beads`,
-      "the injected defect, scored the same way for both",
-      quiet ? `equal scores, ${quiet.missed} misses from the one that never says defect`
-            : "compared on the same beads",
+    const cell = ev.vision.arms.find((a) => a.model === ev.vision.cell_model) || ev.vision.arms[0];
+    rows.push(["Every model that will take a picture",
+      `${ev.vision.arms.length} models × ${ev.vision.arms[0].n} beads`,
+      "the injected defect, scored the same way for every model",
+      `only ${cell.model} judged every bead and named defects; the rest decline or never say defect`,
       "warn", "#/inspection"]);
   }
   V.$("ov-studies").innerHTML = `<table>
