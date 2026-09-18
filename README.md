@@ -499,11 +499,23 @@ models were scored on that question, and restating their numbers against a harde
 one they never saw would be exactly the sort of thing the rest of this file exists
 to avoid.
 
-The honest cost is time. The four-way model answers in about 17 s on a laptop GPU
-against roughly 1.6 s for the 120B in the cloud, because the table carries an extra
-column and the model writes out its reasoning. For a question asked once a shift on
-a machine that may have no network, that is the right side of the trade, and it is
-a different trade from the one the per-part decisions make.
+The honest cost is time: about 5.7 s on a laptop GPU against roughly 1.6 s for the
+120B in the cloud. For a question asked once a shift on a machine that may have no
+network, that is the right side of the trade, and it is a different trade from the
+one the per-part decisions make.
+
+That figure took two goes to measure. The first run reported 17 s, which was the
+measurement rather than the model: the latencies fell monotonically from 39 s to
+9 s across the run, which is a laptop GPU starting at a low clock and ramping. A
+throwaway inference before timing, which is ordinary practice for GPU benchmarking,
+brought the median to 5.7 s with the scores unchanged at 16 of 16.
+
+Worth being precise about where this runs, because it is the one part of the project
+that does not run on Nebius. The LoRA was trained on Token Factory and the base is
+pulled from Hugging Face; the merged adapter then runs on the workstation beside the
+cell. Everything it is compared against is a Token Factory API call. "Trained on
+Nebius, runs at the edge" is the accurate description, and the 16 of 16 should not be
+read as a Token Factory number.
 
 ### Reproducing all of it
 

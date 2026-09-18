@@ -142,6 +142,17 @@ def main() -> int:
 
     tokenizer, model = load(args.base, adapter)
 
+    # One throwaway inference before anything is timed. A laptop GPU starts at a
+    # low clock and ramps, so the first calls in a run are several times slower
+    # than the rest: the four-way evaluation opened at 39 s and settled at 9 s,
+    # falling monotonically, which is warm-up rather than the question being
+    # harder. Timing that and reporting the median describes the measurement
+    # rather than the model.
+    warm, _ = build_stream(args.parts, scenarios[0], 4242, reference=args.with_camera)
+    print("warming the GPU ...", end=" ", flush=True)
+    ask(tokenizer, model, warm)
+    print("ready")
+
     records = []
     print(f"\n{'scenario':>9} {'seed':>5} {'tilt slope':>11} {'shift slope':>12} "
           f"{'said':>9} {'conf':>6} {'ok':>4} {'ms':>6}")
