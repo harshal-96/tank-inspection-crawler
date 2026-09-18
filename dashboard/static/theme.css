@@ -245,6 +245,19 @@ svg text[fill] { font-family: var(--mono); }
 .legend i { width: 9px; height: 9px; border-radius: 2px; display: inline-block; flex: none; }
 .legend i.line { height: 2px; border-radius: 1px; width: 14px; }
 
+/* A row of live facts: a muted label beside the value it belongs to. Used on the
+   summary page to show the cell is running rather than only that it once ran. */
+.kv {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 10px;
+  margin-top: 12px; font-size: 13px; color: var(--text-secondary);
+}
+.kv .k { color: var(--text-muted); font-size: 11.5px; letter-spacing: .02em; }
+.kv b { color: var(--text-primary); font-weight: 600; }
+.kv .sep {
+  width: 1px; align-self: stretch; margin: 2px 8px;
+  background: var(--hair); display: inline-block;
+}
+
 /* --------------------------------------------------------------- data views */
 
 table { width: 100%; border-collapse: collapse; font-size: 12.5px; }

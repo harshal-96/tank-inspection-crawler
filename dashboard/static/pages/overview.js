@@ -1,7 +1,7 @@
 /* The headline page: what the cell claims, and the evidence for it, above the fold. */
 
 import * as V from "../viz.js";
-import { state, loadEvidence } from "../store.js";
+import { state, loadEvidence, refreshLive } from "../store.js";
 
 export const meta = {
   id: "overview",
@@ -12,6 +12,48 @@ export const meta = {
   icon: "M3 13h4l3-8 4 16 3-8h4",
 };
 
+/** Proof the thing runs, not just that it once produced a table.
+
+  A summary page can be written without a working system behind it, and a reader
+  has no way to tell from the numbers alone. This band reads the live database, so
+  it is empty until something has actually been through the cell.
+*/
+function liveBand() {
+  const host = V.$("ov-live");
+  if (!host) return;
+  const live = state.live;
+  if (!live || !state.connected || !live.parts.length) {
+    host.innerHTML = `<div class="hint" style="margin:0 0 18px">
+      Nothing has been through the cell yet. <code>python scripts/demo.py</code>
+      runs six parts through it in about three seconds.</div>`;
+    return;
+  }
+  const latest = live.parts[0];
+  const slot = live.byPart.get(latest.id) || {};
+  const seam = slot.seam;
+  const bits = [
+    ["parts through the cell", live.parts.length],
+    ["last part", V.esc(latest.serial)],
+  ];
+  if (seam && seam.error_mm != null) {
+    bits.push(["its seam, measured", `${V.fmt(seam.error_mm, 2)} mm over `
+      + `${seam.stations_measured} stations`]);
+  }
+  if (slot.inspection) {
+    bits.push(["post-weld", V.esc(slot.inspection.verdict)]);
+  }
+  host.innerHTML = `<div class="card w12" style="margin-bottom:18px">
+    <header><h2>Running now</h2>
+      <span style="flex:1"></span>
+      <a class="hint" href="#/cell" style="text-decoration:none">open the cell &rarr;</a>
+    </header>
+    <div class="hint">Read from the live database rather than from the study files, so
+      this is the cell as it stands and not a result recorded earlier.</div>
+    <div class="kv">${bits.map(([k, v]) =>
+      `<span class="k">${k}</span> <b>${v}</b>`).join("<span class='sep'></span>")}</div>
+  </div>`;
+}
+
 export function render() {
   return `
     <p class="lede">
@@ -20,6 +62,7 @@ export function render() {
       the seam lives on. These are the results of running <b>fifty parts</b> through a
       cell that looks at each one first and welds where the joint actually is.
     </p>
+    <div id="ov-live"></div>
     <div class="tiles" id="ov-tiles"></div>
 
     <div class="grid">
@@ -60,8 +103,11 @@ export function render() {
     </div>`;
 }
 
+export function update() { liveBand(); }
+
 export async function mount() {
-  const ev = await loadEvidence();
+  const [ev] = await Promise.all([loadEvidence(), refreshLive()]);
+  liveBand();
   tiles(ev);
   dumbbell(ev);
   hist(ev);
