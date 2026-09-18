@@ -314,7 +314,7 @@ def main() -> int:
                 )
                 # Which model answered is part of the answer. The sizes disagree
                 # with each other, and an operator asking why a part took four
-                # looks deserves to see the ladder rather than one opaque verdict.
+                # looks deserves to see the route rather than one opaque verdict.
                 for decision in decisions:
                     client.post_view_decision(
                         serial,

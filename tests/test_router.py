@@ -9,9 +9,8 @@ and cannot be asserted in a unit test.
 from __future__ import annotations
 
 from brain.router import (
-    LADDER,
     NANO,
-    SUPER,
+    SIZES,
     assess,
     tier_of,
 )
@@ -31,15 +30,15 @@ def look(view_deg=0.0, x=4402.0, y=-602.0, balance=0.9, angle=90.0, failed=None)
     }
 
 
-# ------------------------------------------------------------------- the ladder
+# -------------------------------------------------------------------- the sizes
 
 
-def test_the_ladder_is_all_nvidia_models():
-    assert all(model.startswith("nvidia/") for model in LADDER)
+def test_every_size_is_an_nvidia_model():
+    assert all(model.startswith("nvidia/") for model in SIZES)
 
 
-def test_every_rung_has_a_name():
-    assert {tier_of(m) for m in LADDER} == {"nano", "lightning", "super", "ultra"}
+def test_every_size_has_a_name():
+    assert {tier_of(m) for m in SIZES} == {"nano", "lightning", "super", "ultra"}
 
 
 def test_an_unknown_model_is_not_silently_given_a_tier():
@@ -73,44 +72,31 @@ def test_a_marginal_but_consistent_view_does_not_escalate():
 
 def test_no_looks_yet_still_returns_a_usable_route():
     route = assess([])
-    assert route.model in LADDER
+    assert route.model in SIZES
 
 
-# ---------------------------------------------------------------- what escalates
+# ------------------------------------------------------ nothing escalates any more
 
 
-def test_a_refused_view_plus_real_disagreement_escalates():
+def test_a_refused_view_plus_disagreement_still_goes_to_the_smallest_model():
+    """The 120B scores worst on this question, so sending hard evidence to it
+    would cost robot moves. The route records the refusal instead."""
     route = assess([
         look(0.0),
         look(22.5, x=4460.0, y=-518.0),
         look(-45.0, failed="not the two faces of the weld"),
     ])
-    assert route.model == SUPER
-    assert route.difficulty == "conflicting"
+    assert route.model == NANO
+    assert "1 refused" in route.describe()
 
 
-def test_two_refused_views_escalate():
+def test_two_refused_views_still_go_to_the_smallest_model():
     route = assess([
         look(0.0, failed="one face only"),
         look(22.5, failed="not the two faces of the weld"),
     ])
-    assert route.model == SUPER
-
-
-def test_a_single_refusal_with_the_rest_agreeing_does_not_escalate():
-    """One thrown-out view among views that agree is the ordinary case, and the
-    median fusion has already dealt with it."""
-    route = assess([
-        look(0.0),
-        look(22.5, x=4402.3),
-        look(-45.0, failed="one face only"),
-    ])
     assert route.model == NANO
-
-
-def test_disagreement_without_a_refusal_does_not_escalate():
-    route = assess([look(0.0), look(22.5, x=4460.0, y=-518.0)])
-    assert route.model == NANO
+    assert "2 refused" in route.describe()
 
 
 # ------------------------------------------------------------------ the record

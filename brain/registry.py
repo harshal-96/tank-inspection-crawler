@@ -33,8 +33,8 @@ class Model:
     aliases: tuple[str, ...] = field(default_factory=tuple)
 
 
-# The four sizes the cell routes between, smallest first. Order is the ladder.
-LADDER = (
+# The four sizes scored on the per-part question, smallest first. The smallest runs.
+SIZES = (
     Model("nano", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
           "Nemotron 3 Nano 30B", "30B-A3B",
           "Every per-part decision: is this measurement good enough to weld on",
@@ -120,7 +120,7 @@ VISION_FIELD = (
           aliases=("Kimi-K2.6",)),
 )
 
-ALL = LADDER + VISION + EDGE + FIELD + VISION_FIELD
+ALL = SIZES + VISION + EDGE + FIELD + VISION_FIELD
 
 _BY_LABEL: dict[str, Model] = {}
 for _m in ALL:
@@ -152,7 +152,7 @@ def display(label: object, fallback: Optional[str] = None) -> str:
 
 def summary() -> list[dict]:
     """Every model, in the order a reader should meet them."""
-    groups = [("Routed between, per part", LADDER), ("Reads the weld bead", VISION),
+    groups = [("Scored per part; the smallest one runs", SIZES), ("Reads the weld bead", VISION),
               ("Runs on the cell itself", EDGE), ("Scored on the boundary test only", FIELD),
               ("Will take an image; scored on the beads", VISION_FIELD)]
     out = []

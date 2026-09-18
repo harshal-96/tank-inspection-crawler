@@ -244,7 +244,7 @@ function spread() {
      which scores <b>4/12</b> whether or not anything was read. The distribution, not the score, is what shows that. It is why the shift-level question is routed up.`;
 }
 
-/** The cloud ladder and the trained edge model on one axis. */
+/** The cloud sizes and the trained edge model on one axis. */
 function edge() {
   const host = V.$("dg-edge");
   const runs = ev.drift.edge || [];

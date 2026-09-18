@@ -481,10 +481,10 @@ function novelty(ev) {
       ? V.pct((ultra.total_latency_s - routed.total_latency_s) / ultra.total_latency_s, 0)
       : null;
     items.push(["Routing by how often a question is asked",
-      "Not a ladder that escalates when unsure, which pays for the biggest model on exactly "
-      + "the slowest cases. The per-part question goes to the smallest model because it is "
-      + "the cheapest of the sizes that measured right on it. The once-a-shift question can "
-      + "afford a large one.",
+      "Nothing escalates to a bigger model when the evidence is hard, because the bigger "
+      + "model was measured to be no better at this question and the biggest of them is "
+      + "worse. The per-part question goes to the smallest model, the cheapest of the sizes "
+      + "that scored right on it. The once-a-shift question can afford a large one.",
       routed ? `${routed.correct}/${routed.n} right`
                + (saved ? `, ${saved} less model time than the largest` : "")
              : "measured, not assumed"]);

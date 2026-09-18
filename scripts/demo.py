@@ -102,7 +102,7 @@ def main() -> int:
         return 1
 
     if keyed:
-        run("Deciding whether each look can be trusted, through the model ladder",
+        run("Deciding whether each look can be trusted, through the view planner",
             ["scripts/run_campaign.py", "--manifest", args.manifest,
              "--api", args.api, "--routed", "--out", f"{OUT}/campaign.jsonl"])
         run("Judging the finished bead",

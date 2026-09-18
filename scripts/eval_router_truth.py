@@ -37,7 +37,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np  # noqa: E402
 
-from brain.router import LADDER, assess, tier_of  # noqa: E402
+from brain.router import SIZES, assess, tier_of  # noqa: E402
 from brain.viewplanner import plan_next_view  # noqa: E402
 from scripts.run_campaign import load_context, take_look  # noqa: E402
 
@@ -205,7 +205,7 @@ def main() -> int:
     if args.limit:
         points = points[: args.limit]
 
-    arms = {tier_of(m): m for m in LADDER}
+    arms = {tier_of(m): m for m in SIZES}
     arms["routed"] = None
 
     print(f"{len(points)} decision points where ground truth can settle the call")

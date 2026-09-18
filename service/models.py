@@ -186,7 +186,7 @@ class ViewDecisionLog(SQLModel, table=True):
 
     Kept because which model answered is part of the answer. The sizes disagree,
     the smallest is the one that is right about this decision, and an operator
-    asking why a part took four looks deserves to see the ladder rather than a
+    asking why a part took four looks deserves to see the route rather than a
     single opaque verdict.
     """
 

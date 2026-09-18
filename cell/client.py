@@ -213,7 +213,7 @@ class CellClient:
         """Send one look-and-judge decision, and which model size made it.
 
         Which model answered is part of the answer: the sizes disagree, and an
-        operator asking why a part took four looks deserves to see the ladder.
+        operator asking why a part took four looks deserves to see the route.
         """
         return self._post("/api/view-decisions", {"part_serial": part_serial, **fields})
 

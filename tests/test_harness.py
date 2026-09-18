@@ -177,3 +177,16 @@ def test_the_supervisor_states_the_limits_the_cell_uses():
 
     wanted = f"Under {WELDABLE_MM:g} mm is good. Over {PROBLEM_MM:g} mm is a problem."
     assert wanted in SYSTEM_PROMPT
+
+
+def test_a_figure_the_cited_source_does_not_contain_is_flagged():
+    sources = [{"n": "1", "title": "t", "url": "u"}]
+    texts = {1: "The clause allows a root gap of up to 3 mm on 2 mm sheet."}
+    fine = advisor.Brief(topic="gap", query="q", confidence="high", sources=sources,
+                         what_the_sources_say="The clause allows up to 3 mm [1].")
+    assert advisor.check_citations(fine, texts).citations_ok
+
+    invented = advisor.Brief(topic="gap", query="q", confidence="high", sources=sources,
+                             what_the_sources_say="The clause allows up to 4.5 mm [1].")
+    advisor.check_citations(invented, texts)
+    assert not invented.citations_ok and "4.5" in invented.caveat

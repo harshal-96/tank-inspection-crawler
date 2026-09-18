@@ -278,8 +278,10 @@ of work. It is the obvious next step and no result from it is claimed here.
 
 ### One model size does not fit one cell
 
-The obvious architecture is a ladder: a cheap model on routine calls, a large one when
-the evidence conflicts. That is what was built, and measuring it took it apart.
+The obvious architecture escalates: a cheap model on routine calls, a large one when
+the evidence conflicts. That is what was built first, and measuring it took it apart;
+nothing escalates now, because the larger sizes were measured to be no better at this
+question and the 120B is worse.
 
 Scored against ground truth rather than against the largest model's opinion, on 89
 decision points where the simulation knows the answer, under the prompt the cell runs:

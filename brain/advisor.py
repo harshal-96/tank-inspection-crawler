@@ -90,20 +90,37 @@ class Brief:
 
 
 _CITATION = re.compile(r"\[(\d+)\]")
+_NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?![\w])")
 
 
-def check_citations(brief: "Brief") -> "Brief":
-    """Mark a brief whose sources paragraph cannot be traced to a given source."""
+def check_citations(brief: "Brief", texts: Optional[dict[int, str]] = None) -> "Brief":
+    """Mark a brief whose sources paragraph cannot be traced to a given source.
+
+    Two checks. Every claim must carry a citation to a source that was given.
+    And, when the source texts are in hand, every figure in the paragraph must
+    appear in the text of a cited source, because a figure with a bracket after
+    it that the source does not contain is an invented number wearing a badge.
+    """
     text = brief.what_the_sources_say
     if not text:
         return brief
     cited = {int(n) for n in _CITATION.findall(text)}
     valid = set(range(1, len(brief.sources) + 1))
+    problems: list[str] = []
     if not cited or not cited <= valid:
+        problems.append("a missing or invalid citation")
+    if texts and cited:
+        pool = " ".join(texts.get(n, "") for n in cited if n in valid)
+        pool = pool.replace(",", "")
+        figures = _NUMBER.findall(_CITATION.sub("", text))
+        missing = sorted({f for f in figures if f.replace(",", "") not in pool})
+        if missing:
+            problems.append("figures the cited sources do not contain: " + ", ".join(missing))
+    if problems:
         brief.citations_ok = False
         brief.confidence = "low"
-        note = ("The sources paragraph carries a missing or invalid citation; check it "
-                "against the numbered sources before acting on it.")
+        note = ("The sources paragraph carries " + " and ".join(problems)
+                + "; check it against the numbered sources before acting on it.")
         brief.caveat = f"{brief.caveat} {note}".strip()
     return brief
 
@@ -185,8 +202,10 @@ def write_brief(topic: str, query: str, measured: str,
     brief.documents_read = len(documents)
 
     blocks = []
+    texts: dict[int, str] = {}
     for i, source in enumerate(found.sources, start=1):
         body = documents.get(source.url) or source.snippet
+        texts[i] = body
         blocks.append(f"[{i}] {source.title}\n{source.url}\n{body}")
     corpus = "\n\n".join(blocks)
 
@@ -228,7 +247,7 @@ def write_brief(topic: str, query: str, measured: str,
     brief.do_now = [str(s).strip() for s in steps if str(s).strip()][:5]
     brief.confidence = str(data.get("confidence") or "low").strip().lower()
     brief.caveat = str(data.get("caveat") or "").strip()
-    check_citations(brief)
+    check_citations(brief, texts)
     brief.total_ms = round((time.perf_counter() - started) * 1000, 1)
     return brief
 
