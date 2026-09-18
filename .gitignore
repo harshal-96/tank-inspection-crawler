@@ -84,3 +84,8 @@ data/finetune/adapter/
 data/finetune/drift_train.jsonl
 data/finetune/drift_val.jsonl
 data/cap150/
+data/cap50v3/
+data/cap100v3/
+data/cap150v3/
+data/cap_check/
+data/render_v3.log
