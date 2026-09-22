@@ -50,13 +50,15 @@ def run_file(path: Path, timeout: float = 180.0) -> dict:
     """
     target = path.resolve().as_posix()
     code = (
-        "import traceback\n"
+        "import sys, traceback\n"
         f"path = r'{target}'\n"
         "try:\n"
         "    exec(compile(open(path, encoding='utf-8').read(), path, 'exec'), "
         "{'__name__': '__main__', '__file__': path})\n"
         "except Exception:\n"
-        "    traceback.print_exc()\n"
+        # The addon returns stdout only, so a traceback on stderr comes back as an
+        # empty result and a script that died looks like one that did nothing.
+        "    traceback.print_exc(file=sys.stdout)\n"
     )
     return run_code(code, timeout=timeout)
 

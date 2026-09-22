@@ -521,6 +521,141 @@
    "id": "D001",
    "kind": "undercut",
    "seam": "C2",
+   "theta_rad": -0.111,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9305,
+    -1.1068,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   },
+   "length_mm": 420.0,
+   "depth_mm": 1.7,
+   "arc_from": -0.132,
+   "arc_to": -0.09,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D002",
+   "kind": "porosity",
+   "seam": "C2",
+   "theta_rad": -0.044,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9823,
+    -0.4395,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   },
+   "count": 7,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D003",
+   "kind": "crack",
+   "seam": "C2",
+   "theta_rad": 0.04,
+   "z_m": 4.0,
+   "centre_m": [
+    9.984,
+    0.3996,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any crack is rejectable"
+   },
+   "length_mm": 64.0,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D004",
+   "kind": "lack_of_fusion",
+   "seam": "C2",
+   "theta_rad": 0.1295,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9083,
+    1.2904,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   },
+   "length_mm": 110.0,
+   "arc_from": 0.124,
+   "arc_to": 0.135,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D005",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.088,
+   "z_m": 4.34,
+   "centre_m": [
+    9.9533,
+    -0.8782,
+    4.34
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 3.1,
+   "nominal_mm": 10.0,
+   "remaining_mm": 6.9,
+   "remaining_fraction": 0.69,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D006",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.08,
+   "z_m": 3.59,
+   "centre_m": [
+    9.96,
+    0.7985,
+    3.59
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 5.6,
+   "nominal_mm": 11.0,
+   "remaining_mm": 5.4,
+   "remaining_fraction": 0.491,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D007",
+   "kind": "undercut",
+   "seam": "C2",
    "theta_rad": 5.97192,
    "z_m": 4.0,
    "centre_m": [
@@ -528,6 +663,7 @@
     -3.0602,
     4.0
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_mm": 0.8,
     "measure": "depth below the plate surface"
@@ -540,7 +676,7 @@
    "visible": true
   },
   {
-   "id": "D002",
+   "id": "D008",
    "kind": "undercut",
    "seam": "C4",
    "theta_rad": 0.61122,
@@ -550,6 +686,7 @@
     5.7341,
     8.0
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_mm": 0.8,
     "measure": "depth below the plate surface"
@@ -562,7 +699,7 @@
    "visible": true
   },
   {
-   "id": "D003",
+   "id": "D009",
    "kind": "undercut",
    "seam": "C1",
    "theta_rad": 0.25261,
@@ -572,6 +709,7 @@
     2.4974,
     2.0
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_mm": 0.8,
     "measure": "depth below the plate surface"
@@ -584,76 +722,17 @@
    "visible": true
   },
   {
-   "id": "D004",
-   "kind": "undercut",
-   "seam": "CHIME",
-   "theta_rad": 3.47243,
-   "z_m": 0.008,
-   "centre_m": [
-    -9.4502,
-    -3.2457,
-    0.008
-   ],
-   "acceptance": {
-    "limit_mm": 0.8,
-    "measure": "depth below the plate surface"
-   },
-   "length_mm": 201.9,
-   "depth_mm": 1.52,
-   "arc_from": 3.462332,
-   "arc_to": 3.482519,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D005",
+   "id": "D010",
    "kind": "porosity",
-   "seam": "V1_0",
-   "theta_rad": 0.3927,
-   "z_m": 3.1959,
+   "seam": "C5",
+   "theta_rad": 3.46233,
+   "z_m": 10.0,
    "centre_m": [
-    9.2314,
-    3.8238,
-    3.1959
+    -9.4824,
+    -3.1502,
+    10.0
    ],
-   "acceptance": {
-    "limit_count": 4,
-    "measure": "pores in any 100 mm of bead"
-   },
-   "count": 9,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D006",
-   "kind": "porosity",
-   "seam": "C3",
-   "theta_rad": 3.62604,
-   "z_m": 6.0,
-   "centre_m": [
-    -8.8422,
-    -4.6535,
-    6.0
-   ],
-   "acceptance": {
-    "limit_count": 4,
-    "measure": "pores in any 100 mm of bead"
-   },
-   "count": 8,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D007",
-   "kind": "porosity",
-   "seam": "C3",
-   "theta_rad": 6.13399,
-   "z_m": 6.0,
-   "centre_m": [
-    9.881,
-    -1.4852,
-    6.0
-   ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_count": 4,
     "measure": "pores in any 100 mm of bead"
@@ -663,278 +742,241 @@
    "visible": true
   },
   {
-   "id": "D008",
+   "id": "D011",
    "kind": "porosity",
-   "seam": "V3_5",
-   "theta_rad": 4.31969,
-   "z_m": 7.5377,
+   "seam": "V5_6",
+   "theta_rad": 5.10509,
+   "z_m": 11.0982,
    "centre_m": [
-    -3.8238,
+    3.8238,
     -9.2314,
-    7.5377
+    11.0982
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_count": 4,
     "measure": "pores in any 100 mm of bead"
    },
-   "count": 7,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D009",
-   "kind": "crack",
-   "seam": "C3",
-   "theta_rad": 0.90638,
-   "z_m": 6.0,
-   "centre_m": [
-    6.1611,
-    7.8665,
-    6.0
-   ],
-   "acceptance": {
-    "limit_mm": 0.0,
-    "measure": "any crack is rejectable"
-   },
-   "length_mm": 29.4,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D010",
-   "kind": "crack",
-   "seam": "C2",
-   "theta_rad": 3.5202,
-   "z_m": 4.0,
-   "centre_m": [
-    -9.2844,
-    -3.6933,
-    4.0
-   ],
-   "acceptance": {
-    "limit_mm": 0.0,
-    "measure": "any crack is rejectable"
-   },
-   "length_mm": 65.0,
-   "rejectable": true,
-   "visible": true
-  },
-  {
-   "id": "D011",
-   "kind": "crack",
-   "seam": "CHIME",
-   "theta_rad": 3.6543,
-   "z_m": 0.008,
-   "centre_m": [
-    -8.7072,
-    -4.9015,
-    0.008
-   ],
-   "acceptance": {
-    "limit_mm": 0.0,
-    "measure": "any crack is rejectable"
-   },
-   "length_mm": 62.3,
+   "count": 6,
    "rejectable": true,
    "visible": true
   },
   {
    "id": "D012",
-   "kind": "lack_of_fusion",
-   "seam": "V2_7",
-   "theta_rad": 5.49779,
-   "z_m": 4.4767,
+   "kind": "porosity",
+   "seam": "V4_2",
+   "theta_rad": 1.5708,
+   "z_m": 9.1911,
    "centre_m": [
-    7.0654,
-    -7.0654,
-    4.4767
+    -0.0,
+    9.992,
+    9.1911
    ],
+   "on_survey_run": false,
    "acceptance": {
-    "limit_mm": 0.0,
-    "measure": "any break in the bead"
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
    },
-   "length_mm": 122.7,
+   "count": 5,
    "rejectable": true,
    "visible": true
   },
   {
    "id": "D013",
-   "kind": "lack_of_fusion",
-   "seam": "V4_4",
-   "theta_rad": 3.14159,
-   "z_m": 8.4275,
+   "kind": "crack",
+   "seam": "C4",
+   "theta_rad": 3.67907,
+   "z_m": 8.0,
    "centre_m": [
-    -9.992,
-    0.0,
-    8.4275
+    -8.5832,
+    -5.1156,
+    8.0
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_mm": 0.0,
-    "measure": "any break in the bead"
+    "measure": "any crack is rejectable"
    },
-   "length_mm": 74.6,
+   "length_mm": 25.1,
    "rejectable": true,
    "visible": true
   },
   {
    "id": "D014",
-   "kind": "lack_of_fusion",
-   "seam": "V5_3",
-   "theta_rad": 2.74889,
-   "z_m": 11.0412,
+   "kind": "crack",
+   "seam": "C1",
+   "theta_rad": 0.29269,
+   "z_m": 2.0,
    "centre_m": [
-    -9.2314,
-    3.8238,
-    11.0412
+    9.5671,
+    2.883,
+    2.0
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_mm": 0.0,
-    "measure": "any break in the bead"
+    "measure": "any crack is rejectable"
    },
-   "length_mm": 128.8,
+   "length_mm": 76.1,
    "rejectable": true,
    "visible": true
   },
   {
    "id": "D015",
-   "kind": "thinning",
-   "seam": null,
-   "theta_rad": 1.88349,
-   "z_m": 7.1112,
+   "kind": "lack_of_fusion",
+   "seam": "V2_2",
+   "theta_rad": 1.5708,
+   "z_m": 4.8949,
    "centre_m": [
-    -3.0738,
-    9.5075,
-    7.1112
+    -0.0,
+    9.992,
+    4.8949
    ],
+   "on_survey_run": false,
    "acceptance": {
-    "limit_fraction": 0.6,
-    "measure": "remaining wall as a fraction of the original"
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
    },
-   "patch_radius_m": 0.607,
-   "loss_mm": 2.86,
-   "nominal_mm": 9.0,
-   "remaining_mm": 6.14,
-   "remaining_fraction": 0.682,
-   "rejectable": false,
-   "falloff": "cosine",
+   "length_mm": 106.4,
+   "rejectable": true,
    "visible": true
   },
   {
    "id": "D016",
-   "kind": "thinning",
-   "seam": null,
-   "theta_rad": 1.88652,
-   "z_m": 11.3638,
+   "kind": "lack_of_fusion",
+   "seam": "V4_4",
+   "theta_rad": 3.14159,
+   "z_m": 8.751,
    "centre_m": [
-    -3.1026,
-    9.4981,
-    11.3638
+    -9.992,
+    0.0,
+    8.751
    ],
+   "on_survey_run": false,
    "acceptance": {
-    "limit_fraction": 0.6,
-    "measure": "remaining wall as a fraction of the original"
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
    },
-   "patch_radius_m": 0.473,
-   "loss_mm": 1.75,
-   "nominal_mm": 6.0,
-   "remaining_mm": 4.25,
-   "remaining_fraction": 0.709,
-   "rejectable": false,
-   "falloff": "cosine",
+   "length_mm": 132.5,
+   "rejectable": true,
    "visible": true
   },
   {
    "id": "D017",
-   "kind": "thinning",
-   "seam": null,
-   "theta_rad": 6.15862,
-   "z_m": 5.2983,
+   "kind": "lack_of_fusion",
+   "seam": "V1_3",
+   "theta_rad": 2.74889,
+   "z_m": 2.484,
    "centre_m": [
-    9.9146,
-    -1.2414,
-    5.2983
+    -9.2314,
+    3.8238,
+    2.484
    ],
+   "on_survey_run": false,
    "acceptance": {
-    "limit_fraction": 0.6,
-    "measure": "remaining wall as a fraction of the original"
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
    },
-   "patch_radius_m": 0.303,
-   "loss_mm": 2.36,
-   "nominal_mm": 10.0,
-   "remaining_mm": 7.64,
-   "remaining_fraction": 0.764,
-   "rejectable": false,
-   "falloff": "cosine",
+   "length_mm": 109.3,
+   "rejectable": true,
    "visible": true
   },
   {
    "id": "D018",
    "kind": "thinning",
    "seam": null,
-   "theta_rad": 5.86391,
-   "z_m": 6.5645,
+   "theta_rad": 0.39451,
+   "z_m": 2.8341,
    "centre_m": [
-    9.1265,
-    -4.0677,
-    6.5645
+    9.2244,
+    3.8405,
+    2.8341
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_fraction": 0.6,
     "measure": "remaining wall as a fraction of the original"
    },
-   "patch_radius_m": 0.44,
-   "loss_mm": 2.53,
-   "nominal_mm": 9.0,
-   "remaining_mm": 6.47,
-   "remaining_fraction": 0.719,
+   "patch_radius_m": 0.277,
+   "loss_mm": 3.14,
+   "nominal_mm": 11.0,
+   "remaining_mm": 7.86,
+   "remaining_fraction": 0.714,
    "rejectable": false,
    "falloff": "cosine",
-   "visible": false
+   "visible": true
   },
   {
    "id": "D019",
    "kind": "thinning",
    "seam": null,
-   "theta_rad": 4.95802,
-   "z_m": 10.4509,
+   "theta_rad": 4.88347,
+   "z_m": 2.9953,
    "centre_m": [
-    2.4298,
-    -9.6921,
-    10.4509
+    1.7011,
+    -9.8461,
+    2.9953
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_fraction": 0.6,
     "measure": "remaining wall as a fraction of the original"
    },
-   "patch_radius_m": 0.618,
-   "loss_mm": 3.17,
-   "nominal_mm": 6.0,
-   "remaining_mm": 2.83,
-   "remaining_fraction": 0.471,
-   "rejectable": true,
+   "patch_radius_m": 0.46,
+   "loss_mm": 3.1,
+   "nominal_mm": 11.0,
+   "remaining_mm": 7.9,
+   "remaining_fraction": 0.719,
+   "rejectable": false,
    "falloff": "cosine",
-   "visible": false
+   "visible": true
   },
   {
    "id": "D020",
    "kind": "thinning",
    "seam": null,
-   "theta_rad": 3.64359,
-   "z_m": 5.2539,
+   "theta_rad": 1.12951,
+   "z_m": 6.8201,
    "centre_m": [
-    -8.7592,
-    -4.8079,
-    5.2539
+    4.2676,
+    9.0348,
+    6.8201
    ],
+   "on_survey_run": false,
    "acceptance": {
     "limit_fraction": 0.6,
     "measure": "remaining wall as a fraction of the original"
    },
-   "patch_radius_m": 0.455,
-   "loss_mm": 3.28,
-   "nominal_mm": 10.0,
-   "remaining_mm": 6.72,
-   "remaining_fraction": 0.672,
+   "patch_radius_m": 0.601,
+   "loss_mm": 2.25,
+   "nominal_mm": 9.0,
+   "remaining_mm": 6.75,
+   "remaining_fraction": 0.751,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D021",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 5.49865,
+   "z_m": 1.0968,
+   "centre_m": [
+    7.0715,
+    -7.0593,
+    1.0968
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.578,
+   "loss_mm": 3.08,
+   "nominal_mm": 12.0,
+   "remaining_mm": 8.92,
+   "remaining_fraction": 0.744,
    "rejectable": false,
    "falloff": "cosine",
    "visible": false
@@ -942,7 +984,7 @@
  ],
  "crawler": {
   "parked_at": {
-   "theta_rad": 5.92592,
+   "theta_rad": -0.2,
    "z_m": 4.0
   },
   "looking_at": "D001",
@@ -951,10 +993,19 @@
   "camera_standoff_m": 0.126,
   "camera_lens_mm": 14.0
  },
- "detail_window": {
-  "centre_theta_rad": 5.92592,
+ "survey_run": {
+  "seam": "C2",
+  "z_m": 4.0,
+  "theta_from_rad": -0.2,
+  "theta_to_rad": 0.2,
   "arc_m": 4.0,
-  "ripple_pitch_m": 0.009
+  "ripple_pitch_m": 0.009,
+  "faults_on_it": [
+   "D001",
+   "D002",
+   "D003",
+   "D004"
+  ]
  },
  "thickness_model": "nominal is course_thickness_mm for the course a point sits in. Every thinning defect subtracts loss_mm * cos(pi/2 * d / patch_radius_m) for a point d metres from its centre, and nothing beyond that radius."
 }

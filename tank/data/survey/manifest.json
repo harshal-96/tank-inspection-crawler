@@ -1,0 +1,3055 @@
+{
+ "what_this_is": "one pass of the crawler along the seam it was sent to",
+ "stations": 24,
+ "step_m": 0.1739,
+ "resolution": [
+  1280,
+  720
+ ],
+ "camera": {
+  "parked_at": {
+   "theta_rad": -0.2,
+   "z_m": 4.0
+  },
+  "looking_at": "D001",
+  "camera": "Crawler_Cam",
+  "probe": "Crawler_UT_Probe",
+  "camera_standoff_m": 0.126,
+  "camera_lens_mm": 14.0
+ },
+ "probe_offsets_m": [
+  -0.45,
+  -0.3,
+  -0.15,
+  0.0,
+  0.15,
+  0.3,
+  0.45
+ ],
+ "survey_run": {
+  "seam": "C2",
+  "z_m": 4.0,
+  "theta_from_rad": -0.2,
+  "theta_to_rad": 0.2,
+  "arc_m": 4.0,
+  "ripple_pitch_m": 0.009,
+  "faults_on_it": [
+   "D001",
+   "D002",
+   "D003",
+   "D004"
+  ]
+ },
+ "acceptance": {
+  "undercut": {
+   "limit_mm": 0.8,
+   "measure": "depth below the plate surface"
+  },
+  "porosity": {
+   "limit_count": 4,
+   "measure": "pores in any 100 mm of bead"
+  },
+  "crack": {
+   "limit_mm": 0.0,
+   "measure": "any crack is rejectable"
+  },
+  "lack_of_fusion": {
+   "limit_mm": 0.0,
+   "measure": "any break in the bead"
+  },
+  "thinning": {
+   "limit_fraction": 0.6,
+   "measure": "remaining wall as a fraction of the original"
+  }
+ },
+ "tank": {
+  "radius_m": 10.0,
+  "height_m": 12.0,
+  "courses": 6,
+  "course_height_m": 2.0,
+  "plates_per_course": 8,
+  "course_thickness_mm": [
+   12.0,
+   11.0,
+   10.0,
+   9.0,
+   8.0,
+   6.0
+  ],
+  "floor_thickness_mm": 8.0,
+  "product_line_m": 7.4
+ },
+ "defects": [
+  {
+   "id": "D001",
+   "kind": "undercut",
+   "seam": "C2",
+   "theta_rad": -0.111,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9305,
+    -1.1068,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   },
+   "length_mm": 420.0,
+   "depth_mm": 1.7,
+   "arc_from": -0.132,
+   "arc_to": -0.09,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D002",
+   "kind": "porosity",
+   "seam": "C2",
+   "theta_rad": -0.044,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9823,
+    -0.4395,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   },
+   "count": 7,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D003",
+   "kind": "crack",
+   "seam": "C2",
+   "theta_rad": 0.04,
+   "z_m": 4.0,
+   "centre_m": [
+    9.984,
+    0.3996,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any crack is rejectable"
+   },
+   "length_mm": 64.0,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D004",
+   "kind": "lack_of_fusion",
+   "seam": "C2",
+   "theta_rad": 0.1295,
+   "z_m": 4.0,
+   "centre_m": [
+    9.9083,
+    1.2904,
+    4.0
+   ],
+   "on_survey_run": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   },
+   "length_mm": 110.0,
+   "arc_from": 0.124,
+   "arc_to": 0.135,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D005",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.088,
+   "z_m": 4.34,
+   "centre_m": [
+    9.9533,
+    -0.8782,
+    4.34
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 3.1,
+   "nominal_mm": 10.0,
+   "remaining_mm": 6.9,
+   "remaining_fraction": 0.69,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D006",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.08,
+   "z_m": 3.59,
+   "centre_m": [
+    9.96,
+    0.7985,
+    3.59
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 5.6,
+   "nominal_mm": 11.0,
+   "remaining_mm": 5.4,
+   "remaining_fraction": 0.491,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D007",
+   "kind": "undercut",
+   "seam": "C2",
+   "theta_rad": 5.97192,
+   "z_m": 4.0,
+   "centre_m": [
+    9.5118,
+    -3.0602,
+    4.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   },
+   "length_mm": 326.1,
+   "depth_mm": 0.59,
+   "arc_from": 5.955614,
+   "arc_to": 5.988222,
+   "rejectable": false,
+   "visible": true
+  },
+  {
+   "id": "D008",
+   "kind": "undercut",
+   "seam": "C4",
+   "theta_rad": 0.61122,
+   "z_m": 8.0,
+   "centre_m": [
+    8.1829,
+    5.7341,
+    8.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   },
+   "length_mm": 395.6,
+   "depth_mm": 2.14,
+   "arc_from": 0.591436,
+   "arc_to": 0.631,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D009",
+   "kind": "undercut",
+   "seam": "C1",
+   "theta_rad": 0.25261,
+   "z_m": 2.0,
+   "centre_m": [
+    9.6749,
+    2.4974,
+    2.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   },
+   "length_mm": 340.4,
+   "depth_mm": 0.63,
+   "arc_from": 0.235592,
+   "arc_to": 0.269637,
+   "rejectable": false,
+   "visible": true
+  },
+  {
+   "id": "D010",
+   "kind": "porosity",
+   "seam": "C5",
+   "theta_rad": 3.46233,
+   "z_m": 10.0,
+   "centre_m": [
+    -9.4824,
+    -3.1502,
+    10.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   },
+   "count": 5,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D011",
+   "kind": "porosity",
+   "seam": "V5_6",
+   "theta_rad": 5.10509,
+   "z_m": 11.0982,
+   "centre_m": [
+    3.8238,
+    -9.2314,
+    11.0982
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   },
+   "count": 6,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D012",
+   "kind": "porosity",
+   "seam": "V4_2",
+   "theta_rad": 1.5708,
+   "z_m": 9.1911,
+   "centre_m": [
+    -0.0,
+    9.992,
+    9.1911
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   },
+   "count": 5,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D013",
+   "kind": "crack",
+   "seam": "C4",
+   "theta_rad": 3.67907,
+   "z_m": 8.0,
+   "centre_m": [
+    -8.5832,
+    -5.1156,
+    8.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any crack is rejectable"
+   },
+   "length_mm": 25.1,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D014",
+   "kind": "crack",
+   "seam": "C1",
+   "theta_rad": 0.29269,
+   "z_m": 2.0,
+   "centre_m": [
+    9.5671,
+    2.883,
+    2.0
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any crack is rejectable"
+   },
+   "length_mm": 76.1,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D015",
+   "kind": "lack_of_fusion",
+   "seam": "V2_2",
+   "theta_rad": 1.5708,
+   "z_m": 4.8949,
+   "centre_m": [
+    -0.0,
+    9.992,
+    4.8949
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   },
+   "length_mm": 106.4,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D016",
+   "kind": "lack_of_fusion",
+   "seam": "V4_4",
+   "theta_rad": 3.14159,
+   "z_m": 8.751,
+   "centre_m": [
+    -9.992,
+    0.0,
+    8.751
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   },
+   "length_mm": 132.5,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D017",
+   "kind": "lack_of_fusion",
+   "seam": "V1_3",
+   "theta_rad": 2.74889,
+   "z_m": 2.484,
+   "centre_m": [
+    -9.2314,
+    3.8238,
+    2.484
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   },
+   "length_mm": 109.3,
+   "rejectable": true,
+   "visible": true
+  },
+  {
+   "id": "D018",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.39451,
+   "z_m": 2.8341,
+   "centre_m": [
+    9.2244,
+    3.8405,
+    2.8341
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.277,
+   "loss_mm": 3.14,
+   "nominal_mm": 11.0,
+   "remaining_mm": 7.86,
+   "remaining_fraction": 0.714,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D019",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 4.88347,
+   "z_m": 2.9953,
+   "centre_m": [
+    1.7011,
+    -9.8461,
+    2.9953
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.46,
+   "loss_mm": 3.1,
+   "nominal_mm": 11.0,
+   "remaining_mm": 7.9,
+   "remaining_fraction": 0.719,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D020",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 1.12951,
+   "z_m": 6.8201,
+   "centre_m": [
+    4.2676,
+    9.0348,
+    6.8201
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.601,
+   "loss_mm": 2.25,
+   "nominal_mm": 9.0,
+   "remaining_mm": 6.75,
+   "remaining_fraction": 0.751,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D021",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 5.49865,
+   "z_m": 1.0968,
+   "centre_m": [
+    7.0715,
+    -7.0593,
+    1.0968
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.578,
+   "loss_mm": 3.08,
+   "nominal_mm": 12.0,
+   "remaining_mm": 8.92,
+   "remaining_fraction": 0.744,
+   "rejectable": false,
+   "falloff": "cosine",
+   "visible": false
+  }
+ ],
+ "thickness_model": "nominal is course_thickness_mm for the course a point sits in. Every thinning defect subtracts loss_mm * cos(pi/2 * d / patch_radius_m) for a point d metres from its centre, and nothing beyond that radius.",
+ "frames": [
+  {
+   "station": 0,
+   "theta_rad": -0.2,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0000.png",
+   "depth": "depth/depth_0000.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0306,
+    "max_m": 1.8037,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.19,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.19,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.19,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.19,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.19,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.19,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.19,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.19,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 1,
+   "theta_rad": -0.182609,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0001.png",
+   "depth": "depth/depth_0001.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0246,
+    "max_m": 1.4824,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.172609,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.172609,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.172609,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.172609,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.172609,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.172609,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.172609,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.172609,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 2,
+   "theta_rad": -0.165217,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0002.png",
+   "depth": "depth/depth_0002.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.017,
+    "max_m": 1.3809,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D001",
+     "kind": "undercut",
+     "u": 0.8067,
+     "v": 0.5,
+     "range_m": 0.1033,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.155218,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.155218,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.155218,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.155218,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.155218,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.155218,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.155218,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.155218,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 3,
+   "theta_rad": -0.147826,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0003.png",
+   "depth": "depth/depth_0003.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0161,
+    "max_m": 1.2822,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D001",
+     "kind": "undercut",
+     "u": 0.1779,
+     "v": 0.5,
+     "range_m": 0.1112,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.137826,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.137826,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.137826,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.137826,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.137826,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.137826,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.137826,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.137826,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 4,
+   "theta_rad": -0.130435,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0004.png",
+   "depth": "depth/depth_0004.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0157,
+    "max_m": 1.3701,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.120435,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.120435,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.120435,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.120435,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.120435,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.948,
+     "remaining_fraction": 0.9948,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.120435,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.324,
+     "remaining_fraction": 0.9324,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.120435,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.521,
+     "remaining_fraction": 0.9521,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.120435,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 5,
+   "theta_rad": -0.113043,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0005.png",
+   "depth": "depth/depth_0005.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0264,
+    "max_m": 1.2627,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.103044,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.103044,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.103044,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.103044,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.895,
+     "remaining_fraction": 0.9895,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.103044,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 8.33,
+     "remaining_fraction": 0.833,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.103044,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 7.52,
+     "remaining_fraction": 0.752,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.103044,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 7.775,
+     "remaining_fraction": 0.7775,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.103044,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 9.895,
+    "remaining_fraction": 0.9895,
+    "thinned_by": [
+     "D005"
+    ],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 6,
+   "theta_rad": -0.095652,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0006.png",
+   "depth": "depth/depth_0006.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0275,
+    "max_m": 1.2188,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D002",
+     "kind": "porosity",
+     "u": 0.7076,
+     "v": 0.5,
+     "range_m": 0.1047,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.085652,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.085652,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.085652,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.085653,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.5,
+     "remaining_fraction": 0.95,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.085653,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 7.821,
+     "remaining_fraction": 0.7821,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.085653,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 6.957,
+     "remaining_fraction": 0.6957,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.085653,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 7.229,
+     "remaining_fraction": 0.7229,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.085653,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 9.5,
+    "remaining_fraction": 0.95,
+    "thinned_by": [
+     "D005"
+    ],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 7,
+   "theta_rad": -0.078261,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0007.png",
+   "depth": "depth/depth_0007.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.027,
+    "max_m": 1.2373,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D002",
+     "kind": "porosity",
+     "u": 0.0917,
+     "v": 0.5,
+     "range_m": 0.1121,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.068261,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.068261,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.068261,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.068261,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.068261,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 8.684,
+     "remaining_fraction": 0.8684,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.068261,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 7.914,
+     "remaining_fraction": 0.7914,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.068261,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 8.157,
+     "remaining_fraction": 0.8157,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.068261,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 8,
+   "theta_rad": -0.06087,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0008.png",
+   "depth": "depth/depth_0008.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0163,
+    "max_m": 1.2412,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.05087,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.05087,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.05087,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.05087,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.05087,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.05087,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 9.916,
+     "remaining_fraction": 0.9916,
+     "thinned_by": [
+      "D005"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.05087,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.05087,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 9,
+   "theta_rad": -0.043478,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0009.png",
+   "depth": "depth/depth_0009.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0056,
+    "max_m": 1.2773,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.033479,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.033479,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.033479,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.033479,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.033479,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.033479,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.033479,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.033479,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 10,
+   "theta_rad": -0.026087,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0010.png",
+   "depth": "depth/depth_0010.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0231,
+    "max_m": 1.0898,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": -0.016087,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": -0.016087,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": -0.016087,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": -0.016087,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": -0.016087,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": -0.016087,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": -0.016087,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": -0.016087,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 11,
+   "theta_rad": -0.008696,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0011.png",
+   "depth": "depth/depth_0011.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0239,
+    "max_m": 1.1768,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D003",
+     "kind": "crack",
+     "u": 0.5966,
+     "v": 0.5,
+     "range_m": 0.1062,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.001304,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.001304,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.001304,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.001304,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.001304,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.001304,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.001304,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.001304,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 12,
+   "theta_rad": 0.008696,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0012.png",
+   "depth": "depth/depth_0012.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0191,
+    "max_m": 1.2139,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.018695,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.018695,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.018695,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.018695,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.018695,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.018695,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.018695,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.018695,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 13,
+   "theta_rad": 0.026087,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0013.png",
+   "depth": "depth/depth_0013.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0222,
+    "max_m": 1.1523,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.036087,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.036087,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.036087,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.036087,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.036087,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.036087,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.036087,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.036087,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 14,
+   "theta_rad": 0.043478,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0014.png",
+   "depth": "depth/depth_0014.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0223,
+    "max_m": 1.0498,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.053478,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.504,
+     "remaining_fraction": 0.7731,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.053478,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.903,
+     "remaining_fraction": 0.8094,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.053478,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 10.801,
+     "remaining_fraction": 0.9819,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.053478,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.053478,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.053478,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.053478,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.053478,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 15,
+   "theta_rad": 0.06087,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0015.png",
+   "depth": "depth/depth_0015.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0215,
+    "max_m": 1.0811,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.070869,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 5.869,
+     "remaining_fraction": 0.5335,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": true
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.070869,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 6.35,
+     "remaining_fraction": 0.5773,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": true
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.070869,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.657,
+     "remaining_fraction": 0.787,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.070869,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.070869,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.070869,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.070869,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.070869,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 16,
+   "theta_rad": 0.078261,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0016.png",
+   "depth": "depth/depth_0016.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0078,
+    "max_m": 1.0283,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D004",
+     "kind": "lack_of_fusion",
+     "u": 0.6919,
+     "v": 0.5,
+     "range_m": 0.1049,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.088261,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 5.798,
+     "remaining_fraction": 0.5271,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": true
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.088261,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 6.281,
+     "remaining_fraction": 0.571,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": true
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.088261,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.599,
+     "remaining_fraction": 0.7817,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.088261,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.088261,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.088261,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.088261,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.088261,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 17,
+   "theta_rad": 0.095652,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0017.png",
+   "depth": "depth/depth_0017.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0211,
+    "max_m": 1.1279,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [
+    {
+     "id": "D004",
+     "kind": "lack_of_fusion",
+     "u": 0.0779,
+     "v": 0.5,
+     "range_m": 0.1123,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    }
+   ],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.105652,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.327,
+     "remaining_fraction": 0.757,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.105652,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 8.732,
+     "remaining_fraction": 0.7938,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.105652,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 10.659,
+     "remaining_fraction": 0.969,
+     "thinned_by": [
+      "D006"
+     ],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.105652,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.105652,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.105652,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.105652,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.105652,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 18,
+   "theta_rad": 0.113043,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0018.png",
+   "depth": "depth/depth_0018.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0182,
+    "max_m": 1.1816,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.123043,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.123043,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.123043,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.123043,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.123043,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.123043,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.123043,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.123043,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 19,
+   "theta_rad": 0.130435,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0019.png",
+   "depth": "depth/depth_0019.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0177,
+    "max_m": 1.0977,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.140434,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.140434,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.140434,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.140434,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.140434,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.140434,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.140434,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.140434,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 20,
+   "theta_rad": 0.147826,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0020.png",
+   "depth": "depth/depth_0020.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0155,
+    "max_m": 1.1943,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.157826,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.157826,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.157826,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.157826,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.157826,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.157826,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.157826,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.157826,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 21,
+   "theta_rad": 0.165217,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0021.png",
+   "depth": "depth/depth_0021.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0082,
+    "max_m": 1.1963,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.175217,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.175217,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.175217,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.175217,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.175217,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.175217,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.175217,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.175217,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 22,
+   "theta_rad": 0.182609,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0022.png",
+   "depth": "depth/depth_0022.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0145,
+    "max_m": 1.293,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.192608,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.192608,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.192608,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.192608,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.192608,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.192608,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.192608,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.192608,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  },
+  {
+   "station": 23,
+   "theta_rad": 0.2,
+   "z_m": 4.0,
+   "rgb": "frames/rgb_0023.png",
+   "depth": "depth/depth_0023.npy",
+   "depth_stats": {
+    "shape": [
+     720,
+     1280
+    ],
+    "min_m": 0.0142,
+    "max_m": 1.3096,
+    "sky_fraction": 0.0
+   },
+   "faults_in_view": [],
+   "probe_candidates": [
+    {
+     "offset_m": -0.45,
+     "theta_rad": 0.21,
+     "z_m": 3.55,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.3,
+     "theta_rad": 0.21,
+     "z_m": 3.7,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": -0.15,
+     "theta_rad": 0.21,
+     "z_m": 3.85,
+     "nominal_mm": 11.0,
+     "true_thickness_mm": 11.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.0,
+     "theta_rad": 0.21,
+     "z_m": 4.0,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.15,
+     "theta_rad": 0.21,
+     "z_m": 4.15,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.3,
+     "theta_rad": 0.21,
+     "z_m": 4.3,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    },
+    {
+     "offset_m": 0.45,
+     "theta_rad": 0.21,
+     "z_m": 4.45,
+     "nominal_mm": 10.0,
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
+     "rejectable": false
+    }
+   ],
+   "probe_on_seam": {
+    "offset_m": 0.0,
+    "theta_rad": 0.21,
+    "z_m": 4.0,
+    "nominal_mm": 10.0,
+    "true_thickness_mm": 10.0,
+    "remaining_fraction": 1.0,
+    "thinned_by": [],
+    "rejectable": false
+   }
+  }
+ ]
+}

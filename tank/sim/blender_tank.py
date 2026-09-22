@@ -102,9 +102,18 @@ COURSE_MM = (12.0, 11.0, 10.0, 9.0, 8.0, 6.0)
 FLOOR_MM = 8.0
 PRODUCT_LINE_M = 7.4     # where the liquid used to stand, and where it stains
 
+# The run the crawler is sent to inspect. Faults were scattered over 473 metres
+# of weld before this existed, which meant a crawler could drive the whole of
+# its detailed window and pass none of them: a dataset of clean frames and no
+# way to score anything. An inspection is a run, and the faults found are the
+# ones in it, so the run is chosen first and faults are planted along it.
+SURVEY_SEAM = "C2"
+SURVEY_CENTRE_RAD = 0.0
+SURVEY_ARC_M = 4.0
+
 BEAD_R = 0.008           # a weld bead stands 8 mm proud of the plate
 RIPPLE_PITCH = 0.009     # the spacing of the pools a welder leaves behind
-DETAIL_ARC_M = 4.0       # how much seam either side of the crawler gets ripples
+DETAIL_ARC_M = SURVEY_ARC_M   # only the run being inspected earns ripples
 SEED = 7
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -189,6 +198,18 @@ def build_materials() -> dict:
         "tether": plain("tether", (0.06, 0.06, 0.07), 0.05, 0.85),
         "couplant": plain("couplant_hose", (0.10, 0.28, 0.52), 0.05, 0.60),
     }
+
+
+def survey_window():
+    """The arc the crawler drives, as a pair of angles."""
+    half = SURVEY_ARC_M / RADIUS / 2
+    return SURVEY_CENTRE_RAD - half, SURVEY_CENTRE_RAD + half
+
+
+def in_window(theta, margin=0.0):
+    lo, hi = survey_window()
+    wrapped = ((theta - SURVEY_CENTRE_RAD + math.pi) % math.tau) - math.pi
+    return abs(wrapped) <= (hi - lo) / 2 + margin
 
 
 def wall_point(theta, z, inset=0.0):
@@ -376,7 +397,7 @@ def seam_table() -> list[dict]:
     return seams
 
 
-def build_seams(mats, coll, seams, rng, detail_theta, detail_z) -> int:
+def build_seams(mats, coll, seams, rng, detail_theta, detail_z, defects=()) -> int:
     """Beads, with ripples only where something is going to look at them.
 
     Four hundred and seventy metres of weld modelled pool by pool is millions of
@@ -390,10 +411,23 @@ def build_seams(mats, coll, seams, rng, detail_theta, detail_z) -> int:
             z = seam["z_m"]
             if abs(z - detail_z) < COURSE_H * 0.6:
                 lo, hi = detail_theta - half, detail_theta + half
-                make(f"Seam_{seam['id']}",
-                     *merge([smooth_bead_arc(z, (hi, lo + math.tau)),
-                             rippled_bead_arc(z, (lo, hi), rng)]),
-                     mat=mats["bead"], collection=coll)
+                # Where a fault says the bead stops, the bead stops. Drawn
+                # through the gap it is a dark line painted on unbroken metal,
+                # which is not what a break in a weld looks like.
+                gaps = sorted((d["arc_from"], d["arc_to"]) for d in defects
+                              if d["kind"] == "lack_of_fusion"
+                              and d.get("seam") == seam["id"] and "arc_from" in d)
+                spans, cursor = [], lo
+                for g0, g1 in gaps:
+                    if g0 > cursor:
+                        spans.append((cursor, g0))
+                    cursor = max(cursor, g1)
+                spans.append((cursor, hi))
+                parts = [smooth_bead_arc(z, (hi, lo + math.tau))]
+                parts += [rippled_bead_arc(z, span, rng) for span in spans
+                          if (span[1] - span[0]) * RADIUS > 0.02]
+                make(f"Seam_{seam['id']}", *merge(parts), mat=mats["bead"],
+                     collection=coll)
                 make(f"HAZ_{seam['id']}", *haz_arc(z, (lo, hi)), mat=mats["haz"],
                      smooth=False, collection=coll)
                 detailed += 1
@@ -420,9 +454,17 @@ def build_seams(mats, coll, seams, rng, detail_theta, detail_z) -> int:
 
 
 def plan_defects(seams, rng) -> list[dict]:
-    """Decide the faults before any of them is drawn, and write them down."""
+    """Decide the faults before any of them is drawn, and write them down.
+
+    Four go on the run the crawler is sent to, spaced along it so consecutive
+    frames do not all carry the same one, and two thinning patches sit beside
+    it, one of them showing nothing on the surface. The rest are scattered over
+    the other 469 metres, which is the tank the crawler has not reached yet.
+    """
     circ = [s for s in seams if s["kind"] in ("circumferential", "chime")]
     vert = [s for s in seams if s["kind"] == "vertical"]
+    run = next(s for s in seams if s["id"] == SURVEY_SEAM)
+    lo, hi = survey_window()
     out: list[dict] = []
 
     def add(kind, seam, theta, z, **extra):
@@ -430,13 +472,60 @@ def plan_defects(seams, rng) -> list[dict]:
                 "seam": seam["id"] if seam else None,
                 "theta_rad": round(theta, 5), "z_m": round(z, 4),
                 "centre_m": [round(v, 4) for v in wall_point(theta, z, BEAD_R)],
+                "on_survey_run": bool(seam and seam["id"] == SURVEY_SEAM
+                                      and in_window(theta)),
                 "acceptance": ACCEPTANCE[kind]}
         item.update(extra)
         out.append(item)
 
-    for _ in range(4):
+    def at(fraction):
+        return lo + (hi - lo) * fraction
+
+    # ---- on the run, at known places along it
+    depth = 1.7
+    length = 0.42
+    add("undercut", run, at(0.17) + length / RADIUS / 2, run["z_m"],
+        length_mm=round(length * 1000, 1), depth_mm=depth,
+        arc_from=round(at(0.17), 6), arc_to=round(at(0.17) + length / RADIUS, 6),
+        rejectable=depth > ACCEPTANCE["undercut"]["limit_mm"], visible=True)
+    add("porosity", run, at(0.39), run["z_m"], count=7,
+        rejectable=ACCEPTANCE["porosity"]["limit_count"] < 7, visible=True)
+    add("crack", run, at(0.60), run["z_m"], length_mm=64.0, rejectable=True,
+        visible=True)
+    gap = 0.11
+    add("lack_of_fusion", run, at(0.81) + gap / RADIUS / 2, run["z_m"],
+        length_mm=round(gap * 1000, 1),
+        arc_from=round(at(0.81), 6), arc_to=round(at(0.81) + gap / RADIUS, 6),
+        rejectable=True, visible=True)
+
+    # ---- beside the run: one wall loss a camera can see, one it cannot
+    # Within reach of the probe arm, which is what makes them findable at all.
+    # The one a camera can see is within limits; the one it cannot see is not.
+    # That pairing is the argument of the whole project in two patches of wall.
+    # The patches straddle a course boundary, so the same loss is a different
+    # fraction either side of it: 4.7 mm off the 11 mm course left it a hair
+    # inside the limit and the run had nothing the probe had to catch.
+    for fraction, visible, loss in ((0.28, True, 3.1), (0.70, False, 5.6)):
+        z = run["z_m"] + (0.34 if visible else -0.41)
+        nominal = COURSE_MM[min(COURSES - 1, int(z // COURSE_H))]
+        left = (nominal - loss) / nominal
+        add("thinning", None, at(fraction), z, patch_radius_m=0.38,
+            loss_mm=loss, nominal_mm=nominal, remaining_mm=round(nominal - loss, 2),
+            remaining_fraction=round(left, 3),
+            rejectable=left < ACCEPTANCE["thinning"]["limit_fraction"],
+            falloff="cosine", visible=visible)
+
+    # ---- the rest of the tank, which the crawler has not been to
+    def away(seam):
+        for _ in range(40):
+            theta = rng.uniform(0, math.tau)
+            if seam["id"] != SURVEY_SEAM or not in_window(theta, 0.12):
+                return theta
+        return SURVEY_CENTRE_RAD + math.pi
+
+    for _ in range(3):
         seam = rng.choice(circ)
-        theta = rng.uniform(0, math.tau)
+        theta = away(seam)
         length = rng.uniform(0.18, 0.55)
         depth = rng.uniform(0.5, 2.3)
         add("undercut", seam, theta + length / RADIUS / 2, seam["z_m"],
@@ -444,20 +533,20 @@ def plan_defects(seams, rng) -> list[dict]:
             arc_from=round(theta, 6), arc_to=round(theta + length / RADIUS, 6),
             rejectable=depth > ACCEPTANCE["undercut"]["limit_mm"], visible=True)
 
-    for _ in range(4):
+    for _ in range(3):
         seam = rng.choice(circ + vert)
         if seam["kind"] == "vertical":
             theta = seam["theta_rad"]
             z = rng.uniform(seam["z_from_m"] + 0.25, seam["z_to_m"] - 0.25)
         else:
-            theta, z = rng.uniform(0, math.tau), seam["z_m"]
+            theta, z = away(seam), seam["z_m"]
         count = rng.randint(5, 11)
         add("porosity", seam, theta, z, count=count,
             rejectable=count > ACCEPTANCE["porosity"]["limit_count"], visible=True)
 
-    for _ in range(3):
+    for _ in range(2):
         seam = rng.choice(circ)
-        add("crack", seam, rng.uniform(0, math.tau), seam["z_m"],
+        add("crack", seam, away(seam), seam["z_m"],
             length_mm=round(rng.uniform(22, 85), 1), rejectable=True, visible=True)
 
     for _ in range(3):
@@ -466,8 +555,8 @@ def plan_defects(seams, rng) -> list[dict]:
         add("lack_of_fusion", seam, seam["theta_rad"], z,
             length_mm=round(rng.uniform(55, 150), 1), rejectable=True, visible=True)
 
-    for index in range(6):
-        visible = index < 3
+    for index in range(4):
+        visible = index < 2
         course = rng.randint(0, COURSES - 1)
         z = rng.uniform(course * COURSE_H + 0.35, (course + 1) * COURSE_H - 0.35)
         nominal = COURSE_MM[course]
@@ -533,13 +622,23 @@ def build_defects(mats, coll, defects, rng):
                  collection=coll)
 
         elif kind == "lack_of_fusion":
-            gap = d["length_mm"] / 1000
+            # The bead is simply absent, so what shows is the bare joint. On a
+            # circumferential seam the gap runs round the tank; on a vertical
+            # one it runs up it.
             verts, faces = [], []
-            for i in range(9):
-                zz = z - gap / 2 + gap * i / 8
-                verts.append(wall_point(theta - 0.0024 / RADIUS, zz, inset=-0.0016))
-                verts.append(wall_point(theta + 0.0024 / RADIUS, zz, inset=-0.0016))
-            for i in range(8):
+            if "arc_from" in d:
+                lo_a, hi_a = d["arc_from"], d["arc_to"]
+                for i in range(13):
+                    t = lo_a + (hi_a - lo_a) * i / 12
+                    verts.append(wall_point(t, z - 0.0024, inset=-0.0016))
+                    verts.append(wall_point(t, z + 0.0024, inset=-0.0016))
+            else:
+                gap = d["length_mm"] / 1000
+                for i in range(9):
+                    zz = z - gap / 2 + gap * i / 8
+                    verts.append(wall_point(theta - 0.0024 / RADIUS, zz, inset=-0.0016))
+                    verts.append(wall_point(theta + 0.0024 / RADIUS, zz, inset=-0.0016))
+            for i in range(len(verts) // 2 - 1):
                 faces.append((2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2))
             make(f"Defect_{d['id']}_lack_of_fusion", verts, faces, mats["dark"],
                  smooth=False, collection=coll)
@@ -604,6 +703,25 @@ def build_defects(mats, coll, defects, rng):
 
 
 # ---------------------------------------------------------------- the crawler
+
+
+def crawler_matrix(theta, z) -> Matrix:
+    """Where the crawler sits on the wall, as one matrix.
+
+    Its own frame: +X the way it drives along the seam, +Y down the wall, +Z
+    off the plate into the tank. Driving it is then one assignment, which is
+    what the capture run needs.
+    """
+    tangent, _, outward = wall_frame(theta)
+    normal = -outward                      # into the tank, away from the plate
+    across = normal.cross(tangent)         # down the wall
+    p = Vector(wall_point(theta, z))
+    return Matrix((
+        (tangent.x, across.x, normal.x, p.x),
+        (tangent.y, across.y, normal.y, p.y),
+        (tangent.z, across.z, normal.z, p.z),
+        (0.0, 0.0, 0.0, 1.0),
+    ))
 
 
 def build_crawler(mats, coll, theta, z):
@@ -726,16 +844,7 @@ def build_crawler(mats, coll, theta, z):
     nav.matrix_basis = look_at((0.28, 0.0, 0.27), (2.20, 0.0, 0.0),
                                up_hint=(0.0, 1.0, 0.0))
 
-    tangent, _, outward = wall_frame(theta)
-    normal = -outward                      # into the tank, away from the plate
-    across = normal.cross(tangent)         # down the wall
-    p = Vector(wall_point(theta, z))
-    rig.matrix_world = Matrix((
-        (tangent.x, across.x, normal.x, p.x),
-        (tangent.y, across.y, normal.y, p.y),
-        (tangent.z, across.z, normal.z, p.z),
-        (0.0, 0.0, 0.0, 1.0),
-    ))
+    rig.matrix_world = crawler_matrix(theta, z)
     return rig, cam
 
 
@@ -821,18 +930,18 @@ def main() -> dict:
     seams = seam_table()
     defects = plan_defects(seams, rng)
 
-    # Park on a fault rather than at a tidy round number, so what the camera
-    # sees is something the ground truth already has an answer for, and put the
-    # ripple detail where the robot actually is.
-    subject = next((d for d in defects
-                    if d["kind"] in ("porosity", "undercut", "crack")
-                    and d["seam"] and d["seam"].startswith("C")), defects[0])
-    park_theta = subject["theta_rad"] - 0.46 / RADIUS
-    park_z = subject["z_m"]
+    # The crawler starts at the beginning of the run it has been sent to, and
+    # the ripple detail covers exactly that run.
+    run = next(s for s in seams if s["id"] == SURVEY_SEAM)
+    window_lo, window_hi = survey_window()
+    park_theta = window_lo
+    park_z = run["z_m"]
+    subject = next(d for d in defects if d.get("on_survey_run"))
 
     build_shell(mats, tank)
     build_fittings(mats, tank)
-    detailed = build_seams(mats, tank, seams, rng, park_theta, park_z)
+    detailed = build_seams(mats, tank, seams, rng, SURVEY_CENTRE_RAD, park_z,
+                           defects)
     build_defects(mats, faults, defects, rng)
     rig, crawler_cam = build_crawler(mats, robot, park_theta, park_z)
     build_work_lights(tank, park_theta)
@@ -855,8 +964,12 @@ def main() -> dict:
                     "looking_at": subject["id"], "camera": "Crawler_Cam",
                     "probe": "Crawler_UT_Probe",
                     "camera_standoff_m": 0.126, "camera_lens_mm": 14.0},
-        "detail_window": {"centre_theta_rad": round(park_theta, 5),
-                          "arc_m": DETAIL_ARC_M, "ripple_pitch_m": RIPPLE_PITCH},
+        "survey_run": {"seam": SURVEY_SEAM, "z_m": run["z_m"],
+                       "theta_from_rad": round(window_lo, 5),
+                       "theta_to_rad": round(window_hi, 5),
+                       "arc_m": SURVEY_ARC_M, "ripple_pitch_m": RIPPLE_PITCH,
+                       "faults_on_it": [d["id"] for d in defects
+                                        if d.get("on_survey_run")]},
         "thickness_model": (
             "nominal is course_thickness_mm for the course a point sits in. Every "
             "thinning defect subtracts loss_mm * cos(pi/2 * d / patch_radius_m) for "
@@ -880,8 +993,10 @@ def main() -> dict:
         "rejectable": sum(1 for d in defects if d.get("rejectable")),
         "hidden_thinning": sum(1 for d in defects
                                if d["kind"] == "thinning" and not d["visible"]),
-        "parked_on": {"defect": subject["id"], "kind": subject["kind"],
-                      "seam": subject["seam"]},
+        "survey_run_faults": [d["id"] for d in defects if d.get("on_survey_run")],
+        "hidden_beside_the_run": [d["id"] for d in defects
+                                  if d["kind"] == "thinning" and not d["visible"]
+                                  and abs(d["z_m"] - park_z) < 1.2],
         "ground_truth": str(OUT),
     }
 
