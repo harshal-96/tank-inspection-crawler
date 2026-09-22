@@ -91,7 +91,7 @@
   {
    "part": "USB to serial adapter, CH340 or FTDI, for the gauge lead",
    "qty": 1,
-   "object": "Gauge_*",
+   "object": "Serial_Adapter_*, Serial_Lead",
    "inr": "200 to 400",
    "where": "Lamington Road",
    "note": "Only if the supplied lead ends in a DB9 and the laptop has no serial port, which it will not."
@@ -99,10 +99,18 @@
   {
    "part": "USB to TTL programmer for the ESP32-CAM",
    "qty": 1,
-   "object": "ESP32_CAM_*",
+   "object": "Programmer_*",
    "inr": "150 to 250",
    "where": "Lamington Road",
    "note": "The AI-Thinker board has no USB socket and cannot be flashed without one. It was missing from the first list."
+  },
+  {
+   "part": "The laptop, which is the whole of the compute",
+   "qty": 1,
+   "object": "Laptop_*",
+   "inr": "already owned",
+   "where": "already owned",
+   "note": "Everything runs here: it pulls the picture, reads the gauge, drives the robot and makes the model call. There is no server."
   }
  ],
  "data_path": {

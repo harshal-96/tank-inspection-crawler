@@ -99,14 +99,18 @@ BOM = [
      "note": "RS232C out. The Mextech box lists the cable and Windows software "
              "as supplied; confirm with the seller before paying."},
     {"part": "USB to serial adapter, CH340 or FTDI, for the gauge lead", "qty": 1,
-     "object": "Gauge_*", "inr": "200 to 400",
+     "object": "Serial_Adapter_*, Serial_Lead", "inr": "200 to 400",
      "where": "Lamington Road",
      "note": "Only if the supplied lead ends in a DB9 and the laptop has no "
              "serial port, which it will not."},
     {"part": "USB to TTL programmer for the ESP32-CAM", "qty": 1,
-     "object": "ESP32_CAM_*", "inr": "150 to 250", "where": "Lamington Road",
+     "object": "Programmer_*", "inr": "150 to 250", "where": "Lamington Road",
      "note": "The AI-Thinker board has no USB socket and cannot be flashed "
              "without one. It was missing from the first list."},
+    {"part": "The laptop, which is the whole of the compute", "qty": 1,
+     "object": "Laptop_*", "inr": "already owned", "where": "already owned",
+     "note": "Everything runs here: it pulls the picture, reads the gauge, "
+             "drives the robot and makes the model call. There is no server."},
 ]
 
 # Where the numbers go, which is the question a bill of materials does not
@@ -178,6 +182,10 @@ def build_materials() -> dict:
         "gauge": plain("gauge_case", (0.62, 0.52, 0.06), 0.0, 0.50),
         "lcd": plain("gauge_lcd", (0.30, 0.38, 0.30), 0.0, 0.25),
         "probe": plain("ut_probe_case", (0.16, 0.17, 0.19), 0.55, 0.38),
+        "usb_shell": plain("usb_shell", (0.68, 0.70, 0.73), 0.92, 0.28),
+        "plastic": plain("connector_plastic", (0.09, 0.09, 0.10), 0.0, 0.52),
+        "laptop": plain("laptop_shell", (0.28, 0.29, 0.31), 0.60, 0.42),
+        "screen": emissive("laptop_screen", (0.16, 0.24, 0.36), 1.1),
     }
 
 
@@ -535,6 +543,76 @@ def build_gauge(mats, coll):
     make("Probe_Cable", *sweep(coil, 0.0018, 6), mat=mats["dark"], collection=coll)
 
 
+def build_workstation(mats, coll):
+    """The laptop, the serial adapter and the programmer: how the numbers get out.
+
+    These were on the parts list as words and not in the scene at all, which is
+    the same mistake as leaving the gauge modelled and unplaced. The adapter
+    matters because a laptop has no serial port and the gauge only speaks
+    RS232; the programmer matters because the AI-Thinker board has no USB
+    socket and cannot be flashed at all without one.
+    """
+    # The laptop, at the back of the bench. It is the entire compute budget.
+    # At the end of the bench, clear of the plate the robot is driving on.
+    lx, ly = -0.455, 0.170
+    make("Laptop_Base", *chamfered((0.320, 0.220, 0.018), (lx, ly, 0.009), 0.003),
+         mat=mats["laptop"], smooth=False, collection=coll)
+    make("Laptop_Keys", *box((0.280, 0.120, 0.001), (lx, ly - 0.028, 0.0185)),
+         mat=mats["dark"], smooth=False, collection=coll)
+    make("Laptop_Trackpad", *box((0.090, 0.055, 0.001), (lx, ly + 0.068, 0.0185)),
+         mat=mats["plastic"], smooth=False, collection=coll)
+
+    # The lid, hinged at the back and leant back fifteen degrees.
+    tilt = math.radians(105)
+    lean = Matrix.Rotation(tilt, 4, "X")
+    hinge_y, hinge_z = ly + 0.110, 0.004
+    drop = lean @ Vector((0.0, -0.100, 0.0))
+    move = Matrix.Translation((lx, hinge_y - drop.y, hinge_z - drop.z)) @ lean
+    for name, size, mat in (("Laptop_Lid", (0.320, 0.200, 0.008), mats["laptop"]),
+                            ("Laptop_Screen", (0.292, 0.172, 0.001), mats["screen"])):
+        verts, faces = box(size, (0.0, 0.0, 0.0045 if "Screen" in name else 0.0))
+        make(name, [tuple(move @ Vector(v)) for v in verts], faces, mat,
+             smooth=False, collection=coll)
+
+    # USB to serial, on the end of the gauge's own RS232 lead.
+    ax, ay = 0.255, -0.232
+    make("Serial_Adapter_Body", *chamfered((0.055, 0.018, 0.012), (ax, ay, 0.006), 0.002),
+         mat=mats["plastic"], smooth=False, collection=coll)
+    make("Serial_Adapter_DB9", *box((0.012, 0.031, 0.011), (ax - 0.032, ay, 0.0058)),
+         mat=mats["usb_shell"], smooth=False, collection=coll)
+    make("Serial_Adapter_USB", *box((0.013, 0.012, 0.0045), (ax + 0.034, ay, 0.0048)),
+         mat=mats["usb_shell"], smooth=False, collection=coll)
+    make("Serial_Lead", *sweep([(0.117, -0.245, 0.012), (0.160, -0.250, 0.006),
+                                (0.205, -0.240, 0.005), (ax - 0.040, ay, 0.0058)],
+                               0.0022, 6),
+         mat=mats["dark"], collection=coll)
+    # Round the end of the bench rather than across the plate, which is where
+    # a lead would actually go if anyone had to reach past it.
+    make("Serial_USB_Lead",
+         *sweep([(ax + 0.041, ay, 0.0048), (0.340, -0.285, 0.004),
+                 (0.080, -0.330, 0.004), (-0.240, -0.312, 0.004),
+                 (-0.520, -0.170, 0.004), (-0.600, 0.040, 0.005),
+                 (lx - 0.168, ly - 0.030, 0.009)], 0.0022, 6),
+         mat=mats["dark"], collection=coll)
+
+    # The USB to TTL programmer, lying where it was left after flashing.
+    # Clear of the mast, or it reads as part of the robot.
+    px, py = 0.370, 0.238
+    make("Programmer_PCB", *box((0.035, 0.018, 0.0016), (px, py, 0.0008)),
+         mat=mats["pcb_black"], smooth=False, collection=coll)
+    make("Programmer_USB", *box((0.013, 0.012, 0.0045), (px + 0.024, py, 0.0035)),
+         mat=mats["usb_shell"], smooth=False, collection=coll)
+    make("Programmer_Header", *box((0.004, 0.015, 0.005), (px - 0.016, py, 0.004)),
+         mat=mats["plastic"], smooth=False, collection=coll)
+    jumpers = []
+    for offset in (-0.005, 0.0, 0.005):
+        jumpers.append(sweep([(px - 0.018, py + offset, 0.004),
+                              (px - 0.050, py + offset * 2 - 0.010, 0.003),
+                              (px - 0.082, py + offset * 3 - 0.026, 0.002)],
+                             0.0011, 5))
+    make("Programmer_Jumpers", *merge(jumpers), mat=mats["dark"], collection=coll)
+
+
 # ------------------------------------------------------------------- the shot
 
 
@@ -556,8 +634,8 @@ def build_lighting(coll):
 
 
 def build_cameras(coll, rig):
-    cam = camera("Bench_Overview", 42.0, coll)
-    cam.matrix_world = look_at((-0.52, -0.62, 0.46), (0.03, -0.02, 0.03))
+    cam = camera("Bench_Overview", 34.0, coll)
+    cam.matrix_world = look_at((-0.50, -0.92, 0.70), (-0.02, 0.03, 0.04))
 
     detail = camera("Bench_Detail", 60.0, coll)
     detail.matrix_world = rig.matrix_world @ look_at((-0.26, -0.40, 0.29),
@@ -612,6 +690,7 @@ def main() -> dict:
     subject = next(d for d in defects if d["kind"] == "porosity")
     rig, cam = build_robot(mats, robot, subject["x_m"] - 0.185)
     build_gauge(mats, stage)
+    build_workstation(mats, stage)
     build_lighting(stage)
     overview, detail = build_cameras(robot, rig)
     set_render(bpy.context.scene, overview)
