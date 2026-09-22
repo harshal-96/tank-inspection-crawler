@@ -95,8 +95,36 @@ BOM = [
      "where": "any fabricator, not Lamington Road"},
     {"part": "TM-8812 ultrasonic thickness gauge with 5 MHz probe", "qty": 1,
      "object": "Gauge_*, Probe_*", "inr": "10000",
-     "where": "instrument dealer or online, not Lamington Road"},
+     "where": "instrument dealer or online, not Lamington Road",
+     "note": "RS232C out. The Mextech box lists the cable and Windows software "
+             "as supplied; confirm with the seller before paying."},
+    {"part": "USB to serial adapter, CH340 or FTDI, for the gauge lead", "qty": 1,
+     "object": "Gauge_*", "inr": "200 to 400",
+     "where": "Lamington Road",
+     "note": "Only if the supplied lead ends in a DB9 and the laptop has no "
+             "serial port, which it will not."},
+    {"part": "USB to TTL programmer for the ESP32-CAM", "qty": 1,
+     "object": "ESP32_CAM_*", "inr": "150 to 250", "where": "Lamington Road",
+     "note": "The AI-Thinker board has no USB socket and cannot be flashed "
+             "without one. It was missing from the first list."},
 ]
+
+# Where the numbers go, which is the question a bill of materials does not
+# answer. Nothing here needs a server: the board talks to a laptop over the
+# same wi-fi the laptop is already on, the gauge talks to it over a serial
+# lead, and the only thing off the bench is the model call.
+DATA_PATH = {
+    "picture": "ESP32-CAM serves a JPEG over wi-fi; the laptop pulls it",
+    "thickness": "TM-8812 RS232C out to a USB serial adapter on the laptop",
+    "driving": "laptop posts a move to the ESP32, which drives the L298N",
+    "judging": "laptop calls Nebius Token Factory, a fraction of a paisa a frame",
+    "compute": "one laptop. No server, no Jetson, no rented GPU.",
+    "fallback": (
+        "If the gauge's serial output will not decode, the reading is typed in "
+        "or read off the LCD by the same camera. The planner still decides "
+        "where to measure, which is the part being tested."
+    ),
+}
 
 # Millimetres, because every one of these came off a product page.
 PLATE = (0.600, 0.300, 0.006)
@@ -597,6 +625,7 @@ def main() -> dict:
             "scales to."
         ),
         "bill_of_materials": BOM,
+        "data_path": DATA_PATH,
         "plate": {"size_m": list(PLATE), "thickness_mm": PLATE[2] * 1000,
                   "bead_runs": len(BEAD_Y), "bead_length_m": BEAD_LEN,
                   "bead_y_m": list(BEAD_Y), "bead_proud_mm": BEAD_R * 1000},
