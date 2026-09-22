@@ -948,7 +948,7 @@
   "looking_at": "D001",
   "camera": "Crawler_Cam",
   "probe": "Crawler_UT_Probe",
-  "camera_standoff_m": 0.175,
+  "camera_standoff_m": 0.126,
   "camera_lens_mm": 14.0
  },
  "detail_window": {

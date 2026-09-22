@@ -1,0 +1,264 @@
+{
+ "units": "metres unless a key says mm",
+ "seed": 11,
+ "what_this_is": "The bench rig: the same inspection loop on a plate of real steel, built from parts that can be bought. The tank scene is what it scales to.",
+ "bill_of_materials": [
+  {
+   "part": "2WD chassis plate, 220 x 150 x 3 acrylic",
+   "qty": 1,
+   "object": "Chassis_Plate",
+   "inr": "600 to 1500 for the kit",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "TT geared motor, 65 x 22 x 20, with 65 mm wheel",
+   "qty": 2,
+   "object": "Motor_*, Wheel_*",
+   "inr": "in the kit",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "Ball caster, 32 mm",
+   "qty": 1,
+   "object": "Caster_*",
+   "inr": "in the kit",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "L298N motor driver, 43 x 43 x 27",
+   "qty": 1,
+   "object": "Driver_L298N_*",
+   "inr": "150 to 300",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "ESP32-CAM with OV2640, 40.5 x 27",
+   "qty": 1,
+   "object": "ESP32_CAM_*",
+   "inr": "500 to 900",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "18650 holder, two cells, 78 x 40 x 21",
+   "qty": 1,
+   "object": "Battery_Holder, Battery_Cells",
+   "inr": "500 to 1000",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "Rocker switch, 21 x 15",
+   "qty": 1,
+   "object": "Power_Switch",
+   "inr": "20 to 50",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "M3 nylon standoffs, 20 mm",
+   "qty": 4,
+   "object": "Standoff_*",
+   "inr": "50 for a pack",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "LED module for inspection light, 12 x 12",
+   "qty": 2,
+   "object": "LED_Module_*",
+   "inr": "150 to 300 the pair",
+   "where": "Lamington Road, and it was missing from the first list"
+  },
+  {
+   "part": "Hook-up wire, switch and heatshrink",
+   "qty": 1,
+   "object": "Wire_*",
+   "inr": "300",
+   "where": "Lamington Road"
+  },
+  {
+   "part": "Mild steel plate, 600 x 300 x 6, with three weld runs",
+   "qty": 1,
+   "object": "Target_Plate, Bead_*",
+   "inr": "500 to 1500",
+   "where": "any fabricator, not Lamington Road"
+  },
+  {
+   "part": "TM-8812 ultrasonic thickness gauge with 5 MHz probe",
+   "qty": 1,
+   "object": "Gauge_*, Probe_*",
+   "inr": "10000",
+   "where": "instrument dealer or online, not Lamington Road"
+  }
+ ],
+ "plate": {
+  "size_m": [
+   0.6,
+   0.3,
+   0.006
+  ],
+  "thickness_mm": 6.0,
+  "bead_runs": 3,
+  "bead_length_m": 0.5,
+  "bead_y_m": [
+   -0.09,
+   0.0,
+   0.09
+  ],
+  "bead_proud_mm": 3.5
+ },
+ "acceptance": {
+  "undercut": {
+   "limit_mm": 0.8,
+   "measure": "depth below the plate surface"
+  },
+  "porosity": {
+   "limit_count": 4,
+   "measure": "pores in any 100 mm of bead"
+  },
+  "crack": {
+   "limit_mm": 0.0,
+   "measure": "any crack is rejectable"
+  },
+  "lack_of_fusion": {
+   "limit_mm": 0.0,
+   "measure": "any break in the bead"
+  },
+  "burn_through": {
+   "limit_mm": 0.0,
+   "measure": "any hole through the joint"
+  },
+  "thinning": {
+   "limit_fraction": 0.6,
+   "measure": "remaining wall as a fraction of the original"
+  }
+ },
+ "defects": [
+  {
+   "id": "B001",
+   "kind": "lack_of_fusion",
+   "bead": "A",
+   "y_m": -0.09,
+   "x_m": 0.05,
+   "x_from_m": 0.02,
+   "x_to_m": 0.08,
+   "length_mm": 60.0,
+   "how": "stop the run for 60 mm and restart",
+   "visible": true,
+   "rejectable": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any break in the bead"
+   }
+  },
+  {
+   "id": "B002",
+   "kind": "undercut",
+   "bead": "B",
+   "y_m": 0.0,
+   "x_m": -0.11,
+   "x_from_m": -0.15,
+   "x_to_m": -0.07,
+   "length_mm": 80.0,
+   "depth_mm": 1.5,
+   "how": "run a grinder along the toe of the bead",
+   "visible": true,
+   "rejectable": true,
+   "acceptance": {
+    "limit_mm": 0.8,
+    "measure": "depth below the plate surface"
+   }
+  },
+  {
+   "id": "B003",
+   "kind": "porosity",
+   "bead": "B",
+   "y_m": 0.0,
+   "x_m": 0.1,
+   "count": 5,
+   "pore_mm": 2.0,
+   "how": "drill five 2 mm dimples in the bead face",
+   "visible": true,
+   "rejectable": true,
+   "acceptance": {
+    "limit_count": 4,
+    "measure": "pores in any 100 mm of bead"
+   }
+  },
+  {
+   "id": "B004",
+   "kind": "burn_through",
+   "bead": "C",
+   "y_m": 0.09,
+   "x_m": -0.02,
+   "hole_mm": 6.0,
+   "how": "burn or drill a 6 mm hole through the bead",
+   "visible": true,
+   "rejectable": true,
+   "acceptance": {
+    "limit_mm": 0.0,
+    "measure": "any hole through the joint"
+   }
+  },
+  {
+   "id": "B005",
+   "kind": "thinning",
+   "bead": null,
+   "y_m": -0.04,
+   "x_m": 0.2,
+   "patch_mm": 40.0,
+   "loss_mm": 2.6,
+   "nominal_mm": 6.0,
+   "remaining_mm": 3.4,
+   "remaining_fraction": 0.567,
+   "how": "grind a 40 mm pocket 2.6 mm deep in the BACK of the plate",
+   "visible": false,
+   "rejectable": true,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   }
+  },
+  {
+   "id": "B006",
+   "kind": "thinning",
+   "bead": null,
+   "y_m": 0.07,
+   "x_m": -0.21,
+   "patch_mm": 40.0,
+   "loss_mm": 2.0,
+   "nominal_mm": 6.0,
+   "remaining_mm": 4.0,
+   "remaining_fraction": 0.667,
+   "how": "grind a 40 mm pocket 2.0 mm deep in the BACK of the plate",
+   "visible": false,
+   "rejectable": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   }
+  },
+  {
+   "id": "B007",
+   "kind": "pitting",
+   "bead": null,
+   "y_m": 0.115,
+   "x_m": 0.235,
+   "patch_mm": 55.0,
+   "how": "leave a corner to rust, or etch it",
+   "visible": true,
+   "rejectable": false,
+   "acceptance": {
+    "measure": "reported, not gated"
+   }
+  }
+ ],
+ "camera": {
+  "part": "ESP32-CAM, OV2640",
+  "lens_mm": 28.0,
+  "standoff_m": 0.075,
+  "covers_mm": [
+   96.4,
+   54.2
+  ]
+ },
+ "parked_over": "B003",
+ "thickness_model": "nominal is 6.0 mm everywhere. A thinning defect removes loss_mm inside patch_mm of its centre, ground into the back face, so nothing on the camera side changes and only the gauge finds it."
+}
