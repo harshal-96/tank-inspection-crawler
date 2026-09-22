@@ -1,0 +1,816 @@
+{
+ "units": "metres unless a key says mm",
+ "seed": 7,
+ "tank": {
+  "radius_m": 10.0,
+  "height_m": 12.0,
+  "courses": 6,
+  "course_height_m": 2.0,
+  "plates_per_course": 8,
+  "course_thickness_mm": [
+   12.0,
+   11.0,
+   10.0,
+   9.0,
+   8.0,
+   6.0
+  ],
+  "floor_thickness_mm": 8.0
+ },
+ "seams": [
+  {
+   "id": "CHIME",
+   "kind": "chime",
+   "z_m": 0.008,
+   "length_m": 62.832,
+   "course": 0
+  },
+  {
+   "id": "C1",
+   "kind": "circumferential",
+   "z_m": 2.0,
+   "length_m": 62.832,
+   "course": 1
+  },
+  {
+   "id": "C2",
+   "kind": "circumferential",
+   "z_m": 4.0,
+   "length_m": 62.832,
+   "course": 2
+  },
+  {
+   "id": "C3",
+   "kind": "circumferential",
+   "z_m": 6.0,
+   "length_m": 62.832,
+   "course": 3
+  },
+  {
+   "id": "C4",
+   "kind": "circumferential",
+   "z_m": 8.0,
+   "length_m": 62.832,
+   "course": 4
+  },
+  {
+   "id": "C5",
+   "kind": "circumferential",
+   "z_m": 10.0,
+   "length_m": 62.832,
+   "course": 5
+  },
+  {
+   "id": "V0_0",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 0.0,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_1",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 0.7854,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_2",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 1.5708,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_3",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 2.35619,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_4",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 3.14159,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_5",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 3.92699,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_6",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 4.71239,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V0_7",
+   "kind": "vertical",
+   "course": 0,
+   "theta_rad": 5.49779,
+   "z_from_m": 0.0,
+   "z_to_m": 2.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_0",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 0.3927,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_1",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 1.1781,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_2",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 1.9635,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_3",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 2.74889,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_4",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 3.53429,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_5",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 4.31969,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_6",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 5.10509,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V1_7",
+   "kind": "vertical",
+   "course": 1,
+   "theta_rad": 5.89049,
+   "z_from_m": 2.0,
+   "z_to_m": 4.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_0",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 0.0,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_1",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 0.7854,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_2",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 1.5708,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_3",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 2.35619,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_4",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 3.14159,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_5",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 3.92699,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_6",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 4.71239,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V2_7",
+   "kind": "vertical",
+   "course": 2,
+   "theta_rad": 5.49779,
+   "z_from_m": 4.0,
+   "z_to_m": 6.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_0",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 0.3927,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_1",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 1.1781,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_2",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 1.9635,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_3",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 2.74889,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_4",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 3.53429,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_5",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 4.31969,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_6",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 5.10509,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V3_7",
+   "kind": "vertical",
+   "course": 3,
+   "theta_rad": 5.89049,
+   "z_from_m": 6.0,
+   "z_to_m": 8.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_0",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 0.0,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_1",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 0.7854,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_2",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 1.5708,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_3",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 2.35619,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_4",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 3.14159,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_5",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 3.92699,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_6",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 4.71239,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V4_7",
+   "kind": "vertical",
+   "course": 4,
+   "theta_rad": 5.49779,
+   "z_from_m": 8.0,
+   "z_to_m": 10.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_0",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 0.3927,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_1",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 1.1781,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_2",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 1.9635,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_3",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 2.74889,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_4",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 3.53429,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_5",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 4.31969,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_6",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 5.10509,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  },
+  {
+   "id": "V5_7",
+   "kind": "vertical",
+   "course": 5,
+   "theta_rad": 5.89049,
+   "z_from_m": 10.0,
+   "z_to_m": 12.0,
+   "length_m": 2.0
+  }
+ ],
+ "defects": [
+  {
+   "id": "D001",
+   "kind": "undercut",
+   "seam": "C2",
+   "theta_rad": 5.98095,
+   "z_m": 4.0,
+   "centre_m": [
+    9.5391,
+    -2.9742,
+    4.0
+   ],
+   "length_mm": 506.6,
+   "depth_mm": 0.87,
+   "visible": true
+  },
+  {
+   "id": "D002",
+   "kind": "undercut",
+   "seam": "C4",
+   "theta_rad": 0.62288,
+   "z_m": 8.0,
+   "centre_m": [
+    8.1155,
+    5.8291,
+    8.0
+   ],
+   "length_mm": 628.8,
+   "depth_mm": 2.07,
+   "visible": true
+  },
+  {
+   "id": "D003",
+   "kind": "undercut",
+   "seam": "C1",
+   "theta_rad": 0.26219,
+   "z_m": 2.0,
+   "centre_m": [
+    9.6505,
+    2.5898,
+    2.0
+   ],
+   "length_mm": 531.9,
+   "depth_mm": 0.9,
+   "visible": true
+  },
+  {
+   "id": "D004",
+   "kind": "undercut",
+   "seam": "CHIME",
+   "theta_rad": 3.47675,
+   "z_m": 0.008,
+   "centre_m": [
+    -9.436,
+    -3.2866,
+    0.008
+   ],
+   "length_mm": 288.4,
+   "depth_mm": 1.59,
+   "visible": true
+  },
+  {
+   "id": "D005",
+   "kind": "porosity",
+   "seam": "V1_0",
+   "theta_rad": 0.3927,
+   "z_m": 3.209,
+   "centre_m": [
+    9.2314,
+    3.8238,
+    3.209
+   ],
+   "count": 8,
+   "visible": true
+  },
+  {
+   "id": "D006",
+   "kind": "porosity",
+   "seam": "C4",
+   "theta_rad": 3.54603,
+   "z_m": 8.0,
+   "centre_m": [
+    -9.1859,
+    -3.9319,
+    8.0
+   ],
+   "count": 8,
+   "visible": true
+  },
+  {
+   "id": "D007",
+   "kind": "porosity",
+   "seam": "V0_1",
+   "theta_rad": 0.7854,
+   "z_m": 1.0191,
+   "centre_m": [
+    7.0654,
+    7.0654,
+    1.0191
+   ],
+   "count": 5,
+   "visible": true
+  },
+  {
+   "id": "D008",
+   "kind": "porosity",
+   "seam": "V4_0",
+   "theta_rad": 0.0,
+   "z_m": 8.9947,
+   "centre_m": [
+    9.992,
+    0.0,
+    8.9947
+   ],
+   "count": 7,
+   "visible": true
+  },
+  {
+   "id": "D009",
+   "kind": "crack",
+   "seam": "C2",
+   "theta_rad": 1.05588,
+   "z_m": 4.0,
+   "centre_m": [
+    4.9207,
+    8.6964,
+    4.0
+   ],
+   "length_mm": 32.6,
+   "visible": true
+  },
+  {
+   "id": "D010",
+   "kind": "crack",
+   "seam": "CHIME",
+   "theta_rad": 1.37104,
+   "z_m": 0.008,
+   "centre_m": [
+    1.9827,
+    9.7933,
+    0.008
+   ],
+   "length_mm": 43.7,
+   "visible": true
+  },
+  {
+   "id": "D011",
+   "kind": "crack",
+   "seam": "C5",
+   "theta_rad": 1.55581,
+   "z_m": 10.0,
+   "centre_m": [
+    0.1497,
+    9.9909,
+    10.0
+   ],
+   "length_mm": 50.4,
+   "visible": true
+  },
+  {
+   "id": "D012",
+   "kind": "lack_of_fusion",
+   "seam": "V3_7",
+   "theta_rad": 5.89049,
+   "z_m": 6.4128,
+   "centre_m": [
+    9.2314,
+    -3.8237,
+    6.4128
+   ],
+   "length_mm": 104.9,
+   "visible": true
+  },
+  {
+   "id": "D013",
+   "kind": "lack_of_fusion",
+   "seam": "V4_3",
+   "theta_rad": 2.35619,
+   "z_m": 8.689,
+   "centre_m": [
+    -7.0654,
+    7.0654,
+    8.689
+   ],
+   "length_mm": 73.7,
+   "visible": true
+  },
+  {
+   "id": "D014",
+   "kind": "lack_of_fusion",
+   "seam": "V3_3",
+   "theta_rad": 2.74889,
+   "z_m": 7.5096,
+   "centre_m": [
+    -9.2314,
+    3.8238,
+    7.5096
+   ],
+   "length_mm": 87.8,
+   "visible": true
+  },
+  {
+   "id": "D015",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 2.60938,
+   "z_m": 5.2741,
+   "centre_m": [
+    -8.61,
+    5.0703,
+    5.2741
+   ],
+   "patch_radius_m": 0.421,
+   "loss_mm": 2.19,
+   "nominal_mm": 10.0,
+   "remaining_mm": 7.81,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D016",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 3.04002,
+   "z_m": 0.4662,
+   "centre_m": [
+    -9.9405,
+    1.0131,
+    0.4662
+   ],
+   "patch_radius_m": 0.587,
+   "loss_mm": 3.72,
+   "nominal_mm": 12.0,
+   "remaining_mm": 8.28,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D017",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 5.9489,
+   "z_m": 10.4883,
+   "centre_m": [
+    9.4389,
+    -3.2783,
+    10.4883
+   ],
+   "patch_radius_m": 0.697,
+   "loss_mm": 1.58,
+   "nominal_mm": 6.0,
+   "remaining_mm": 4.42,
+   "falloff": "cosine",
+   "visible": true
+  },
+  {
+   "id": "D018",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 1.63107,
+   "z_m": 9.5891,
+   "centre_m": [
+    -0.6019,
+    9.9739,
+    9.5891
+   ],
+   "patch_radius_m": 0.341,
+   "loss_mm": 2.84,
+   "nominal_mm": 8.0,
+   "remaining_mm": 5.16,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D019",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 2.61781,
+   "z_m": 6.9132,
+   "centre_m": [
+    -8.6524,
+    4.9976,
+    6.9132
+   ],
+   "patch_radius_m": 0.283,
+   "loss_mm": 2.22,
+   "nominal_mm": 9.0,
+   "remaining_mm": 6.78,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D020",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.45943,
+   "z_m": 10.7042,
+   "centre_m": [
+    8.9559,
+    4.4308,
+    10.7042
+   ],
+   "patch_radius_m": 0.305,
+   "loss_mm": 3.83,
+   "nominal_mm": 6.0,
+   "remaining_mm": 2.17,
+   "falloff": "cosine",
+   "visible": false
+  }
+ ],
+ "crawler": {
+  "parked_at": {
+   "theta_rad": 5.93495,
+   "z_m": 4.0
+  },
+  "looking_at": "D001",
+  "camera": "Crawler_Cam",
+  "probe": "Crawler_UT_Probe"
+ },
+ "thickness_model": "nominal is course_thickness_mm for the course a point sits in. Every thinning defect subtracts loss_mm * cos(pi/2 * d / patch_radius_m) for a point d metres from its centre, and nothing beyond that radius."
+}
