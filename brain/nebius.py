@@ -72,6 +72,7 @@ def api_key() -> str:
 # cell waiting ten minutes on one verdict is a stopped line, so the timeout is
 # set here and can be tuned per site without touching code.
 DEFAULT_TIMEOUT_S = 120.0
+EMPTY_REPLY_RETRIES = 1   # a completion that arrives empty gets one more go
 DEFAULT_MAX_RETRIES = 3
 
 
@@ -236,6 +237,7 @@ class ChatReply:
     retried_with_room: bool = False
     dropped_option: Optional[str] = None
     response: Any = None
+    empty_replies: int = 0
 
     @property
     def effort(self) -> str:
@@ -300,12 +302,28 @@ def chat(
             raise
     raw = reply_text(response.choices[0].message)
 
+    # An empty completion is not a judgement and not a badly formed answer.
+    # It is a reply that did not arrive, and scoring it as a decline credits the
+    # model with a caution it never exercised. One plain retry, then it stands.
+    empty = 0
+
+    def again(tokens: int):
+        nonlocal empty, response, raw
+        while not raw.strip() and empty < EMPTY_REPLY_RETRIES:
+            time.sleep(1.0)
+            response = call(tokens, effort)
+            raw = reply_text(response.choices[0].message)
+            empty += 1
+
+    again(max_tokens)
+
     retried = False
     if (parses is not None and max_tokens < thinking_tokens
             and _spent_thinking(response, raw, max_tokens, parses)):
         response = call(thinking_tokens, effort)
         raw = reply_text(response.choices[0].message)
         retried = True
+        again(thinking_tokens)
 
     usage = response.usage
     return ChatReply(
@@ -313,4 +331,5 @@ def chat(
         prompt_tokens=usage.prompt_tokens if usage else None,
         completion_tokens=usage.completion_tokens if usage else None,
         retried_with_room=retried, dropped_option=dropped, response=response,
+        empty_replies=empty,
     )
