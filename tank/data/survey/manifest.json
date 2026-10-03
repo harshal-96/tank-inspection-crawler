@@ -170,11 +170,11 @@
    "kind": "thinning",
    "seam": null,
    "theta_rad": -0.088,
-   "z_m": 4.34,
+   "z_m": 4.075,
    "centre_m": [
     9.9533,
     -0.8782,
-    4.34
+    4.075
    ],
    "on_survey_run": false,
    "acceptance": {
@@ -188,7 +188,139 @@
    "remaining_fraction": 0.69,
    "rejectable": false,
    "falloff": "cosine",
-   "visible": true
+   "visible": true,
+   "rust_islands": [
+    [
+     -0.142578,
+     4.09,
+     0.0199
+    ],
+    [
+     -0.110937,
+     3.6925,
+     0.0226
+    ],
+    [
+     -0.126549,
+     4.3634,
+     0.0321
+    ],
+    [
+     -0.124059,
+     4.2796,
+     0.027
+    ],
+    [
+     -0.122701,
+     4.2829,
+     0.0274
+    ],
+    [
+     -0.119869,
+     3.6669,
+     0.0199
+    ],
+    [
+     -0.128893,
+     4.2545,
+     0.0138
+    ],
+    [
+     -0.133017,
+     3.8356,
+     0.0276
+    ],
+    [
+     -0.046081,
+     4.2162,
+     0.0283
+    ],
+    [
+     -0.149076,
+     3.7741,
+     0.0268
+    ],
+    [
+     -0.113874,
+     4.441,
+     0.015
+    ],
+    [
+     -0.134781,
+     4.4941,
+     0.028
+    ],
+    [
+     -0.108825,
+     4.6945,
+     0.0123
+    ],
+    [
+     -0.111023,
+     4.6114,
+     0.0247
+    ],
+    [
+     -0.102269,
+     3.4838,
+     0.03
+    ],
+    [
+     -0.051512,
+     3.6142,
+     0.0242
+    ],
+    [
+     -0.144267,
+     4.1715,
+     0.0123
+    ],
+    [
+     -0.059827,
+     4.498,
+     0.0145
+    ],
+    [
+     -0.069657,
+     3.6558,
+     0.0299
+    ],
+    [
+     -0.116254,
+     3.5434,
+     0.0182
+    ],
+    [
+     -0.151185,
+     4.2554,
+     0.0277
+    ],
+    [
+     -0.104981,
+     4.5184,
+     0.0195
+    ],
+    [
+     -0.133323,
+     4.0648,
+     0.0115
+    ],
+    [
+     -0.140215,
+     4.1908,
+     0.0243
+    ],
+    [
+     -0.054609,
+     3.5227,
+     0.0198
+    ],
+    [
+     -0.120159,
+     4.4709,
+     0.0282
+    ]
+   ]
   },
   {
    "id": "D006",
@@ -467,7 +599,79 @@
    "remaining_fraction": 0.714,
    "rejectable": false,
    "falloff": "cosine",
-   "visible": true
+   "visible": true,
+   "rust_islands": [
+    [
+     0.40832,
+     2.4892,
+     0.0205
+    ],
+    [
+     0.434177,
+     2.9023,
+     0.018
+    ],
+    [
+     0.354345,
+     2.6959,
+     0.0094
+    ],
+    [
+     0.432629,
+     2.7586,
+     0.0172
+    ],
+    [
+     0.435038,
+     2.7417,
+     0.0232
+    ],
+    [
+     0.374608,
+     2.5359,
+     0.0092
+    ],
+    [
+     0.356961,
+     3.0169,
+     0.0116
+    ],
+    [
+     0.423163,
+     2.4988,
+     0.0127
+    ],
+    [
+     0.433355,
+     2.8866,
+     0.0133
+    ],
+    [
+     0.368477,
+     2.5256,
+     0.0097
+    ],
+    [
+     0.374464,
+     3.1481,
+     0.0131
+    ],
+    [
+     0.385303,
+     3.1812,
+     0.0121
+    ],
+    [
+     0.35238,
+     2.7994,
+     0.0174
+    ],
+    [
+     0.358435,
+     2.9923,
+     0.0227
+    ]
+   ]
   },
   {
    "id": "D019",
@@ -492,7 +696,104 @@
    "remaining_fraction": 0.719,
    "rejectable": false,
    "falloff": "cosine",
-   "visible": true
+   "visible": true,
+   "rust_islands": [
+    [
+     4.860982,
+     2.3776,
+     0.029
+    ],
+    [
+     4.834024,
+     3.5764,
+     0.0243
+    ],
+    [
+     4.821929,
+     2.9847,
+     0.0366
+    ],
+    [
+     4.939705,
+     3.2031,
+     0.0369
+    ],
+    [
+     4.809004,
+     3.028,
+     0.0304
+    ],
+    [
+     4.86328,
+     3.437,
+     0.0208
+    ],
+    [
+     4.902287,
+     3.7178,
+     0.0329
+    ],
+    [
+     4.88353,
+     3.6274,
+     0.0138
+    ],
+    [
+     4.939764,
+     3.0672,
+     0.0159
+    ],
+    [
+     4.833044,
+     2.4348,
+     0.0294
+    ],
+    [
+     4.890782,
+     2.4331,
+     0.0337
+    ],
+    [
+     4.914978,
+     3.4761,
+     0.0157
+    ],
+    [
+     4.874324,
+     2.4417,
+     0.0354
+    ],
+    [
+     4.934914,
+     2.9668,
+     0.0177
+    ],
+    [
+     4.85736,
+     2.5516,
+     0.0295
+    ],
+    [
+     4.910776,
+     2.5962,
+     0.0211
+    ],
+    [
+     4.883103,
+     2.4984,
+     0.0277
+    ],
+    [
+     4.876329,
+     2.1584,
+     0.0233
+    ],
+    [
+     4.907561,
+     2.2938,
+     0.0167
+    ]
+   ]
   },
   {
    "id": "D020",
@@ -558,11 +859,24 @@
      720,
      1280
     ],
-    "min_m": 0.0306,
+    "min_m": 0.023,
     "max_m": 1.8037,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.549,
+     "v": 0.9856,
+     "range_m": 0.1068,
+     "of_the_fault": 0.016,
+     "of_the_frame": 0.0,
+     "coverage": 0.016,
+     "visible_to_a_camera": true,
+     "rejectable": false
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -657,11 +971,36 @@
      720,
      1280
     ],
-    "min_m": 0.0246,
+    "min_m": 0.0007,
     "max_m": 1.4824,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D001",
+     "kind": "undercut",
+     "u": 0.8716,
+     "v": 0.5,
+     "range_m": 0.1024,
+     "of_the_fault": 0.222,
+     "of_the_frame": 0.0,
+     "coverage": 0.222,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.6185,
+     "v": 0.9232,
+     "range_m": 0.1059,
+     "of_the_fault": 0.016,
+     "of_the_frame": 0.0,
+     "coverage": 0.016,
+     "visible_to_a_camera": true,
+     "rejectable": false
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -756,7 +1095,7 @@
      720,
      1280
     ],
-    "min_m": 0.017,
+    "min_m": 0.0003,
     "max_m": 1.3809,
     "sky_fraction": 0.0
    },
@@ -764,11 +1103,26 @@
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.8067,
+     "u": 0.4164,
      "v": 0.5,
-     "range_m": 0.1033,
+     "range_m": 0.1085,
+     "of_the_fault": 0.556,
+     "of_the_frame": 0.061,
+     "coverage": 0.556,
      "visible_to_a_camera": true,
      "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.9366,
+     "v": 0.2344,
+     "range_m": 0.1015,
+     "of_the_fault": 0.048,
+     "of_the_frame": 0.03,
+     "coverage": 0.048,
+     "visible_to_a_camera": true,
+     "rejectable": false
     }
    ],
    "probe_candidates": [
@@ -865,19 +1219,34 @@
      720,
      1280
     ],
-    "min_m": 0.0161,
-    "max_m": 1.2822,
+    "min_m": 0.0005,
+    "max_m": 0.811,
     "sky_fraction": 0.0
    },
    "faults_in_view": [
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.1779,
+     "u": 0.5463,
      "v": 0.5,
-     "range_m": 0.1112,
+     "range_m": 0.1068,
+     "of_the_fault": 0.667,
+     "of_the_frame": 0.091,
+     "coverage": 0.667,
      "visible_to_a_camera": true,
      "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.2892,
+     "v": 0.2548,
+     "range_m": 0.11,
+     "of_the_fault": 0.032,
+     "of_the_frame": 0.394,
+     "coverage": 0.394,
+     "visible_to_a_camera": true,
+     "rejectable": false
     }
    ],
    "probe_candidates": [
@@ -974,11 +1343,36 @@
      720,
      1280
     ],
-    "min_m": 0.0157,
-    "max_m": 1.3701,
+    "min_m": 0.0003,
+    "max_m": 0.8682,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D001",
+     "kind": "undercut",
+     "u": 0.3014,
+     "v": 0.5,
+     "range_m": 0.1098,
+     "of_the_fault": 0.222,
+     "of_the_frame": 0.091,
+     "coverage": 0.222,
+     "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.3711,
+     "v": 0.9757,
+     "range_m": 0.109,
+     "of_the_fault": 0.016,
+     "of_the_frame": 1.0,
+     "coverage": 1.0,
+     "visible_to_a_camera": true,
+     "rejectable": false
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -1015,9 +1409,11 @@
      "theta_rad": -0.120435,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.4,
+     "remaining_fraction": 0.94,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1025,8 +1421,8 @@
      "theta_rad": -0.120435,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.948,
-     "remaining_fraction": 0.9948,
+     "true_thickness_mm": 9.4,
+     "remaining_fraction": 0.94,
      "thinned_by": [
       "D005"
      ],
@@ -1037,11 +1433,9 @@
      "theta_rad": -0.120435,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.324,
-     "remaining_fraction": 0.9324,
-     "thinned_by": [
-      "D005"
-     ],
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
      "rejectable": false
     },
     {
@@ -1049,11 +1443,9 @@
      "theta_rad": -0.120435,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.521,
-     "remaining_fraction": 0.9521,
-     "thinned_by": [
-      "D005"
-     ],
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
      "rejectable": false
     }
    ],
@@ -1062,9 +1454,11 @@
     "theta_rad": -0.120435,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 9.4,
+    "remaining_fraction": 0.94,
+    "thinned_by": [
+     "D005"
+    ],
     "rejectable": false
    }
   },
@@ -1079,11 +1473,24 @@
      720,
      1280
     ],
-    "min_m": 0.0264,
+    "min_m": 0.0005,
     "max_m": 1.2627,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.4546,
+     "v": 0.2503,
+     "range_m": 0.108,
+     "of_the_fault": 0.032,
+     "of_the_frame": 1.0,
+     "coverage": 1.0,
+     "visible_to_a_camera": true,
+     "rejectable": false
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -1110,9 +1517,11 @@
      "theta_rad": -0.103044,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.646,
+     "remaining_fraction": 0.8769,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1120,8 +1529,8 @@
      "theta_rad": -0.103044,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.895,
-     "remaining_fraction": 0.9895,
+     "true_thickness_mm": 7.619,
+     "remaining_fraction": 0.7619,
      "thinned_by": [
       "D005"
      ],
@@ -1132,8 +1541,8 @@
      "theta_rad": -0.103044,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 8.33,
-     "remaining_fraction": 0.833,
+     "true_thickness_mm": 7.619,
+     "remaining_fraction": 0.7619,
      "thinned_by": [
       "D005"
      ],
@@ -1144,8 +1553,8 @@
      "theta_rad": -0.103044,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 7.52,
-     "remaining_fraction": 0.752,
+     "true_thickness_mm": 8.646,
+     "remaining_fraction": 0.8646,
      "thinned_by": [
       "D005"
      ],
@@ -1156,11 +1565,9 @@
      "theta_rad": -0.103044,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 7.775,
-     "remaining_fraction": 0.7775,
-     "thinned_by": [
-      "D005"
-     ],
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
      "rejectable": false
     }
    ],
@@ -1169,8 +1576,8 @@
     "theta_rad": -0.103044,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 9.895,
-    "remaining_fraction": 0.9895,
+    "true_thickness_mm": 7.619,
+    "remaining_fraction": 0.7619,
     "thinned_by": [
      "D005"
     ],
@@ -1188,7 +1595,7 @@
      720,
      1280
     ],
-    "min_m": 0.0275,
+    "min_m": 0.0006,
     "max_m": 1.2188,
     "sky_fraction": 0.0
    },
@@ -1199,8 +1606,23 @@
      "u": 0.7076,
      "v": 0.5,
      "range_m": 0.1047,
+     "of_the_fault": 1.0,
+     "of_the_frame": 0.0,
+     "coverage": 1.0,
      "visible_to_a_camera": true,
      "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.4855,
+     "v": 0.9819,
+     "range_m": 0.1076,
+     "of_the_fault": 0.016,
+     "of_the_frame": 0.333,
+     "coverage": 0.333,
+     "visible_to_a_camera": true,
+     "rejectable": false
     }
    ],
    "probe_candidates": [
@@ -1219,9 +1641,11 @@
      "theta_rad": -0.085652,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 10.945,
+     "remaining_fraction": 0.995,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1229,9 +1653,11 @@
      "theta_rad": -0.085652,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.159,
+     "remaining_fraction": 0.8326,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1239,8 +1665,8 @@
      "theta_rad": -0.085653,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.5,
-     "remaining_fraction": 0.95,
+     "true_thickness_mm": 7.062,
+     "remaining_fraction": 0.7062,
      "thinned_by": [
       "D005"
      ],
@@ -1251,8 +1677,8 @@
      "theta_rad": -0.085653,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 7.821,
-     "remaining_fraction": 0.7821,
+     "true_thickness_mm": 7.062,
+     "remaining_fraction": 0.7062,
      "thinned_by": [
       "D005"
      ],
@@ -1263,8 +1689,8 @@
      "theta_rad": -0.085653,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 6.957,
-     "remaining_fraction": 0.6957,
+     "true_thickness_mm": 8.159,
+     "remaining_fraction": 0.8159,
      "thinned_by": [
       "D005"
      ],
@@ -1275,8 +1701,8 @@
      "theta_rad": -0.085653,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 7.229,
-     "remaining_fraction": 0.7229,
+     "true_thickness_mm": 9.945,
+     "remaining_fraction": 0.9945,
      "thinned_by": [
       "D005"
      ],
@@ -1288,8 +1714,8 @@
     "theta_rad": -0.085653,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 9.5,
-    "remaining_fraction": 0.95,
+    "true_thickness_mm": 7.062,
+    "remaining_fraction": 0.7062,
     "thinned_by": [
      "D005"
     ],
@@ -1307,7 +1733,7 @@
      720,
      1280
     ],
-    "min_m": 0.027,
+    "min_m": 0.0081,
     "max_m": 1.2373,
     "sky_fraction": 0.0
    },
@@ -1315,9 +1741,12 @@
     {
      "id": "D002",
      "kind": "porosity",
-     "u": 0.0917,
+     "u": 0.1386,
      "v": 0.5,
-     "range_m": 0.1121,
+     "range_m": 0.1116,
+     "of_the_fault": 0.8,
+     "of_the_frame": 0.091,
+     "coverage": 0.8,
      "visible_to_a_camera": true,
      "rejectable": true
     }
@@ -1348,9 +1777,11 @@
      "theta_rad": -0.068261,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.985,
+     "remaining_fraction": 0.9077,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1358,9 +1789,11 @@
      "theta_rad": -0.068261,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.008,
+     "remaining_fraction": 0.8008,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1368,8 +1801,8 @@
      "theta_rad": -0.068261,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 8.684,
-     "remaining_fraction": 0.8684,
+     "true_thickness_mm": 8.008,
+     "remaining_fraction": 0.8008,
      "thinned_by": [
       "D005"
      ],
@@ -1380,8 +1813,8 @@
      "theta_rad": -0.068261,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 7.914,
-     "remaining_fraction": 0.7914,
+     "true_thickness_mm": 8.985,
+     "remaining_fraction": 0.8985,
      "thinned_by": [
       "D005"
      ],
@@ -1392,11 +1825,9 @@
      "theta_rad": -0.068261,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 8.157,
-     "remaining_fraction": 0.8157,
-     "thinned_by": [
-      "D005"
-     ],
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
      "rejectable": false
     }
    ],
@@ -1405,9 +1836,11 @@
     "theta_rad": -0.068261,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 8.008,
+    "remaining_fraction": 0.8008,
+    "thinned_by": [
+     "D005"
+    ],
     "rejectable": false
    }
   },
@@ -1422,11 +1855,24 @@
      720,
      1280
     ],
-    "min_m": 0.0163,
+    "min_m": 0.0153,
     "max_m": 1.2412,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.1997,
+     "v": 0.9672,
+     "range_m": 0.111,
+     "of_the_fault": 0.016,
+     "of_the_frame": 0.0,
+     "coverage": 0.016,
+     "visible_to_a_camera": true,
+     "rejectable": false
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -1463,9 +1909,11 @@
      "theta_rad": -0.05087,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.985,
+     "remaining_fraction": 0.9985,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1473,9 +1921,11 @@
      "theta_rad": -0.05087,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.985,
+     "remaining_fraction": 0.9985,
+     "thinned_by": [
+      "D005"
+     ],
      "rejectable": false
     },
     {
@@ -1483,11 +1933,9 @@
      "theta_rad": -0.05087,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.916,
-     "remaining_fraction": 0.9916,
-     "thinned_by": [
-      "D005"
-     ],
+     "true_thickness_mm": 10.0,
+     "remaining_fraction": 1.0,
+     "thinned_by": [],
      "rejectable": false
     },
     {
@@ -1506,9 +1954,11 @@
     "theta_rad": -0.05087,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 9.985,
+    "remaining_fraction": 0.9985,
+    "thinned_by": [
+     "D005"
+    ],
     "rejectable": false
    }
   },
@@ -1523,7 +1973,7 @@
      720,
      1280
     ],
-    "min_m": 0.0056,
+    "min_m": 0.0067,
     "max_m": 1.2773,
     "sky_fraction": 0.0
    },
@@ -1622,7 +2072,7 @@
      720,
      1280
     ],
-    "min_m": 0.0231,
+    "min_m": 0.0218,
     "max_m": 1.0898,
     "sky_fraction": 0.0
    },
@@ -1721,7 +2171,7 @@
      720,
      1280
     ],
-    "min_m": 0.0239,
+    "min_m": 0.021,
     "max_m": 1.1768,
     "sky_fraction": 0.0
    },
@@ -1732,6 +2182,9 @@
      "u": 0.5966,
      "v": 0.5,
      "range_m": 0.1062,
+     "of_the_fault": 1.0,
+     "of_the_frame": 0.0,
+     "coverage": 1.0,
      "visible_to_a_camera": true,
      "rejectable": true
     }
@@ -1830,7 +2283,7 @@
      720,
      1280
     ],
-    "min_m": 0.0191,
+    "min_m": 0.0214,
     "max_m": 1.2139,
     "sky_fraction": 0.0
    },
@@ -1929,11 +2382,24 @@
      720,
      1280
     ],
-    "min_m": 0.0222,
+    "min_m": 0.0212,
     "max_m": 1.1523,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D006",
+     "kind": "thinning",
+     "u": 0.1135,
+     "v": 0.0002,
+     "range_m": 0.1119,
+     "of_the_fault": 0.054,
+     "of_the_frame": 0.0,
+     "coverage": 0.054,
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2028,11 +2494,24 @@
      720,
      1280
     ],
-    "min_m": 0.0223,
+    "min_m": 0.0224,
     "max_m": 1.0498,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D006",
+     "kind": "thinning",
+     "u": 0.1676,
+     "v": 0.3137,
+     "range_m": 0.1113,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2133,7 +2612,7 @@
      720,
      1280
     ],
-    "min_m": 0.0215,
+    "min_m": 0.0191,
     "max_m": 1.0811,
     "sky_fraction": 0.0
    },
@@ -2238,7 +2717,7 @@
      720,
      1280
     ],
-    "min_m": 0.0078,
+    "min_m": 0.0082,
     "max_m": 1.0283,
     "sky_fraction": 0.0
    },
@@ -2249,6 +2728,9 @@
      "u": 0.6919,
      "v": 0.5,
      "range_m": 0.1049,
+     "of_the_fault": 1.0,
+     "of_the_frame": 0.0,
+     "coverage": 1.0,
      "visible_to_a_camera": true,
      "rejectable": true
     }
@@ -2353,7 +2835,7 @@
      720,
      1280
     ],
-    "min_m": 0.0211,
+    "min_m": 0.0221,
     "max_m": 1.1279,
     "sky_fraction": 0.0
    },
@@ -2361,9 +2843,12 @@
     {
      "id": "D004",
      "kind": "lack_of_fusion",
-     "u": 0.0779,
+     "u": 0.1702,
      "v": 0.5,
-     "range_m": 0.1123,
+     "range_m": 0.1113,
+     "of_the_fault": 0.667,
+     "of_the_frame": 0.091,
+     "coverage": 0.667,
      "visible_to_a_camera": true,
      "rejectable": true
     }
@@ -2468,7 +2953,7 @@
      720,
      1280
     ],
-    "min_m": 0.0182,
+    "min_m": 0.018,
     "max_m": 1.1816,
     "sky_fraction": 0.0
    },
@@ -2666,7 +3151,7 @@
      720,
      1280
     ],
-    "min_m": 0.0155,
+    "min_m": 0.0169,
     "max_m": 1.1943,
     "sky_fraction": 0.0
    },
@@ -2765,7 +3250,7 @@
      720,
      1280
     ],
-    "min_m": 0.0082,
+    "min_m": 0.0162,
     "max_m": 1.1963,
     "sky_fraction": 0.0
    },
@@ -2864,7 +3349,7 @@
      720,
      1280
     ],
-    "min_m": 0.0145,
+    "min_m": 0.0157,
     "max_m": 1.293,
     "sky_fraction": 0.0
    },
@@ -2963,7 +3448,7 @@
      720,
      1280
     ],
-    "min_m": 0.0142,
+    "min_m": 0.0146,
     "max_m": 1.3096,
     "sky_fraction": 0.0
    },

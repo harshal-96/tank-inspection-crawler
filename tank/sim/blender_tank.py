@@ -113,7 +113,12 @@ SURVEY_ARC_M = 4.0
 
 BEAD_R = 0.008           # a weld bead stands 8 mm proud of the plate
 RIPPLE_PITCH = 0.009     # the spacing of the pools a welder leaves behind
-DETAIL_ARC_M = SURVEY_ARC_M   # only the run being inspected earns ripples
+DETAIL_ARC_M = SURVEY_ARC_M + 1.2   # the run, plus enough that its edge is
+                                    # never inside a frame. Matched exactly to
+                                    # the run, the last stations looked past
+                                    # the end of the modelled bead at a smooth
+                                    # tube, and the inspector reported a break
+                                    # in the weld. It was right: there was one.
 SEED = 7
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -185,7 +190,7 @@ def build_materials() -> dict:
         "plate": shell_material(),
         "bead": steel_material("weld_bead", (0.215, 0.200, 0.170), 0.62, 0.62,
                                160.0, 0.22, fine=900.0),
-        "haz": plain("heat_affected_zone", (0.150, 0.130, 0.100), 0.62, 0.60),
+        "haz": plain("heat_affected_zone", (0.128, 0.115, 0.094), 0.58, 0.62),
         "dark": plain("defect_dark", (0.018, 0.018, 0.022), 0.10, 0.88),
         "rust": steel_material("corrosion", (0.26, 0.105, 0.035), 0.92, 0.10, 70.0, 0.90),
         "body": plain("crawler_body", (0.46, 0.21, 0.035), 0.30, 0.52),
@@ -215,6 +220,42 @@ def in_window(theta, margin=0.0):
 def wall_point(theta, z, inset=0.0):
     r = RADIUS - inset
     return (r * math.cos(theta), r * math.sin(theta), z)
+
+
+# How far each skin on the plate stands toward the camera, in metres. The
+# order matters more than the numbers: nothing in this scene is subtracted, so
+# a surface hides everything behind it, and a pit whose floor is behind the
+# sheet it sits on shows as a ring rather than a hole.
+HAZ_INSET = 0.0004        # heat tint, laid straight on the plate
+RUST_INSET = 0.0009       # rust over the tint, because that is the order it happens
+PIT_FLOOR = 0.00105       # the bottom of a pit, still clear of the rust
+UNDERCUT_FLOOR = 0.0010   # the bottom of the groove, just clear of the rust
+
+
+def crater(theta, z, r, depth, rim_inset, segments=14, phase=0.0):
+    """A pit: a ragged rim at the surface and a floor set back behind it.
+
+    Modelled as a small sphere at the wall a pit becomes a boulder sitting on
+    the plate, because most of the sphere is in front of the surface it is
+    supposed to be eating into. That is what the frames showed, and the
+    inspector called them loose debris rather than corrosion, which is a fair
+    description of a lump on sound metal. A pit has to be cut, not stuck on.
+    """
+    verts = [wall_point(theta, z, inset=rim_inset - depth)]
+    for frac, dfrac in ((0.58, 0.78), (1.0, 0.0)):
+        for i in range(segments):
+            b = math.tau * i / segments
+            rr = r * frac * (0.88 + 0.08 * math.sin(3 * b + phase)
+                             + 0.04 * math.sin(5 * b + phase * 1.6))
+            verts.append(wall_point(theta + math.cos(b) * rr / RADIUS,
+                                    z + math.sin(b) * rr,
+                                    inset=rim_inset - depth * dfrac))
+    faces = [(0, 1 + i, 1 + (i + 1) % segments) for i in range(segments)]
+    inner, outer = 1, 1 + segments
+    for i in range(segments):
+        j = (i + 1) % segments
+        faces.append((inner + i, inner + j, outer + j, outer + i))
+    return verts, faces
 
 
 def wall_frame(theta):
@@ -256,7 +297,7 @@ def rippled_bead_column(theta, z0, z1, rng, minor_r=BEAD_R):
                         minor_r, RIPPLE_PITCH)
 
 
-def haz_arc(z, arc, half_width=0.015, inset=0.0012):
+def haz_arc(z, arc, half_width=0.0090, inset=HAZ_INSET):
     """The discoloured band either side of a weld, where the arc heated the plate."""
     span = arc[1] - arc[0]
     segments = max(8, int(SHELL_SEGMENTS * span / math.tau))
@@ -499,14 +540,18 @@ def plan_defects(seams, rng) -> list[dict]:
         rejectable=True, visible=True)
 
     # ---- beside the run: one wall loss a camera can see, one it cannot
-    # Within reach of the probe arm, which is what makes them findable at all.
+    # Within reach of the probe arm, which is what makes them findable at all,
+    # and the visible one close enough to the seam that the crawler's camera
+    # actually passes over it. At 340 mm off the seam it was outside every
+    # frame, so the run had no corrosion a camera could find and the contrast
+    # the whole thing rests on was not in the dataset.
+    #
     # The one a camera can see is within limits; the one it cannot see is not.
-    # That pairing is the argument of the whole project in two patches of wall.
     # The patches straddle a course boundary, so the same loss is a different
     # fraction either side of it: 4.7 mm off the 11 mm course left it a hair
     # inside the limit and the run had nothing the probe had to catch.
     for fraction, visible, loss in ((0.28, True, 3.1), (0.70, False, 5.6)):
-        z = run["z_m"] + (0.34 if visible else -0.41)
+        z = run["z_m"] + (0.075 if visible else -0.41)
         nominal = COURSE_MM[min(COURSES - 1, int(z // COURSE_H))]
         left = (nominal - loss) / nominal
         add("thinning", None, at(fraction), z, patch_radius_m=0.38,
@@ -562,7 +607,12 @@ def plan_defects(seams, rng) -> list[dict]:
         nominal = COURSE_MM[course]
         loss = rng.uniform(1.5, 4.5)
         left = (nominal - loss) / nominal
-        add("thinning", None, rng.uniform(0, math.tau), z,
+        # Off the run, or a patch nobody planted turns up in the frames and the
+        # dataset says a clean length of seam had corrosion on it.
+        theta = rng.uniform(0, math.tau)
+        while in_window(theta, 0.15) and abs(z - COURSE_H * 2) < 1.0:
+            theta = rng.uniform(0, math.tau)
+        add("thinning", None, theta, z,
             patch_radius_m=round(rng.uniform(0.25, 0.7), 3),
             loss_mm=round(loss, 2), nominal_mm=nominal,
             remaining_mm=round(nominal - loss, 2), remaining_fraction=round(left, 3),
@@ -581,27 +631,94 @@ def build_defects(mats, coll, defects, rng):
             # beside the bead and never through it.
             lo, hi = d["arc_from"], d["arc_to"]
             depth = d["depth_mm"] / 1000
-            segs = max(6, int((hi - lo) * RADIUS / 0.01))
+            width = 0.0046
+            # Starts under the bead, not beside it. The edge of the bead is at
+            # one bead radius from the seam centre, so beginning at 0.86 of one
+            # puts the first row of the groove underneath the overhang, which
+            # is where the shadow that gives an undercut away comes from.
+            toe = z + BEAD_R * 0.86
+            # Fine enough to carry a scallop per ripple, which needs several
+            # sections inside each nine millimetres of weld.
+            segs = max(48, int((hi - lo) * RADIUS / 0.0015))
+            # Across the groove: rim, shoulder, floor, floor, shoulder, rim, as
+            # a fraction of the width and a fraction of the depth above the
+            # floor. Six rows rather than three, because a V of two quads has
+            # no wall to catch the light on.
+            # Under the bead, floor, floor, shoulder, lip. Not symmetric,
+            # because the bead is on one side and bare plate on the other.
+            cross = ((0.00, 0.06), (0.30, 0.00), (0.60, 0.00),
+                     (0.82, 0.48), (1.00, 0.88))
+            # The scallop. One period per weld ripple, so the groove pinches
+            # where a crest reaches the plate and opens in the valley behind
+            # it, and the whole thing stops looking ruled.
+            # Twelve millimetres of fade at each end, not a seventh of the
+            # length. On a long groove a proportional fade leaves tens of
+            # millimetres at no depth at all, which the truth still counted as
+            # an undercut and no camera could have found.
+            fade = min(0.35, 0.012 / max(1e-6, (hi - lo) * RADIUS))
+
+            def section(i):
+                f = i / segs
+                along = (hi - lo) * f * RADIUS
+                beat = math.tau * along / (RIPPLE_PITCH * 3.5)
+                # Never below about half width. Pinched to nothing at each
+                # ripple the groove stopped being one groove and became a row
+                # of dark blocks along the toe.
+                swell = (0.78 + 0.16 * math.sin(beat)
+                         + 0.06 * math.sin(beat * 2.7 + 1.1))
+                drift = 0.0006 * math.sin(beat * 0.8) + 0.00025 * math.sin(along * 31.0)
+                taper = min(1.0, f / fade, (1.0 - f) / fade)
+                deep = (0.80 + 0.20 * math.sin(beat * 1.6 + 0.5)
+                        + 0.10 * math.sin(along * 17.0))
+                return (lo + (hi - lo) * f, toe + drift, width * swell,
+                        taper * deep)
+
             verts, faces = [], []
             for i in range(segs + 1):
-                t = lo + (hi - lo) * i / segs
-                edge = z + BEAD_R * 1.55
-                verts.append(wall_point(t, edge, inset=-depth * 0.4))
-                verts.append(wall_point(t, edge + 0.0048, inset=depth * 1.6))
+                t, at, wide, deep = section(i)
+                for across, up in cross:
+                    verts.append(wall_point(
+                        t, at + wide * across,
+                        inset=UNDERCUT_FLOOR + depth * up * deep))
+            rows = len(cross)
             for i in range(segs):
-                faces.append((2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2))
-            make(f"Defect_{d['id']}_undercut", verts, faces, mats["dark"],
-                 collection=coll)
+                for j in range(rows - 1):
+                    base = i * rows + j
+                    faces.append((base, base + 1, base + rows + 1, base + rows))
+            # Cut steel, flat shaded. Both of those matter. Smooth shading
+            # averages the two walls into one even surface and the notch
+            # disappears; painting the whole trough near-black replaces a lit
+            # lip and a shadowed slot with a single dark smear, which beside a
+            # weld is exactly what heat tint looks like, and got called that.
+            make(f"Defect_{d['id']}_undercut", verts, faces, mats["plate"],
+                 smooth=False, collection=coll)
+
+            # The bottom of the slot, dark, a hair in front of the floor it
+            # lies on. This is the part a camera sees as the undercut.
+            fv, ff = [], []
+            for i in range(segs + 1):
+                t, at, wide, deep = section(i)
+                for across in (0.24, 0.66):
+                    fv.append(wall_point(t, at + wide * across,
+                                         inset=UNDERCUT_FLOOR + 0.00006))
+            for i in range(segs):
+                ff.append((2 * i, 2 * i + 1, 2 * i + 3, 2 * i + 2))
+            make(f"Defect_{d['id']}_undercut_floor", fv, ff, mats["dark"],
+                 smooth=False, collection=coll)
 
         elif kind == "porosity":
+            # Cut into the crown of the bead. Set at a third of the bead
+            # radius from the wall the pores sat five millimetres underneath
+            # the surface of the weld, inside solid metal, and no camera saw
+            # one: the frames carrying porosity showed a sound bead, and the
+            # inspector named the only dark thing that was actually in them.
             pores = []
             for _ in range(d["count"]):
                 r = rng.uniform(0.0011, 0.0029)
-                centre = Vector(wall_point(theta + rng.uniform(-0.05, 0.05) / RADIUS,
-                                           z + rng.uniform(-0.004, 0.004),
-                                           inset=BEAD_R * 0.35))
-                pores.append(ellipsoid(centre, (r, r, r * 0.8),
-                                       frame=(tangent, up, outward), segments=8))
+                pores.append(crater(theta + rng.uniform(-0.05, 0.05) / RADIUS,
+                                    z + rng.uniform(-0.0022, 0.0022),
+                                    r, r * 1.7, BEAD_R * 1.02,
+                                    phase=rng.uniform(0, math.tau)))
             make(f"Defect_{d['id']}_porosity", *merge(pores), mat=mats["dark"],
                  collection=coll)
 
@@ -646,58 +763,131 @@ def build_defects(mats, coll, defects, rng):
         elif kind == "thinning" and d["visible"]:
             # Wall loss a camera can see: a rusted patch, pitted through.
             patch = d["patch_radius_m"]
-            segs = 40
+            # Around the edge, and out from the middle. Forty steps around a
+            # patch this size is a sixty millimetre straight line per step, and
+            # the crawler works close enough to see every one of them: the
+            # boundary came out as a drawn polygon. The outline is what gives a
+            # patch away, so the detail goes there and not into the middle.
+            around, out = 180, 12
             phase = rng.uniform(0, math.tau)
 
             def reach(a, phase=phase):
                 """How far the rust runs at this bearing, so the edge is ragged."""
                 return (0.70 + 0.20 * math.sin(3 * a + phase)
-                        + 0.10 * math.sin(7 * a + phase * 1.7))
+                        + 0.10 * math.sin(7 * a + phase * 1.7)
+                        + 0.05 * math.sin(13 * a + phase * 2.3)
+                        + 0.025 * math.sin(29 * a + phase * 0.6))
 
             skin, faces = [], []
-            for i in range(segs + 1):
-                for j in range(segs + 1):
-                    a = math.tau * i / segs
-                    rr = patch * reach(a) * (j / segs)
+            for i in range(around + 1):
+                a = math.tau * i / around
+                for j in range(out + 1):
+                    rr = patch * reach(a) * (j / out)
                     skin.append(wall_point(theta + math.cos(a) * rr / RADIUS,
-                                           z + math.sin(a) * rr, inset=0.0009))
-            for i in range(segs):
-                for j in range(segs):
-                    faces.append((i * (segs + 1) + j, i * (segs + 1) + j + 1,
-                                  (i + 1) * (segs + 1) + j + 1,
-                                  (i + 1) * (segs + 1) + j))
+                                           z + math.sin(a) * rr, inset=RUST_INSET))
+            for i in range(around):
+                for j in range(out):
+                    faces.append((i * (out + 1) + j, i * (out + 1) + j + 1,
+                                  (i + 1) * (out + 1) + j + 1,
+                                  (i + 1) * (out + 1) + j))
             make(f"Defect_{d['id']}_rust", skin, faces, mats["rust"], collection=coll)
-            # Outliers: rust spreads in islands before it joins up.
-            freckles = []
-            for _ in range(rng.randint(5, 10)):
+            # Outliers: rust spreads in islands before it joins up. Small, and
+            # pitted like the main patch, because a smooth orange shape at a
+            # hand's distance reads as a sticker rather than as corrosion.
+            def on_a_weld(y, clear):
+                """Is this close enough to a seam to land on the bead itself?
+
+                The patch is planted beside the seam and reaches further than
+                its nominal radius, so pits scattered over it were landing on
+                the weld crown. One of them showed in a frame as a single dark
+                round pit in the face of the bead, which is the definition of
+                porosity, and the inspector reported porosity on a sound weld.
+                It was reading the picture correctly. Rust does not grow on a
+                bead in the first place, so it is kept off one.
+                """
+                return min(abs(y - k * COURSE_H)
+                           for k in range(COURSES + 1)) < clear
+
+            freckles, islands, steps, rings = [], [], 24, 4
+            for _ in range(rng.randint(14, 26)):
                 a = rng.uniform(0, math.tau)
-                rr = patch * rng.uniform(1.15, 1.9)
-                small = patch * rng.uniform(0.07, 0.18)
+                rr = patch * rng.uniform(1.05, 1.85)
+                small = patch * rng.uniform(0.03, 0.085)
+                ph = rng.uniform(0, math.tau)
+                if on_a_weld(z + math.sin(a) * rr, 0.030 + small):
+                    continue
+                islands.append((a, rr, small))
                 ring_v, ring_f = [], []
-                for i in range(17):
-                    b = math.tau * i / 16
-                    for j in range(5):
-                        q = small * (0.65 + 0.35 * math.sin(3 * b)) * (j / 4)
+                for i in range(steps + 1):
+                    b = math.tau * i / steps
+                    # Two harmonics at a tenth each, not one at a third. An
+                    # island wants an edge that wanders, and the old one had
+                    # three deep bays in it that read as a drawn shape.
+                    edge = small * (0.82 + 0.12 * math.sin(3 * b + ph)
+                                    + 0.06 * math.sin(7 * b + ph * 1.7))
+                    for j in range(rings + 1):
+                        q = edge * j / rings
                         ring_v.append(wall_point(
                             theta + (math.cos(a) * rr + math.cos(b) * q) / RADIUS,
-                            z + math.sin(a) * rr + math.sin(b) * q, inset=0.0008))
-                for i in range(16):
-                    for j in range(4):
-                        base = i * 5 + j
-                        ring_f.append((base, base + 1, base + 6, base + 5))
+                            z + math.sin(a) * rr + math.sin(b) * q,
+                            inset=RUST_INSET))
+                for i in range(steps):
+                    for j in range(rings):
+                        base = i * (rings + 1) + j
+                        ring_f.append((base, base + 1,
+                                       base + rings + 2, base + rings + 1))
                 freckles.append((ring_v, ring_f))
             make(f"Defect_{d['id']}_freckles", *merge(freckles), mat=mats["rust"],
                  collection=coll)
+            # Written back into the defect, because the ground truth is dumped
+            # after this runs and a patch of rust is not only its middle. An
+            # island a metre out is still rust on the wall, and a frame holding
+            # one holds corrosion.
+            d["rust_islands"] = [
+                [round(theta + math.cos(ia) * irr / RADIUS, 6),
+                 round(z + math.sin(ia) * irr, 4), round(ismall, 4)]
+                for ia, irr, ismall in islands]
 
+            # Pit count follows the area, not a fixed number. Forty pits over a
+            # patch this size is a dozen in a close-up frame, and a smooth
+            # orange field at a hand-s distance is not what rust looks like.
+            # Small and many, because pitting is. The old ones ran to sixteen
+            # millimetres of radius stuck two millimetres into the wall, so
+            # each was a faceted lump the width of the weld standing proud of
+            # the plate, and a frame of them looked like gravel tipped down the
+            # tank rather than a corroded shell.
             pits = []
-            for _ in range(rng.randint(40, 75)):
-                a = rng.uniform(0, math.tau)
-                rr = patch * reach(a) * math.sqrt(rng.uniform(0, 1))
-                r = rng.uniform(0.004, 0.014)
-                centre = Vector(wall_point(theta + math.cos(a) * rr / RADIUS,
-                                           z + math.sin(a) * rr, inset=0.002))
-                pits.append(ellipsoid(centre, (r, r, r * 0.55),
-                                      frame=(tangent, up, outward), segments=8))
+            for _ in range(int(6000 * patch * patch) + rng.randint(40, 90)):
+                if rng.random() < 0.18 and islands:
+                    # On an island, not merely out where the islands are. Pits
+                    # were scattered to nearly twice the patch radius while the
+                    # rust itself reached only just past it, so a frame could
+                    # hold one dark round pit on clean grey plate with no rust
+                    # anywhere in it. Beside a seam that is a pore in a weld,
+                    # and it was reported as one, correctly.
+                    ia, irr, ismall = islands[rng.randrange(len(islands))]
+                    ang = rng.uniform(0, math.tau)
+                    q = ismall * 0.68 * math.sqrt(rng.uniform(0, 1))
+                    pit_t = theta + (math.cos(ia) * irr + math.cos(ang) * q) / RADIUS
+                    pit_z = z + math.sin(ia) * irr + math.sin(ang) * q
+                else:
+                    a = rng.uniform(0, math.tau)
+                    rr = patch * reach(a) * math.sqrt(rng.uniform(0, 1))
+                    pit_t = theta + math.cos(a) * rr / RADIUS
+                    pit_z = z + math.sin(a) * rr
+                # Clear of the bead and of the heat-tinted band beside it.
+                if on_a_weld(pit_z, 0.026):
+                    continue
+                # Nearly flat. Given a rim of its own height a pit becomes a
+                # lump with a lit edge, because nothing here removes metal and
+                # a dish standing proud of the plate is a dish standing proud
+                # of the plate, lit on top. Dark, round and barely dished is
+                # what reads as a pit, and the floor of it has to stay in front
+                # of the rust it is eating into or the rust simply covers it.
+                r = rng.uniform(0.002, 0.005)
+                rim = PIT_FLOOR + min(0.0004, r * 0.12)
+                pits.append(crater(pit_t, pit_z, r, rim - PIT_FLOOR, rim,
+                                   segments=14, phase=rng.uniform(0, math.tau)))
             make(f"Defect_{d['id']}_pits", *merge(pits), mat=mats["dark"],
                  collection=coll)
 
