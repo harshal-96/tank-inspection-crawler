@@ -142,7 +142,7 @@ def run_campaign(rows, root, intrinsics, to_world, taught_start, taught_end,
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", default="data/cap50/manifest.json")
+    parser.add_argument("--manifest", default="data/cap50v3/manifest.json")
     parser.add_argument("--stations", type=int, default=20)
     parser.add_argument("--limit", type=int, default=0, help="Use only the first N parts")
     parser.add_argument("--axis", choices=[*AXES, "all", "named"], default="all")

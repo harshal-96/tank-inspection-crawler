@@ -167,7 +167,7 @@ def balanced(points: list[dict], per_side: int, seed: int = 0) -> list[dict]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", default="data/campaign50.jsonl")
-    parser.add_argument("--manifest", default="data/cap50/manifest.json",
+    parser.add_argument("--manifest", default="data/cap50v3/manifest.json",
                         help="Captures measured from every angle for the first-view points.")
     parser.add_argument("--points", choices=("replayed", "first-view", "both"), default="both")
     parser.add_argument("--per-side", type=int, default=30,

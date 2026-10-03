@@ -71,7 +71,7 @@ def worst_station_shift_mm(raw, packed, intrinsics, to_world, start, end) -> flo
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", default="data/cap50/manifest.json")
+    parser.add_argument("--source", default="data/cap50v3/manifest.json")
     parser.add_argument("--out", default="data/demo")
     parser.add_argument("--parts", type=int, default=6)
     parser.add_argument("--keep-beads", action="store_true", default=True,

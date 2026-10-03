@@ -15,7 +15,7 @@ Two arms on identical data:
 Scored against the true seam, which is known only because the press error that
 produced it was chosen by the simulation.
 
-    python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
+    python scripts/run_seam_campaign.py --manifest data/cap50v3/manifest.json
 """
 
 from __future__ import annotations
@@ -79,7 +79,7 @@ def score_path(stations, truth: np.ndarray) -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", default="data/cap50/manifest.json")
+    parser.add_argument("--manifest", default="data/cap50v3/manifest.json")
     parser.add_argument("--view", type=float, default=0.0,
                         help="Which candidate view to track from.")
     parser.add_argument("--stations", type=int, default=20)

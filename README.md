@@ -1,9 +1,59 @@
-# Self-Correcting Production Cell
+# Tank Inspection Crawler
 
-A robotic welding cell that photographs every part before it welds, checks its own work
-afterwards, and raises the alarm when a machine upstream starts going out of adjustment.
+A robot that crawls the seams inside a steel storage tank, judges the weld and the plate
+as it goes, and chooses where to spend its next ultrasonic thickness measurement.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
+
+Confined space entry is what makes this work dangerous. A tank has to be emptied,
+cleaned, ventilated and certified before anyone climbs in, and the inspection itself is a
+person with a lamp and a probe standing inside a steel drum. The crawler does the looking
+and the measuring. What it cannot defend, it hands to a person, and it says so.
+
+## The argument, in one dataset
+
+The survey run carries two patches of wall loss. One is rusted through to the surface and
+a camera finds it immediately. The other has nothing on the surface at all.
+
+The rusted one measures **inside** the acceptance limit. The invisible one does not, and
+all four probe points on the run that fail the limit sit under frames the inspector reads
+as sound, on plate that looks like new steel.
+
+So neither instrument is enough by itself, and something has to decide at every station
+where to spend a measurement there is only time to take twice. That decision is the
+machine. The rest is plumbing.
+
+## What the tank run measured
+
+Twenty four stations along four metres of circumferential seam, rendered from a modelled
+tank with the answers written before any model saw a picture.
+
+| | Result | Scored against |
+| --- | --- | --- |
+| Is this length of seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
+| Naming the worst fault in the frame | 20 of 24 | the same |
+| Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
+| Choosing where to probe, 48 measurements out of 168 places | **Nemotron Nano 3 of 4** rejectable points found | the true remaining wall at all 168 |
+| the same, covering the band by arithmetic | 2 of 4 | the same |
+| the same, probing where the camera saw corrosion | 0 of 4 | the same |
+| the same, always probing on the seam | 0 of 4 | the same |
+
+The inspector runs at about 9 seconds a frame and the probe planner at about 8 seconds a
+station, one model call each, no retries needed.
+
+The last three rows are the point. Following the camera is worse than useless here: it
+spends every measurement on the patch that is within limits and never looks at the one
+that is not.
+
+### What is still wrong with it
+
+Undercut. Four of the frames carry a groove at the weld toe and the inspector reports the
+corroded plate beside it instead. Asked to list everything rather than judge, it names
+the groove first and describes it correctly, so it is not blind to it. Asked to judge, it
+calls the toe a normal shadowed junction line, which is a fair reading of how the groove
+is currently rendered. Every image-capable model the account serves agrees with it,
+including the frontier ones, so this is a limitation of the simulated undercut and not of
+the inspector. It is written up rather than tuned away.
 
 ![Weld seam found to under a millimetre on parts arriving centimetres out](docs/figures/seam_result.png)
 
@@ -20,7 +70,22 @@ uvicorn service.app:app            # every study page is live immediately
 python scripts/demo.py --offline   # three seconds, and the cell is running
 ```
 
-No GPU, no API key and no download. Six parts of real captured depth ship with the
+The tank run, which needs a Token Factory key because it calls models:
+
+```bash
+python tank/score_survey.py        # 24 frames judged against answers written first
+python tank/score_probes.py        # where to probe, against three baselines
+```
+
+Both read the captured dataset in `tank/data/survey`, which ships with the repository.
+Rebuilding the tank itself needs Blender running with its socket add-on on port 9876:
+
+```bash
+python scripts/blender_send.py tank/sim/blender_tank.py   # 473 m of seam, six courses
+python scripts/blender_send.py tank/sim/capture_tank.py   # 24 stations, pictures, depth
+```
+
+For the welding cell: no GPU, no API key and no download. Six parts of real captured depth ship with the
 repository, and this runs the actual pipeline over them rather than replaying saved
 numbers. A Token Factory key turns on the half that calls a model.
 
@@ -185,6 +250,8 @@ run of parts, and explain any of it to the person responsible for the line.
 
 | Layer | Platform | Model | Runs today |
 | --- | --- | --- | --- |
+| Where to put the thickness probe next, in the tank | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
+| Reading a tank seam from the crawler's camera | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | View planning, inside the control loop | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
 | Shift-level diagnosis, which machine slipped | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
@@ -197,6 +264,13 @@ run of parts, and explain any of it to the person responsible for the line.
 Four NVIDIA Nemotron sizes are served on Token Factory and this project uses three of
 them, for different jobs, because measuring them showed they are not interchangeable.
 Nothing in this table is aspirational.
+
+They are not interchangeable in a blunter way than that. Nemotron 3.5 Lightning, which
+drives the supervisor perfectly well, cannot plan the tank's probing at all: given a
+station it writes its reasoning out as prose and never reaches the JSON, with three
+thousand tokens of room as readily as with three hundred. Nano and Super both answer
+cleanly on the same question. The envelope a call is made in varies by model. What is
+asked does not.
 
 The inspection model is not an NVIDIA one, and that is a constraint rather than a
 preference. Every model the account serves was sent one clean bead and one with a hole
@@ -857,8 +931,8 @@ python scripts/make_figures.py
 The studies behind them:
 
 ```bash
-python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
-python scripts/run_campaign.py --manifest data/cap50/manifest.json --no-post --routed
+python scripts/run_seam_campaign.py --manifest data/cap50v3/manifest.json
+python scripts/run_campaign.py --manifest data/cap50v3/manifest.json --no-post --routed
 python scripts/eval_router_truth.py --campaign data/campaign50.jsonl
 python scripts/eval_drift.py --parts 30 --runs 4
 python scripts/draw_result_chart.py --campaign data/seam_campaign.jsonl
@@ -1041,9 +1115,9 @@ Six parts is a demo, not the result. The fifty-part campaign behind the tables n
 the full capture, which is about 900 MB and is not in git:
 
 ```bash
-python scripts/run_seam_campaign.py --manifest data/cap50/manifest.json
-python scripts/run_campaign.py --manifest data/cap50/manifest.json --routed
-python scripts/run_inspection.py --manifest data/cap50/manifest.json
+python scripts/run_seam_campaign.py --manifest data/cap50v3/manifest.json
+python scripts/run_campaign.py --manifest data/cap50v3/manifest.json --routed
+python scripts/run_inspection.py --manifest data/cap50v3/manifest.json
 ```
 
 ### What the demo capture costs

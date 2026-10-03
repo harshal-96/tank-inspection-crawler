@@ -4,7 +4,7 @@ Everything here comes out of the depth buffer: the point cloud is the depth imag
 back-projected, the seam is measured from that cloud, and the picture underneath
 is shaded from depth and normals. No colour pass is involved at any stage.
 
-    python scripts/track_on_model.py --manifest data/cap50/manifest.json
+    python scripts/track_on_model.py --manifest data/cap50v3/manifest.json
 """
 
 from __future__ import annotations
@@ -38,7 +38,7 @@ INK = (24, 28, 34)
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", default="data/cap50/manifest.json")
+    parser.add_argument("--manifest", default="data/cap50v3/manifest.json")
     parser.add_argument("--part", type=int, default=0)
     parser.add_argument("--view", type=float, default=0.0)
     parser.add_argument("--stations", type=int, default=20)

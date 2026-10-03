@@ -9,7 +9,7 @@ Every verdict is scored against the injector's own record, so a false pass and a
 false alarm are counted separately, which is the distinction a shop cares about:
 one ships a bad part, the other scraps a good one.
 
-    python scripts/run_inspection.py --manifest data/cap50/manifest.json
+    python scripts/run_inspection.py --manifest data/cap50v3/manifest.json
 """
 
 from __future__ import annotations
@@ -30,7 +30,7 @@ from cell.client import CellClient  # noqa: E402
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--manifest", default="data/cap50/manifest.json")
+    parser.add_argument("--manifest", default="data/cap50v3/manifest.json")
     parser.add_argument("--limit", type=int, default=0, help="Inspect only the first N parts")
     parser.add_argument("--no-post", action="store_true")
     parser.add_argument("--api", default=None)

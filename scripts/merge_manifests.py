@@ -11,8 +11,8 @@ Batches of ten capture in minutes. This puts them back together so the campaign
 sees one run: trials are renumbered end to end and image paths are rewritten
 relative to the combined manifest.
 
-    python scripts/merge_manifests.py data/cap50/batch*/manifest.json \\
-        --out data/cap50/manifest.json
+    python scripts/merge_manifests.py data/cap50v3/batch*/manifest.json \\
+        --out data/cap50v3/manifest.json
 """
 
 from __future__ import annotations
