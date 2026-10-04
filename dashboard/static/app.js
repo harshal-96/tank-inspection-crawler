@@ -9,6 +9,7 @@ import * as V from "./viz.js";
 import { state, refreshLive, subscribe } from "./store.js";
 
 import * as overview from "./pages/overview.js";
+import * as tank from "./pages/tank.js";
 import * as seam from "./pages/seam.js";
 import * as routing from "./pages/routing.js";
 import * as diagnosis from "./pages/diagnosis.js";
@@ -26,8 +27,8 @@ import * as platform from "./pages/platform.js";
 // Pipeline order. A reader following the rail top to bottom follows a part
 // through the cell, which the old "Study 1..7" numbering did not: thermal
 // compensation was Study 6 and happens between the routing call and the weld.
-const PAGES = [overview, seam, routing, compensation, inspection, diagnosis, briefs,
-               limits, budget, cell, parts, supervisor, method, platform];
+const PAGES = [overview, tank, seam, routing, compensation, inspection, diagnosis,
+               briefs, limits, budget, cell, parts, supervisor, method, platform];
 const BY_ID = new Map(PAGES.map((p) => [p.meta.id, p]));
 const GROUPS = ["Result", "What happens to a part", "What it leaves out",
                 "The cell, live", "Reference"];
@@ -64,8 +65,8 @@ function rail() {
              stroke-linecap="round" stroke-linejoin="round"><path d="M4 18 L10 8 L14 14 L20 5"/></svg>
       </div>
       <div>
-        <div class="name">Self-Correcting<br>Production Cell</div>
-        <div class="sub">robotic seam welding</div>
+        <div class="name">Tank Inspection<br>Crawler</div>
+        <div class="sub">tank inspection, and the cell it was proved on</div>
       </div>
     </div>
     ${groups}
@@ -153,7 +154,7 @@ async function route() {
 
   document.querySelectorAll(".rail a.nav").forEach((a) =>
     a.classList.toggle("active", a.dataset.id === page.meta.id));
-  document.title = `${page.meta.title} · Self-Correcting Production Cell`;
+  document.title = `${page.meta.title} · Tank Inspection Crawler`;
 
   V.$("topbar").innerHTML = topbar(page);
   V.$("tb-theme")?.addEventListener("click", flipTheme);

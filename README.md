@@ -98,9 +98,17 @@ sparse and scattered, the budget is fixed at two measurements of seven, and unde
 conditions systematic coverage beats trying to be clever. The model keeps returning to
 places it has reasons about and leaves bands of the wall unvisited.
 
-That is a real finding and a more useful one than the claim it replaces. It also says
-where a model does belong in this loop, which is not here: it belongs on the picture,
-where there is something to judge, and the arithmetic should drive the arm.
+That is a real finding and a more useful one than the claim it replaces.
+
+An ablation settles the rest of it. Hide the camera from the planner, replacing the one
+sentence about the picture with a statement that there is no picture, and it finds
+**11 of 28** against 9 to 12 sighted. Identical within noise. The camera contributes
+nothing to the probing, which it was never going to, because the loss worth finding is
+the loss that leaves no mark. Run it with `python tank/score_probes.py --blind`.
+
+So the model belongs on the picture, where there is something to judge, and the
+arithmetic should drive the arm. The two instruments are both necessary and they do not
+need to talk to each other as much as the first design assumed.
 
 Nemotron 3 Super 120B, four times the size, is worse and far less stable: 3, 3, 0, 3
 and 0 over five runs. Two of those five are total failures where it found nothing at

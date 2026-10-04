@@ -522,6 +522,35 @@ def cell_geometry() -> dict[str, Any]:
     }
 
 
+@app.get("/api/tank")
+def tank_summary() -> dict[str, Any]:
+    """The tank run, read from the files the scorers wrote.
+
+    The dashboard was built for the welding cell and knew nothing about the
+    tank, so the one interactive artefact in the repository showed the wrong
+    project. Nothing here recomputes a result: it reads the manifest, the
+    recorded verdicts and the probe comparison, so a page cannot drift away
+    from the run it says it is showing.
+    """
+    from service import tank_view
+
+    return tank_view.summary()
+
+
+@app.get("/api/tank/frame/{station}")
+def tank_frame(station: int):
+    """One captured frame, so the page can show what the model was looking at."""
+    from fastapi.responses import FileResponse
+
+    from service import tank_view
+
+    name = f"rgb_{station:04d}.png"
+    path = tank_view.SURVEY / "frames" / name
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"no {name}")
+    return FileResponse(path, media_type="image/png")
+
+
 @app.post("/api/briefs", status_code=201)
 def create_brief(payload: dict[str, Any],
                  session: Session = Depends(get_session)) -> CorrectiveBrief:
