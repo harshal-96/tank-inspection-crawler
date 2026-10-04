@@ -57,6 +57,7 @@ COMPOSITOR = "CaptureCompositor"
 STATIONS = 24            # 4 m of seam at 174 mm a step, so frames overlap
 RES = (1280, 720)
 SAMPLES = 48
+ENGINE = "BLENDER_EEVEE"   # what the scored dataset was rendered with
 
 # Where the probe could be put at each station. The arm swings across the seam,
 # so a station is not one place to measure but a row of them, and choosing
@@ -292,6 +293,18 @@ def main() -> dict:
         folder.mkdir(parents=True, exist_ok=True)
 
     scene = bpy.context.scene
+    # Pin the renderer. The dataset is the evidence, and evidence that changes
+    # appearance because somebody improved the lighting an hour ago is not
+    # evidence. tank/sim/look.py switches this scene to Cycles and rebuilds
+    # every material for the video, and without this line a capture run after
+    # it would quietly produce a different dataset from the one every number
+    # in the README was measured on, with nothing to say it had happened.
+    #
+    # Re-capturing under the Cycles look is the obvious next experiment and it
+    # would be a harder test, because those frames are closer to a photograph.
+    # It also invalidates every score until they are re-run, so it is a
+    # decision rather than a side effect.
+    scene.render.engine = ENGINE
     scene.render.resolution_x, scene.render.resolution_y = RES
     with contextlib.suppress(AttributeError, TypeError):
         scene.eevee.taa_render_samples = SAMPLES
