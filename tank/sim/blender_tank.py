@@ -210,6 +210,7 @@ def build_materials() -> dict:
         "beacon": emissive("beacon", (0.15, 0.85, 0.35), 2.5),
         "tether": plain("tether", (0.06, 0.06, 0.07), 0.05, 0.85),
         "couplant": plain("couplant_hose", (0.10, 0.28, 0.52), 0.05, 0.60),
+        "reservoir": plain("couplant_tank", (0.62, 0.66, 0.70), 0.02, 0.28),
     }
 
 
@@ -991,15 +992,78 @@ def build_crawler(mats, coll, theta, z):
              *shift(tube(0.026, 0.006, 16, caps=True), (0.46, sy, 0.122)),
              mat=mats["lamp_face"])
 
-    # The ultrasonic probe sits in a sprung holder under the deck, with its
-    # couplant hose running back to the body.
+    # The ultrasonic probe, and the water that makes it work.
+    #
+    # Ultrasound will not cross air, so the only thing that matters is the film
+    # between the probe face and the steel. Everything here exists to put water
+    # in that gap and keep it there while the wheel turns: a tank the robot
+    # carries, a pump, a line down the side of the probe, and a nozzle that
+    # delivers at the face rather than near it.
+    #
+    # Water and not gel. Gel will not pump through a small bore and it dries on
+    # a vertical wall. Pumped systems and wheel probes both run water.
     part("Crawler_Probe_Holder", *box((0.075, 0.075, 0.055), (0.10, 0.0, 0.088)),
          mat=mats["frame"], smooth=False)
-    part("Crawler_UT_Probe", *shift(tube(0.026, 0.055, 18, caps=True), (0.10, 0.0, 0.030)),
+    # Dropped so the face all but touches the plate. It sat two and a half
+    # millimetres clear, which is a probe hovering over the steel rather than
+    # pressed into it, and it contradicted the spring above it. What is left
+    # is the couplant film, and that is the only gap there should ever be.
+    part("Crawler_UT_Probe",
+         *shift(tube(0.026, 0.055, 18, caps=True), (0.10, 0.0, 0.0279)),
          mat=mats["frame"])
-    part("Crawler_Couplant_Hose",
-         *sweep([(0.10, 0.03, 0.075), (0.06, 0.07, 0.115), (-0.02, 0.06, 0.150),
-                 (-0.10, 0.02, 0.170)], 0.005, 8), mat=mats["couplant"])
+
+    # The spring. The face has to be pushed into the plate hard enough to hold
+    # a film and give enough to ride over a weld toe and a plate step, and a
+    # holder described as sprung with nothing sprung in it is a drawing of a
+    # rigid probe that would skip.
+    coil = []
+    turns, steps = 6, 72
+    for i in range(steps + 1):
+        f = i / steps
+        a = math.tau * turns * f
+        coil.append((0.10 + 0.031 * math.cos(a), 0.031 * math.sin(a),
+                     0.040 + 0.021 * f))
+    part("Crawler_Probe_Spring", *sweep(coil, 0.0022, 6), mat=mats["hub"])
+
+    # The tank it carries, and the pump. Both sit on the deck where a person
+    # can reach them, because the water is the consumable and somebody has to
+    # fill it between runs. How long a survey can be is set here, not by the
+    # battery.
+    # On the lid. The body shell is 125 deep and the tank was inside it, which
+    # solids in a scene will happily allow and a fabricator will not. The lid
+    # is also where it belongs: the water is the consumable, and whoever
+    # refills it should not have to take the deck off to reach it.
+    part("Crawler_Couplant_Tank",
+         *shift(tube(0.036, 0.100, 20, caps=True), (-0.075, 0.0, 0.2755)),
+         mat=mats["reservoir"])
+    part("Crawler_Couplant_Cap",
+         *shift(tube(0.015, 0.014, 14, caps=True), (-0.075, 0.0, 0.3325)),
+         mat=mats["hub"])
+    part("Crawler_Couplant_Strap",
+         *shift(tube(0.040, 0.010, 20, caps=True), (-0.075, 0.0, 0.250)),
+         mat=mats["frame"])
+    part("Crawler_Couplant_Pump",
+         *shift(tube(0.022, 0.048, 16, caps=True), (0.015, -0.052, 0.2495)),
+         mat=mats["frame"])
+
+    # Tank to pump, then forward and down the side of the probe. It ends at the
+    # face, which is the correction: a line that stops beside the probe wets
+    # the plate next to the measurement and not under it.
+    # Tank, pump, then down the flank and round the outside of the deck
+    # rather than through it, and back in underneath to the probe.
+    part("Crawler_Couplant_Line",
+         *sweep([(-0.075, -0.030, 0.230), (-0.040, -0.050, 0.240),
+                 (0.000, -0.052, 0.248), (0.015, -0.052, 0.228),
+                 (0.010, -0.110, 0.205), (-0.005, -0.165, 0.160),
+                 (0.005, -0.205, 0.110), (0.035, -0.208, 0.070),
+                 (0.065, -0.170, 0.058), (0.092, -0.110, 0.052),
+                 (0.112, -0.055, 0.046), (0.127, -0.018, 0.034),
+                 (0.130, 0.0, 0.018), (0.126, 0.0, 0.008)],
+                0.0042, 8), mat=mats["couplant"])
+    # The nozzle, turned in under the face.
+    part("Crawler_Couplant_Nozzle",
+         *sweep([(0.126, 0.0, 0.007), (0.118, 0.0, 0.0035),
+                 (0.108, 0.0, 0.0028)], 0.0028, 6), mat=mats["hub"])
 
     part("Crawler_Beacon_Post", *shift(tube(0.016, 0.040, 12, caps=True),
                                        (-0.14, 0.0, 0.245)), mat=mats["frame"])
