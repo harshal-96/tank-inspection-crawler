@@ -89,8 +89,8 @@ the frame of the clean plate above the hidden pocket. Then cut to a terminal run
 > finds three of the four rejectable points. Covering the band by arithmetic finds two.
 > Probing where the camera saw corrosion finds none at all.
 
-**Lower third, as the table lands.** Nemotron 3 Nano 3/4 . arithmetic 2/4 . follow the
-camera 0/4
+**Lower third, as the table lands.** Nemotron 3 Nano median 4/4 . arithmetic 2/4 .
+follow the camera 0/4
 
 ---
 

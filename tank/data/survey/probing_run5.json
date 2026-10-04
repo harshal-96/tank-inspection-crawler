@@ -1,0 +1,124 @@
+{
+ "budget": 2,
+ "places": 168,
+ "rejectable": 4,
+ "thinned": 30,
+ "planners": [
+  {
+   "label": "on the seam",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 12
+  },
+  {
+   "label": "where it saw",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 7
+  },
+  {
+   "label": "sweep (no model)",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 11
+  },
+  {
+   "label": "Nemotron 3 Nano 30B",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ]
+   ],
+   "thinned_found": 15,
+   "seconds": 92.70916880000732,
+   "why": {
+    "0": "Cover the full range to detect any thinning early",
+    "1": "Cover the outer unmeasured positions to fill the band.",
+    "2": "cover unmeasured positions to detect potential thin spots",
+    "3": "Cover the band to detect unseen loss.",
+    "4": "Cover the unmeasured centre and a nearby point to assess band continuity",
+    "5": "Thin reading at +0.00 indicates possible loss; also adjacent -0.15 ensures band coverage.",
+    "6": "Cover unseen negative side and re\u2011check the thin +0.00 spot",
+    "7": "Thin reading at +0.00 and adjacent -0.15 need verification to confirm loss pattern",
+    "8": "Thin reading at +0.00 suggests adjacent -0.15 may also be thin",
+    "9": "Cover an unmeasured edge and re\u2011inspect the thin +0.00 location.",
+    "10": "Thin readings at -0.15 and 0.0 suggest likely wall loss to confirm.",
+    "11": "Cover the full range of the seam to detect any hidden thinning.",
+    "12": "Cover unmeasured offsets to ensure full band inspection.",
+    "13": "Cover the band with extreme offsets to ensure full coverage.",
+    "14": "Cover the extremes to detect any loss at the band edges.",
+    "15": "Thin reading at -0.45 suggests checking adjacent -0.3 for possible loss",
+    "16": "Thin readings at -0.45 and -0.30 indicate likely wall loss to investigate.",
+    "17": "Thin readings at -0.45 and -0.30 suggest likely wall loss, so re\u2011measure those offsets.",
+    "18": "Thin readings at -0.45 and -0.30 indicate likely wall loss; revisiting them ensures coverage of the critical area.",
+    "19": "Thin reading at -0.45 demands repeat measurement and -0.15 fills an unmeasured band position.",
+    "20": "one short sentence",
+    "21": "Cover the outer edges of the band to detect any missed loss.",
+    "22": "Thin reading at +0.45 and need coverage of the central offset",
+    "23": "Cover the band with extreme offsets"
+   }
+  },
+  {
+   "label": "Nemotron 3 Super 120B",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 10,
+   "seconds": 128.4412869999942,
+   "why": {
+    "0": "Pick extreme ends to maximize coverage since no prior data.",
+    "1": "Pick unmeasured offsets near the center to inspect visible corrosion while maintaining band coverage.",
+    "2": "Cover unmeasured offsets and span the band.",
+    "3": "Measure the untouched centre line and re\u2011check the positive\u2011side thinning seen at +0.15\u202fmm.",
+    "4": "Choose the two offsets never measured yet to maximize coverage of the band.",
+    "5": "Cover unseen left side where corrosion appears and chase the thinning trend on the right side.",
+    "6": "Select the two offsets never measured this run to maximize band coverage while still monitoring for loss.",
+    "7": "Select offsets not measured recently to maximize band coverage while staying near the recent low\u2011reading spots.",
+    "8": "Target the lowest recent readings around the seam centre where thinning is indicated.",
+    "9": "Recent low readings at centre and +0.15 indicate a thinning patch; re\u2011measuring there best tracks its progression.",
+    "10": "Choose the extreme offsets to cover the widest unmeasured portion of the seam, as recent readings show no thinning.",
+    "11": "Measure at the visible crack and a nearby point to check for hidden loss while maintaining band coverage.",
+    "12": "These offsets have not been measured yet, giving the best coverage of the band.",
+    "13": "Measure the extreme offsets to maximize band coverage since they haven't been probed in the last two stations.",
+    "14": "Chase the thinning observed at the centre and right\u2011side offsets.",
+    "15": "Chase recent thin readings on the upper side where loss may be propagating.",
+    "16": "Pick nearby offsets not measured in the last two stations to cover the band and follow the thin 10\u202fmm readings.",
+    "17": "Select the two offsets never measured this run to maximize band coverage, with -0.3 adjacent to the recent thin reading at -0.15.",
+    "18": "Target the lowest\u2011reading negative offsets where thinning was observed to catch any progressing loss.",
+    "19": "Target the recent thin spot at \u20130.15\u202fm while adding far\u2011side coverage at +0.45\u202fm to sample unmeasured locations.",
+    "20": "Choose two unmeasured offsets to maximize band coverage, as no recent thin readings remain.",
+    "21": "Measure the unmeasured offset to cover the band and re\u2011check the thinning at +0.45\u202fm.",
+    "22": "These offsets have not been measured in the recent stations, giving the best coverage of the untested band.",
+    "23": "Choose the unmeasured -0.15 offset and the center 0.0 to maximize band coverage since no low readings were seen."
+   }
+  }
+ ]
+}

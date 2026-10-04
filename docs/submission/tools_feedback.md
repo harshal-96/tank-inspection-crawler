@@ -54,8 +54,9 @@ budget. It is the difference between a model being usable in a control loop and 
 and it does not correlate with size.
 
 **Nano punches above its price.** It took 88 of 89 routing decisions correctly in the
-welding cell against ground truth, and found 3 of 4 rejectable thickness points in the
-tank against 2 for arithmetic and 0 for either camera-led baseline. Nothing in this
+welding cell against ground truth, and found a median 4 of 4 rejectable thickness points in
+the tank against a deterministic 2 for arithmetic and 0 for either camera-led
+baseline. Nothing in this
 project needed to escalate to a larger Nemotron, and we removed the escalation path
 rather than leave a feature in that never fired.
 

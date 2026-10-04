@@ -65,8 +65,8 @@ modelled tank with the answers written before any model saw a picture.
 | Is this seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
 | Naming the worst fault in the frame | 20 of 24 | the same |
 | Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
-| Choosing where to probe, 48 measurements out of 168 places | **Nemotron 3 Nano, 3 of 4** rejectable points found | the true remaining wall at all 168 |
-| the same, covering the band by arithmetic | 2 of 4 | the same |
+| Choosing where to probe, 48 measurements out of 168 places | **Nemotron 3 Nano, median 4 of 4**, worst run 2 of 4 | the true remaining wall at all 168 |
+| the same, covering the band by arithmetic | 2 of 4, every single time | the same |
 | the same, probing where the camera saw corrosion | 0 of 4 | the same |
 | the same, always probing on the seam | 0 of 4 | the same |
 

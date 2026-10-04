@@ -101,6 +101,9 @@ def main() -> int:
     parser.add_argument("--inspection", default=str(SURVEY / "inspection.jsonl"))
     parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET)
     parser.add_argument("--models", nargs="*", default=None)
+    parser.add_argument("--repeat", type=int, default=1,
+                        help="run each model this many times and report the "
+                             "spread, because at temperature zero it moves")
     parser.add_argument("--out", default=str(SURVEY / "probing.json"))
     args = parser.parse_args()
 
@@ -135,7 +138,7 @@ def main() -> int:
     ):
         results.append(run(frames, answers, chooser, args.budget, label))
 
-    latencies, fallbacks = [], 0
+    latencies, fallbacks, spreads = [], 0, []
     for model in (args.models or [planner_model()]):
         plans: dict[int, object] = {}
 
@@ -149,11 +152,25 @@ def main() -> int:
             plans[station] = plan
             return plan.offsets
 
-        started = time.perf_counter()
-        got = run(frames, answers, choose, args.budget, registry.display(model))
-        got["seconds"] = time.perf_counter() - started
-        got["why"] = {s: p.why for s, p in plans.items()}
-        results.append(got)
+        # Repeated, because the same prompt at temperature zero does not
+        # produce the same plan twice. Over five runs Nemotron Nano found 3, 4,
+        # 4, 3 and 4 of the four rejectable points, and Super found 3, 3, 0, 3
+        # and 0. A single run of either would support almost any claim you
+        # wanted to make, so the spread gets reported and the worst run counts.
+        attempts = []
+        for index in range(max(1, args.repeat)):
+            plans.clear()
+            started = time.perf_counter()
+            got = run(frames, answers, choose, args.budget,
+                      registry.display(model))
+            got["seconds"] = time.perf_counter() - started
+            got["why"] = {k: v.why for k, v in plans.items()}
+            got["attempt"] = index + 1
+            attempts.append(got)
+            results.append(got)
+        if len(attempts) > 1:
+            spreads.append((registry.display(model),
+                            sorted(len(a["rejectable_found"]) for a in attempts)))
 
     print(f"{'planner':>20} {'probes':>7} {'thinned':>9} {'rejectable found':>18}")
     print("-" * 60)
@@ -162,6 +179,16 @@ def main() -> int:
               f"{got['thinned_found']:>4}/{thinned:<4} "
               f"{len(got['rejectable_found']):>9}/{rejectable}"
               f"   {[f'{s}@{o:+.2f}' for s, o, _ in got['rejectable_found']]}")
+    if spreads:
+        print()
+        for label, scores in spreads:
+            print(f"  {label:>22} over {len(scores)} runs: "
+                  f"{', '.join(str(v) for v in scores)} of {rejectable}, "
+                  f"worst {scores[0]}, median {statistics.median(scores):g}")
+        rule = next((r for r in results if r["label"].startswith("sweep")), None)
+        if rule is not None:
+            print(f"  {'sweep (no model)':>22} deterministic at "
+                  f"{len(rule['rejectable_found'])} of {rejectable}, every time")
     if latencies:
         print(f"\n  {round(statistics.median(latencies))} ms a station, "
               f"{fallbacks} fell back to the rule")

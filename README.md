@@ -33,8 +33,8 @@ tank with the answers written before any model saw a picture.
 | Is this length of seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
 | Naming the worst fault in the frame | 20 of 24 | the same |
 | Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
-| Choosing where to probe, 48 measurements out of 168 places | **Nemotron Nano 3 of 4** rejectable points found | the true remaining wall at all 168 |
-| the same, covering the band by arithmetic | 2 of 4 | the same |
+| Choosing where to probe, 48 measurements out of 168 places | **Nemotron Nano, median 4 of 4** rejectable points found, worst run 2 | the true remaining wall at all 168 |
+| the same, covering the band by arithmetic | 2 of 4, deterministic | the same |
 | the same, probing where the camera saw corrosion | 0 of 4 | the same |
 | the same, always probing on the seam | 0 of 4 | the same |
 
@@ -44,6 +44,30 @@ station, one model call each, no retries needed.
 The last three rows are the point. Following the camera is worse than useless here: it
 spends every measurement on the patch that is within limits and never looks at the one
 that is not.
+
+### The planner is better on average and not reliable on any one run
+
+The headline above is a median, and it is written as one because a single run of this
+supports almost any claim you would like to make. At temperature zero, over eight runs
+of the identical prompt, Nemotron Nano found 3, 4, 4, 3, 4, 2, 4 and 4 of the four
+rejectable points. The arithmetic sweep finds exactly 2 every single time, because it
+has no model in it.
+
+So Nano's median beats the rule and Nano's worst run only equals it.
+
+Nemotron 3 Super 120B, four times the size, is worse and far less stable: 3, 3, 0, 3
+and 0 over five runs. Two of those five are total failures where it found nothing at
+all. It is also about twice as fast per station as Nano, which is its own small
+surprise.
+
+The honest engineering conclusion is that a model planner of this kind is a better
+default than a fixed pattern and is not yet something to run unsupervised against a
+pressure boundary. The useful shape is probably both: let the rule claim the stalest
+offset and let the model spend the rest, so the floor is the rule's floor. That is not
+built yet, and claiming the median without the spread would have hidden the reason it
+needs to be.
+
+Reproduce it with `python tank/score_probes.py --repeat 5`.
 
 ### What is still wrong with it
 
