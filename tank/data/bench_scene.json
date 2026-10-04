@@ -18,6 +18,13 @@
    "where": "Lamington Road"
   },
   {
+   "part": "Ultrasonic couplant gel, 250 ml bottle",
+   "qty": 1,
+   "object": "Couplant_Bottle, Couplant_Cap",
+   "inr": "150 to 400",
+   "where": "with the gauge, or any NDT supplier"
+  },
+  {
    "part": "Ball caster, 32 mm",
    "qty": 1,
    "object": "Caster_*",

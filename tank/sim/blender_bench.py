@@ -72,6 +72,11 @@ BOM = [
      "where": "Lamington Road"},
     {"part": "TT geared motor, 65 x 22 x 20, with 65 mm wheel", "qty": 2,
      "object": "Motor_*, Wheel_*", "inr": "in the kit", "where": "Lamington Road"},
+    # Not an accessory. Ultrasound will not cross the air between the probe
+    # and the plate, so without this the gauge reads nothing at all.
+    {"part": "Ultrasonic couplant gel, 250 ml bottle", "qty": 1,
+     "object": "Couplant_Bottle, Couplant_Cap", "inr": "150 to 400",
+     "where": "with the gauge, or any NDT supplier"},
     {"part": "Ball caster, 32 mm", "qty": 1, "object": "Caster_*",
      "inr": "in the kit", "where": "Lamington Road"},
     {"part": "L298N motor driver, 43 x 43 x 27", "qty": 1, "object": "Driver_L298N_*",
@@ -541,6 +546,16 @@ def build_gauge(mats, coll):
                      py + (y - py) * f * 0.35 + 0.010 * math.sin(a),
                      0.006 + 0.004 * math.sin(a)))
     make("Probe_Cable", *sweep(coil, 0.0018, 6), mat=mats["dark"], collection=coll)
+
+    # The couplant, stood next to the gauge where it actually lives. A bench
+    # photographed without it looks tidy and is missing the one consumable the
+    # measurement cannot happen without.
+    bx, by = -0.062, -0.250
+    make("Couplant_Bottle", *shift(tube(0.024, 0.085, 20, caps=True), (bx, by, 0.0425)),
+         mat=mats["couplant"] if "couplant" in mats else mats["probe"],
+         collection=coll)
+    make("Couplant_Cap", *shift(tube(0.011, 0.018, 14, caps=True), (bx, by, 0.094)),
+         mat=mats["dark"], collection=coll)
 
 
 def build_workstation(mats, coll):
