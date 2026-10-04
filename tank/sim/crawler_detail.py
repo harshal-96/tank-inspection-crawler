@@ -37,6 +37,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from tank.sim import blender_tank  # noqa: E402
+import importlib  # noqa: E402
+# Blender keeps a module cached between runs, so an edit to blender_tank
+# is invisible here until it is reloaded, and the failure is an
+# AttributeError on a constant that is plainly there in the file.
+importlib.reload(blender_tank)
 from tank.sim.meshkit import (box, ellipsoid, make, merge, shift,  # noqa: E402
                               sweep, tube)
 
@@ -161,15 +167,22 @@ def main() -> dict:
     part("Crawler_Panel_Lines", merge(lines), dark, smooth=False)
 
     # ------------------------------------------------------------- the wheels
-    lugs, caps = [], []
-    for sx in (-0.185, 0.185):
-        for sy in (-0.195, 0.195):
-            lugs.append(tread((sx, sy, 0.078), 0.078, 0.052))
-            # A bolted hub cap, with the fasteners facing out of the wheel.
-            caps.append(bolt_ring((sx, sy + math.copysign(0.030, sy), 0.078),
-                                  0.022, 5, bolt_r=0.0045, axis="Y"))
-    part("Crawler_Wheel_Lugs", merge(lugs), tyre, smooth=False)
-    part("Crawler_Hub_Bolts", merge(caps), hub)
+    # Built around each wheel's own origin and parented to it, so the lugs and
+    # the hub bolts come round with the wheel instead of hanging in the air
+    # where the wheel used to be.
+    for index, (sx, sy) in enumerate(blender_tank.WHEEL_AT):
+        axle = bpy.data.objects.get(f"Crawler_Wheel_{index}")
+        if axle is None:
+            continue
+        outward = math.copysign(0.030, sy)
+        for suffix, geom, mat, smooth in (
+                ("Lugs", tread((0.0, 0.0, 0.0), blender_tank.WHEEL_R,
+                               blender_tank.WHEEL_WIDTH), tyre, False),
+                ("Bolts", bolt_ring((0.0, outward, 0.0), 0.022, 5,
+                                    bolt_r=0.0045, axis="Y"), hub, True)):
+            obj = part(f"Crawler_Wheel_{index}_{suffix}", geom, mat, smooth=smooth)
+            if obj is not None:
+                obj.parent = axle
 
     # ------------------------------------------------------------- the head
     # A bezel round the lens and a bolt ring round the housing, both above the

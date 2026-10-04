@@ -119,6 +119,14 @@ DETAIL_ARC_M = SURVEY_ARC_M + 1.2   # the run, plus enough that its edge is
                                     # the end of the modelled bead at a smooth
                                     # tube, and the inspector reported a break
                                     # in the weld. It was right: there was one.
+# The running gear, named here because the detail pass hangs parts off these
+# wheels and the animation has to know how big they are to roll them.
+WHEEL_R = 0.078          # tyre radius, and therefore metres per radian
+WHEEL_WIDTH = 0.052
+WHEEL_Z = 0.078          # hub height above the plate
+WHEEL_AT = ((-0.185, -0.195), (-0.185, 0.195),
+            (0.185, -0.195), (0.185, 0.195))
+
 SEED = 7
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -941,17 +949,27 @@ def build_crawler(mats, coll, theta, z):
 
     # Magnetic wheels: a dark tyre on a bright hub, so they read as wheels in a
     # dark tank rather than as four more black boxes.
-    tyres, hubs = [], []
-    spin = Matrix.Rotation(math.pi / 2, 4, "X")
-    for sx in (-0.185, 0.185):
-        for sy in (-0.195, 0.195):
-            place = Matrix.Translation((sx, sy, 0.078)) @ spin
-            for src, sink in ((tube(0.078, 0.052, 24, caps=True), tyres),
-                              (tube(0.036, 0.058, 16, caps=True), hubs)):
-                v, f = src
-                sink.append(([tuple(place @ Vector(p)) for p in v], f))
-    part("Crawler_Tyres", *merge(tyres), mat=mats["tyre"])
-    part("Crawler_Hubs", *merge(hubs), mat=mats["hub"])
+    #
+    # One object per wheel, each an empty at its own hub centre with the
+    # geometry built around the origin. Merged into a single mesh they are
+    # cheaper and they cannot turn, and a crawler that slides a metre with its
+    # wheels locked is the first thing anybody notices.
+    spin = Matrix.Rotation(math.pi / 2, 4, "X")   # axle along local Y
+    for index, (sx, sy) in enumerate(WHEEL_AT):
+        axle = bpy.data.objects.new(f"Crawler_Wheel_{index}", None)
+        axle.empty_display_size = 0.04
+        axle.rotation_mode = "XYZ"
+        coll.objects.link(axle)
+        axle.parent = rig
+        axle.location = (sx, sy, WHEEL_Z)
+        for suffix, src, mat in (
+                ("Tyre", tube(WHEEL_R, WHEEL_WIDTH, 24, caps=True), mats["tyre"]),
+                ("Hub", tube(0.036, 0.058, 16, caps=True), mats["hub"])):
+            v, f = src
+            obj = make(f"Crawler_Wheel_{index}_{suffix}",
+                       [tuple(spin @ Vector(p)) for p in v], f, mat,
+                       collection=coll)
+            obj.parent = axle
 
     # The sensor head rides ahead of the body on two rails, because a camera
     # mounted on the body photographs the body.

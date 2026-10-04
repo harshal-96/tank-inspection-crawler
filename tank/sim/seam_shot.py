@@ -37,7 +37,11 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+import importlib  # noqa: E402
 from tank.sim import blender_tank as T  # noqa: E402
+# Reloaded, because Blender caches the module between runs and an edit
+# to it is otherwise invisible to this script.
+importlib.reload(T)
 from tank.sim.meshkit import look_at  # noqa: E402
 
 FPS = 24
@@ -82,7 +86,11 @@ HERO_LIGHTS = (
     ("Hero_Fill", (0.10, -0.95, 1.50), 12.0, 1.5),
 )
 
-SAMPLES = 192
+# Dropped from 192 when the whole shot had to be re-rendered for the wheels.
+# With adaptive sampling and the OptiX denoiser the difference at 1080p on a
+# moving shot is not visible, and it is the difference between a two hour
+# render and a three hour one.
+SAMPLES = 128
 RES = (1920, 1080)
 OUT_BLEND = ROOT / "tank" / "data" / "shots" / "seam_shot.blend"
 OUT_VIDEO = ROOT / "tank" / "data" / "shots" / "seam_shot.mp4"
@@ -124,8 +132,15 @@ def main() -> dict:
         return {"error": "no Crawler in the scene; run blender_tank.py first"}
 
     rig.rotation_mode = "XYZ"
-    for obj in (rig,):
-        obj.animation_data_clear()
+    rig.animation_data_clear()
+
+    wheels = []
+    for index in range(len(T.WHEEL_AT)):
+        axle = bpy.data.objects.get(f"Crawler_Wheel_{index}")
+        if axle is not None:
+            axle.rotation_mode = "XYZ"
+            axle.animation_data_clear()
+            wheels.append(axle)
 
     cam_obj = bpy.data.objects.get("Hero_Cam")
     if cam_obj is None:
@@ -164,6 +179,16 @@ def main() -> dict:
         theta = lerp(THETA_FROM, THETA_TO, t)
         rig.matrix_world = T.crawler_matrix(theta, RUN_Z)
         _key(rig, frame)
+
+        # Rolling without slipping: the wheel turns by however far it has
+        # gone, divided by its radius. Over this shot that is a metre on a
+        # seventy eight millimetre wheel, so a bit over two turns. The axle
+        # lies along the robot's Y, and a positive angle there carries the
+        # contact patch backwards, which is what forward motion looks like.
+        travelled = (theta - THETA_FROM) * T.RADIUS
+        for axle in wheels:
+            axle.rotation_euler = (0.0, travelled / T.WHEEL_R, 0.0)
+            axle.keyframe_insert(data_path="rotation_euler", frame=frame)
 
         # The camera stays where it is and watches the middle of the run.
         target = Vector(T.wall_point(THETA_MID, RUN_Z, inset=0.0))
