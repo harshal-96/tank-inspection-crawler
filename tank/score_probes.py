@@ -105,6 +105,11 @@ def main() -> int:
     parser.add_argument("--floor", action="store_true",
                         help="reserve one probe for the arithmetic rule "
                              "and let the model spend the rest")
+    parser.add_argument("--blind", action="store_true",
+                        help="hide the camera from the planner. If the score "
+                             "does not move, the vision half contributes "
+                             "nothing to the probing and the claim that this "
+                             "needs two instruments is decoration")
     parser.add_argument("--baselines", action="store_true",
                         help="the three arithmetic planners only, no model and "
                              "no key needed")
@@ -142,13 +147,17 @@ def main() -> int:
     # printing nothing, which makes the whole comparison unavailable to anyone
     # who just cloned the repository. The baselines are most of the argument,
     # so they run either way and the summary says what was skipped.
-    have_key = True
     try:
         nebius.api_key()
+        have_key = True
     except Exception:
         have_key = False
-    if args.baselines:
-        have_key = False
+    # Two different reasons to skip the model, and they must not be reported
+    # as the same thing. Telling somebody their key is missing when they asked
+    # for baselines is a lie, and output that lies about its own configuration
+    # is worse than output that is missing.
+    asked_for_baselines = args.baselines
+    run_model = have_key and not asked_for_baselines
 
     results = []
     for label, chooser in (
@@ -159,14 +168,18 @@ def main() -> int:
         results.append(run(frames, answers, chooser, args.budget, label))
 
     latencies, fallbacks, spreads = [], 0, []
-    for model in ((args.models or [planner_model()]) if have_key else []):
+    for model in ((args.models or [planner_model()]) if run_model else []):
         plans: dict[int, object] = {}
 
         def choose(offsets, station, memory, budget, frame, row, model=model):
             nonlocal fallbacks
             course = frame["probe_candidates"][0]["nominal_mm"]
             planner = plan_with_floor if args.floor else plan_probes
-            plan = planner(station, offsets, course, limit, said(row),
+            # The ablation. Same prompt, same memory, same budget, with the
+            # one sentence about the picture replaced by a statement that
+            # there is no picture. Everything else is held still.
+            seen = ("no camera on this run" if args.blind else said(row))
+            plan = planner(station, offsets, course, limit, seen,
                            memory, budget=budget, model=model)
             latencies.append(plan.latency_ms)
             fallbacks += int(plan.fell_back)
@@ -184,7 +197,8 @@ def main() -> int:
             started = time.perf_counter()
             got = run(frames, answers, choose, args.budget,
                       registry.display(model)
-                      + (" + rule floor" if args.floor else ""))
+                      + (" + rule floor" if args.floor else "")
+                      + (" (blind)" if args.blind else ""))
             got["seconds"] = time.perf_counter() - started
             got["why"] = {k: v.why for k, v in plans.items()}
             got["attempt"] = index + 1
@@ -215,17 +229,20 @@ def main() -> int:
         print(f"\n  {round(statistics.median(latencies))} ms a station, "
               f"{fallbacks} fell back to the rule")
 
-    if not have_key:
-        print("\n  Baselines only. No Token Factory key found, so "
-              "the model planner was not run.")
-        print("  Set NEBIUS_API_KEY and run again to add it to the "
-              "comparison.")
+    if asked_for_baselines:
+        print()
+        print("  Baselines only, because --baselines was asked for.")
+        print("  Drop the flag to put the model planner back in the comparison.")
+    elif not have_key:
+        print()
+        print("  Baselines only. No Token Factory key was found, so the model")
+        print("  planner could not run. Set NEBIUS_API_KEY and run again.")
 
     # A baselines-only run must not overwrite a full one. It is a strictly
     # smaller result and silently replacing the comparison with three of its
     # four rows is how an artefact quietly loses the row that matters.
     out_path = Path(args.out)
-    if not have_key and out_path == SURVEY / "probing.json":
+    if not run_model and out_path == SURVEY / "probing.json":
         out_path = SURVEY / "probing_baselines.json"
 
     out_path.write_text(json.dumps(
@@ -233,7 +250,7 @@ def main() -> int:
          "thinned": thinned,
          "planners": [{k: v for k, v in r.items() if k != "rows"} for r in results]},
         indent=1, default=str), encoding="utf-8")
-    print(f"\nwrote {args.out}")
+    print(f"\nwrote {out_path}")
     return 0
 
 

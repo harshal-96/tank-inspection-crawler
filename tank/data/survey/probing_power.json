@@ -1,0 +1,298 @@
+{
+ "budget": 2,
+ "places": 168,
+ "rejectable": 28,
+ "thinned": 82,
+ "planners": [
+  {
+   "label": "on the seam",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     2,
+     -0.15,
+     5.747
+    ],
+    [
+     3,
+     -0.15,
+     6.021
+    ]
+   ],
+   "thinned_found": 27
+  },
+  {
+   "label": "where it saw",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 17
+  },
+  {
+   "label": "sweep (no model)",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     2,
+     -0.3,
+     4.5
+    ],
+    [
+     3,
+     -0.3,
+     4.793
+    ],
+    [
+     3,
+     -0.45,
+     6.021
+    ],
+    [
+     8,
+     0.3,
+     5.635
+    ],
+    [
+     9,
+     0.3,
+     3.859
+    ],
+    [
+     9,
+     0.15,
+     5.449
+    ],
+    [
+     10,
+     0.3,
+     5.138
+    ],
+    [
+     13,
+     -0.45,
+     4.581
+    ],
+    [
+     13,
+     -0.3,
+     4.492
+    ],
+    [
+     14,
+     -0.3,
+     5.587
+    ],
+    [
+     14,
+     -0.45,
+     5.263
+    ],
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ],
+    [
+     20,
+     0.45,
+     5.699
+    ]
+   ],
+   "thinned_found": 31
+  },
+  {
+   "label": "Nemotron 3 Nano 30B",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     2,
+     -0.15,
+     5.747
+    ],
+    [
+     3,
+     -0.15,
+     6.021
+    ],
+    [
+     12,
+     -0.45,
+     4.707
+    ],
+    [
+     13,
+     -0.45,
+     4.581
+    ],
+    [
+     13,
+     -0.3,
+     4.492
+    ],
+    [
+     14,
+     -0.45,
+     5.263
+    ],
+    [
+     14,
+     -0.3,
+     5.587
+    ],
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     20,
+     0.45,
+     5.699
+    ]
+   ],
+   "thinned_found": 30,
+   "seconds": 164.0041906999977,
+   "why": {
+    "0": "Cover the band extremes to detect loss that might be missed elsewhere.",
+    "1": "Cover the extremes to ensure full band coverage.",
+    "2": "Cover unseen area and follow up on the low reading nearby.",
+    "3": "Target the thin spot and fill the unmeasured offset.",
+    "4": "Thin reading at -0.15 indicates likely loss, so measure that offset and a neighboring one to cover the band.",
+    "5": "Target thin spot and ensure full band coverage",
+    "6": "Target the low reading at -0.15 and fill the adjacent unmeasured -0.3 spot.",
+    "7": "Thin reading at 0.0 suggests checking adjacent -0.15 to confirm loss pattern",
+    "8": "Thin reading at +0.00 suggests measuring there again to confirm loss.",
+    "9": "Thin spots at -0.15 and +0.00 need verification before moving on.",
+    "10": "Thin readings at -0.15 and +0.00 indicate potential loss to verify.",
+    "11": "Repeat the thin +0.00 spot and add 0.15 to cover an unmeasured edge.",
+    "12": "Cover the band and revisit the thin +0.00 location.",
+    "13": "Thin reading at -0.45 suggests adjacent -0.3 may also be thin, and both are unmeasured.",
+    "14": "Thin readings at -0.45 and -0.30 indicate likely wall loss patches.",
+    "15": "Thin readings at -0.45 and -0.30 indicate likely wall loss; revisiting them ensures coverage of the most vulnerable spots.",
+    "16": "Target the thinnest spot and its neighbor to confirm loss pattern.",
+    "17": "They are the thinnest recent points and together cover the negative side of the band.",
+    "18": "Thin readings at -0.45 and -0.30 suggest loss that should be confirmed.",
+    "19": "Thin readings at -0.45 and -0.30 suggest likely wall loss there.",
+    "20": "Cover the extremes to ensure full band coverage.",
+    "21": "Thin reading at +0.45 suggests adjacent 0.3 may also be thin",
+    "22": "Both offsets target the thin, sub\u2011reject region near +0.45 to confirm loss and cover adjacent thin area.",
+    "23": "Measure +0.45 to verify the thin spot and -0.45 to cover the opposite side."
+   },
+   "attempt": 1
+  },
+  {
+   "label": "Nemotron 3 Nano 30B",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     2,
+     -0.15,
+     5.747
+    ],
+    [
+     3,
+     -0.15,
+     6.021
+    ],
+    [
+     10,
+     0.3,
+     5.138
+    ],
+    [
+     12,
+     -0.3,
+     4.618
+    ],
+    [
+     13,
+     -0.3,
+     4.492
+    ],
+    [
+     14,
+     -0.3,
+     5.587
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 25,
+   "seconds": 175.27220760000637,
+   "why": {
+    "0": "Cover the band with extreme offsets to detect loss early",
+    "1": "Cover unseen extremes to detect localized thinning.",
+    "2": "Measure -0.15 to follow the low reading and 0.0 to cover the unmeasured centre.",
+    "3": "Cover the unmeasured thin area to avoid missing loss.",
+    "4": "thin reading at -0.15 suggests adjacent loss, need coverage",
+    "5": "Cover extremes to capture potential thin spots not yet inspected.",
+    "6": "Chase the thin -0.15 reading and cover the adjacent -0.3 zone.",
+    "7": "Thin readings at -0.15 and -0.30 indicate possible wall loss; re\u2011measure to confirm trend.",
+    "8": "Target the thin -0.15 spot and fill the central gap for full band coverage.",
+    "9": "Thin reading at -0.15 and need coverage of the outer edge.",
+    "10": "unreadable reply, swept instead",
+    "11": "Chase the thin spot at +0.30 and cover the adjacent thin at +0.15.",
+    "12": "Re-measure the thin +0.3 spot and cover the unmeasured -0.3 offset.",
+    "13": "Re\u2011measure the two thin spots already observed to confirm loss and maintain band coverage.",
+    "14": "Thin reading at -0.30 suggests adjacent -0.15 may also be thin, and both are unmeasured.",
+    "15": "Target the thin -0.30 spot and extend coverage to the next negative offset",
+    "16": "Target the consistently thin -0.30 and adjacent -0.45 to verify loss patches.",
+    "17": "Measure the two lowest recent readings to verify the thinnest wall areas",
+    "18": "Thin readings at -0.30 and -0.45 indicate possible wall loss that should be verified.",
+    "19": "Thin reading at -0.45 suggests further loss; also covers another point.",
+    "20": "Target the thin spots at -0.30 and -0.45 to verify loss patches.",
+    "21": "Cover the outermost points to ensure full band coverage",
+    "22": "Target the thin +0.45 reading while covering the full band.",
+    "23": "Thin reading at +0.45 suggests loss; also cover negative side."
+   },
+   "attempt": 2
+  }
+ ]
+}

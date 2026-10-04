@@ -85,12 +85,16 @@ the frame of the clean plate above the hidden pocket. Then cut to a terminal run
 > sound.
 >
 > So something has to choose where to measure. There are a hundred and sixty eight
-> places the arm can reach and time for forty eight of them. An NVIDIA Nemotron model
-> finds three of the four rejectable points. Covering the band by arithmetic finds two.
-> Probing where the camera saw corrosion finds none at all.
+> places the arm can reach, time for forty eight of them, and twenty eight of them
+> fail the limit. Covering the band by arithmetic finds sixteen. Asking a model to
+> plan it finds nine to twelve. Probing where the camera saw corrosion finds none.
+>
+> We expected the model to win. It does not, and that is worth saying out loud. The
+> loss is sparse and the budget is fixed, and under those conditions coverage beats
+> cleverness. The model earns its place on the picture, not on the arm.
 
-**Lower third, as the table lands.** Nemotron 3 Nano median 4/4 . arithmetic 2/4 .
-follow the camera 0/4
+**Lower third, as the table lands.** arithmetic 16/28 . Nemotron Nano 9 to 12/28 .
+follow the camera 0/28
 
 ---
 

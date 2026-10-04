@@ -559,8 +559,26 @@ def plan_defects(seams, rng) -> list[dict]:
     # The patches straddle a course boundary, so the same loss is a different
     # fraction either side of it: 4.7 mm off the 11 mm course left it a hair
     # inside the limit and the run had nothing the probe had to catch.
-    for fraction, visible, loss in ((0.28, True, 3.1), (0.70, False, 5.6)):
-        z = run["z_m"] + (0.075 if visible else -0.41)
+    # One visible patch inside limits, and five hidden ones that are not.
+    #
+    # The count is deliberate. With a single hidden patch the run held four
+    # rejectable probe points out of 168, and two planners compared on four
+    # points produce an exact McNemar of 1.00, meaning no evidence either way.
+    # A test set has to be able to separate the things being tested. Spread at
+    # different heights so they fall across different parts of the probe grid
+    # rather than stacking on the same rows.
+    #
+    # This is more severe loss than a tank of this age would really carry, and
+    # it is marked in the ground truth as an evaluation scene so that nobody
+    # reads it as a claim about real shells.
+    for fraction, visible, loss, offset in (
+            (0.28, True, 3.1, 0.075),
+            (0.70, False, 5.6, -0.41),
+            (0.13, False, 6.8, -0.30),
+            (0.42, False, 6.2, 0.33),
+            (0.57, False, 7.2, -0.37),
+            (0.87, False, 6.5, 0.27)):
+        z = run["z_m"] + offset
         nominal = COURSE_MM[min(COURSES - 1, int(z // COURSE_H))]
         left = (nominal - loss) / nominal
         add("thinning", None, at(fraction), z, patch_radius_m=0.38,

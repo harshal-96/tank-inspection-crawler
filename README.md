@@ -54,8 +54,10 @@ tank with the answers written before any model saw a picture.
 | Is this length of seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
 | Naming the worst fault in the frame | 20 of 24 | the same |
 | Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
-| Choosing where to probe, 48 measurements out of 168 places | **Nemotron Nano, median 4 of 4** rejectable points found, worst run 2 | the true remaining wall at all 168 |
-| the same, covering the band by arithmetic | 2 of 4, deterministic | the same |
+| Choosing where to probe, 48 measurements out of 168 places | covering the band **by arithmetic: 16 of 28** rejectable points found | the true remaining wall at all 168 |
+| the same, planned by Nemotron Nano | 9 to 12 of 28 across three runs | the same |
+| the same, probing where the camera saw corrosion | 0 of 28 | the same |
+| the same, always probing on the seam | 2 of 28 | the same |
 | the same, probing where the camera saw corrosion | 0 of 4 | the same |
 | the same, always probing on the seam | 0 of 4 | the same |
 
@@ -66,25 +68,49 @@ The last three rows are the point. Following the camera is worse than useless he
 spends every measurement on the patch that is within limits and never looks at the one
 that is not.
 
-### The planner is better on average and not reliable on any one run
+### The model planner loses to arithmetic, and the first version of this section said the opposite
 
-The headline above is a median, and it is written as one because a single run of this
-supports almost any claim you would like to make. At temperature zero, over eight runs
-of the identical prompt, Nemotron Nano found 3, 4, 4, 3, 4, 2, 4 and 4 of the four
-rejectable points. The arithmetic sweep finds exactly 2 every single time, because it
-has no model in it.
+This is the correction worth reading, because it is the one that would have gone
+into a submission as a claim.
 
-So Nano's median beats the rule and Nano's worst run only equals it.
+The run originally carried **four** rejectable probe points out of 168, because
+there was one patch of hidden wall loss on it. On four points Nemotron Nano found
+three or four and the arithmetic sweep found two, so the model appeared to win and
+that is what this README said.
+
+Four points cannot support that. The exact McNemar on it came out at p = 1.00, which
+is not a near miss, it is no evidence in either direction. So the evaluation scene was
+given five patches of hidden loss instead of one, spread across the probe grid, taking
+the run from 4 rejectable points to **28**. No geometry changed, because wall loss a
+camera cannot see adds none, and the 24 scored frames are byte for byte the same ones.
+
+On 28 points the result reverses and is not close:
+
+| planner | rejectable points found, of 28 |
+| --- | --- |
+| **sweep, arithmetic, no model** | **16, every run** |
+| Nemotron 3 Nano | 9, 10, 12 across three runs |
+| always probe on the seam | 2 |
+| probe where the camera saw corrosion | 0 |
+
+The rule wins because the task rewards exactly what a rule is good at. Hidden loss is
+sparse and scattered, the budget is fixed at two measurements of seven, and under those
+conditions systematic coverage beats trying to be clever. The model keeps returning to
+places it has reasons about and leaves bands of the wall unvisited.
+
+That is a real finding and a more useful one than the claim it replaces. It also says
+where a model does belong in this loop, which is not here: it belongs on the picture,
+where there is something to judge, and the arithmetic should drive the arm.
 
 Nemotron 3 Super 120B, four times the size, is worse and far less stable: 3, 3, 0, 3
 and 0 over five runs. Two of those five are total failures where it found nothing at
 all. It is also about twice as fast per station as Nano, which is its own small
 surprise.
 
-The obvious fix is to give it a floor: let the arithmetic claim one of the two probes
-and let the model spend the other, so the worst case cannot fall below the rule. That
-is built, in `plan_with_floor`, and **it does not work**. Over five runs it scored 2, 3,
-4, 4 and 4, which is the same median and the same worst case as the model alone.
+A floor was built for this, in `plan_with_floor`, to stop the model falling below the
+rule. It was measured on the four point set and did not help there. On the twenty eight
+point set the question it was built to answer has gone away, because the rule is not
+the floor any more, it is the ceiling.
 
 The reason is worth writing down, because the idea sounds right. Reserving one probe of
 two does not give you the rule as a floor. It gives you half the rule, and half of a
@@ -97,12 +123,9 @@ the union, which costs three or four measurements a station instead of two. Whet
 that is worth it is a question about arm time on a real crawler, not about models, and
 this project cannot answer it from a simulation.
 
-So the finding stands as a limitation rather than a solved problem: better than
-arithmetic on the median, no better on the worst run, and the cheap fix for that is
-measured and does not help.
-
-Reproduce it with `python tank/score_probes.py --repeat 5` and
-`python tank/score_probes.py --floor --repeat 5`.
+Reproduce all of it with `python tank/score_probes.py --repeat 3`, and check what the
+counts license with `python tank/significance.py`, which prints the confidence bounds
+and the paired test rather than leaving them to be assumed.
 
 ### What is still wrong with it
 

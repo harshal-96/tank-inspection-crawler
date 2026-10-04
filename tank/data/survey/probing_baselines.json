@@ -1,0 +1,37 @@
+{
+ "budget": 2,
+ "places": 168,
+ "rejectable": 4,
+ "thinned": 30,
+ "planners": [
+  {
+   "label": "on the seam",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 12
+  },
+  {
+   "label": "where it saw",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 7
+  },
+  {
+   "label": "sweep (no model)",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 11
+  }
+ ]
+}

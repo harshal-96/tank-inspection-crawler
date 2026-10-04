@@ -1007,9 +1007,11 @@
      "theta_rad": -0.172609,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.481,
+     "remaining_fraction": 0.771,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1017,9 +1019,11 @@
      "theta_rad": -0.172609,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.425,
+     "remaining_fraction": 0.675,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1027,9 +1031,11 @@
      "theta_rad": -0.172609,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.481,
+     "remaining_fraction": 0.771,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1131,39 +1137,47 @@
      "theta_rad": -0.155218,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.747,
+     "remaining_fraction": 0.5225,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.3,
      "theta_rad": -0.155218,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.5,
+     "remaining_fraction": 0.4091,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.15,
      "theta_rad": -0.155218,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.747,
+     "remaining_fraction": 0.5225,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.0,
      "theta_rad": -0.155218,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.021,
+     "remaining_fraction": 0.8021,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1202,9 +1216,11 @@
     "theta_rad": -0.155218,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 8.021,
+    "remaining_fraction": 0.8021,
+    "thinned_by": [
+     "D007"
+    ],
     "rejectable": false
    }
   },
@@ -1255,39 +1271,47 @@
      "theta_rad": -0.137826,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 6.021,
+     "remaining_fraction": 0.5474,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.3,
      "theta_rad": -0.137826,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.793,
+     "remaining_fraction": 0.4357,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.15,
      "theta_rad": -0.137826,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 6.021,
+     "remaining_fraction": 0.5474,
+     "thinned_by": [
+      "D007"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.0,
      "theta_rad": -0.137826,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.243,
+     "remaining_fraction": 0.8243,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1326,9 +1350,11 @@
     "theta_rad": -0.137826,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 8.243,
+    "remaining_fraction": 0.8243,
+    "thinned_by": [
+     "D007"
+    ],
     "rejectable": false
    }
   },
@@ -1379,9 +1405,11 @@
      "theta_rad": -0.120435,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.163,
+     "remaining_fraction": 0.833,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1389,9 +1417,11 @@
      "theta_rad": -0.120435,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.157,
+     "remaining_fraction": 0.7415,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1399,9 +1429,11 @@
      "theta_rad": -0.120435,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.163,
+     "remaining_fraction": 0.833,
+     "thinned_by": [
+      "D007"
+     ],
      "rejectable": false
     },
     {
@@ -1813,10 +1845,11 @@
      "theta_rad": -0.068261,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 8.985,
-     "remaining_fraction": 0.8985,
+     "true_thickness_mm": 8.571,
+     "remaining_fraction": 0.8571,
      "thinned_by": [
-      "D005"
+      "D005",
+      "D008"
      ],
      "rejectable": false
     },
@@ -1921,10 +1954,11 @@
      "theta_rad": -0.05087,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 9.985,
-     "remaining_fraction": 0.9985,
+     "true_thickness_mm": 7.051,
+     "remaining_fraction": 0.7051,
      "thinned_by": [
-      "D005"
+      "D005",
+      "D008"
      ],
      "rejectable": false
     },
@@ -1933,19 +1967,23 @@
      "theta_rad": -0.05087,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.635,
+     "remaining_fraction": 0.5635,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.45,
      "theta_rad": -0.05087,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 6.266,
+     "remaining_fraction": 0.6266,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     }
    ],
@@ -2014,9 +2052,11 @@
      "theta_rad": -0.033479,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.736,
+     "remaining_fraction": 0.8736,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     },
     {
@@ -2024,30 +2064,36 @@
      "theta_rad": -0.033479,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.449,
+     "remaining_fraction": 0.5449,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.3,
      "theta_rad": -0.033479,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 3.859,
+     "remaining_fraction": 0.3859,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.45,
      "theta_rad": -0.033479,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.558,
+     "remaining_fraction": 0.4558,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     }
    ],
    "probe_on_seam": {
@@ -2055,9 +2101,11 @@
     "theta_rad": -0.033479,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 8.736,
+    "remaining_fraction": 0.8736,
+    "thinned_by": [
+     "D008"
+    ],
     "rejectable": false
    }
   },
@@ -2113,9 +2161,11 @@
      "theta_rad": -0.016087,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.651,
+     "remaining_fraction": 0.9651,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     },
     {
@@ -2123,9 +2173,11 @@
      "theta_rad": -0.016087,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 6.614,
+     "remaining_fraction": 0.6614,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     },
     {
@@ -2133,20 +2185,24 @@
      "theta_rad": -0.016087,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.138,
+     "remaining_fraction": 0.5138,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.45,
      "theta_rad": -0.016087,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.788,
+     "remaining_fraction": 0.5788,
+     "thinned_by": [
+      "D008"
+     ],
+     "rejectable": true
     }
    ],
    "probe_on_seam": {
@@ -2154,9 +2210,11 @@
     "theta_rad": -0.016087,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 9.651,
+    "remaining_fraction": 0.9651,
+    "thinned_by": [
+     "D008"
+    ],
     "rejectable": false
    }
   },
@@ -2195,9 +2253,11 @@
      "theta_rad": 0.001304,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.072,
+     "remaining_fraction": 0.7338,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2205,9 +2265,11 @@
      "theta_rad": 0.001304,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.999,
+     "remaining_fraction": 0.7272,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2215,9 +2277,11 @@
      "theta_rad": 0.001304,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.989,
+     "remaining_fraction": 0.9081,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2235,9 +2299,11 @@
      "theta_rad": 0.001304,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.963,
+     "remaining_fraction": 0.9963,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     },
     {
@@ -2245,9 +2311,11 @@
      "theta_rad": 0.001304,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.838,
+     "remaining_fraction": 0.8838,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     },
     {
@@ -2255,9 +2323,11 @@
      "theta_rad": 0.001304,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.335,
+     "remaining_fraction": 0.9335,
+     "thinned_by": [
+      "D008"
+     ],
      "rejectable": false
     }
    ],
@@ -2294,29 +2364,35 @@
      "theta_rad": 0.018695,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.707,
+     "remaining_fraction": 0.4279,
+     "thinned_by": [
+      "D009"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.3,
      "theta_rad": 0.018695,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.618,
+     "remaining_fraction": 0.4198,
+     "thinned_by": [
+      "D009"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.15,
      "theta_rad": 0.018695,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.034,
+     "remaining_fraction": 0.6395,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2406,29 +2482,35 @@
      "theta_rad": 0.036087,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.581,
+     "remaining_fraction": 0.4165,
+     "thinned_by": [
+      "D009"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.3,
      "theta_rad": 0.036087,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.492,
+     "remaining_fraction": 0.4084,
+     "thinned_by": [
+      "D009"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": -0.15,
      "theta_rad": 0.036087,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 11.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 6.923,
+     "remaining_fraction": 0.6294,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2436,9 +2518,11 @@
      "theta_rad": 0.036087,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.962,
+     "remaining_fraction": 0.9962,
+     "thinned_by": [
+      "D009"
+     ],
      "rejectable": false
     },
     {
@@ -2477,9 +2561,11 @@
     "theta_rad": 0.036087,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 9.962,
+    "remaining_fraction": 0.9962,
+    "thinned_by": [
+     "D009"
+    ],
     "rejectable": false
    }
   },
@@ -2518,34 +2604,37 @@
      "theta_rad": 0.053478,
      "z_m": 3.55,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 8.504,
-     "remaining_fraction": 0.7731,
+     "true_thickness_mm": 5.263,
+     "remaining_fraction": 0.4785,
      "thinned_by": [
-      "D006"
+      "D006",
+      "D009"
      ],
-     "rejectable": false
+     "rejectable": true
     },
     {
      "offset_m": -0.3,
      "theta_rad": 0.053478,
      "z_m": 3.7,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 8.903,
-     "remaining_fraction": 0.8094,
+     "true_thickness_mm": 5.587,
+     "remaining_fraction": 0.5079,
      "thinned_by": [
-      "D006"
+      "D006",
+      "D009"
      ],
-     "rejectable": false
+     "rejectable": true
     },
     {
      "offset_m": -0.15,
      "theta_rad": 0.053478,
      "z_m": 3.85,
      "nominal_mm": 11.0,
-     "true_thickness_mm": 10.801,
-     "remaining_fraction": 0.9819,
+     "true_thickness_mm": 9.517,
+     "remaining_fraction": 0.8652,
      "thinned_by": [
-      "D006"
+      "D006",
+      "D009"
      ],
      "rejectable": false
     },
@@ -2994,9 +3083,11 @@
      "theta_rad": 0.123043,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 9.669,
+     "remaining_fraction": 0.9669,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3004,9 +3095,11 @@
      "theta_rad": 0.123043,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.313,
+     "remaining_fraction": 0.7313,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3014,9 +3107,11 @@
      "theta_rad": 0.123043,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 6.704,
+     "remaining_fraction": 0.6704,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3024,9 +3119,11 @@
      "theta_rad": 0.123043,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.086,
+     "remaining_fraction": 0.8086,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     }
    ],
@@ -3035,9 +3132,11 @@
     "theta_rad": 0.123043,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 9.669,
+    "remaining_fraction": 0.9669,
+    "thinned_by": [
+     "D010"
+    ],
     "rejectable": false
    }
   },
@@ -3093,9 +3192,11 @@
      "theta_rad": 0.140434,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.399,
+     "remaining_fraction": 0.7399,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3103,30 +3204,36 @@
      "theta_rad": 0.140434,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.586,
+     "remaining_fraction": 0.4586,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.3,
      "theta_rad": 0.140434,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 3.864,
+     "remaining_fraction": 0.3864,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.45,
      "theta_rad": 0.140434,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.505,
+     "remaining_fraction": 0.5505,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     }
    ],
    "probe_on_seam": {
@@ -3134,9 +3241,11 @@
     "theta_rad": 0.140434,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 7.399,
+    "remaining_fraction": 0.7399,
+    "thinned_by": [
+     "D010"
+    ],
     "rejectable": false
    }
   },
@@ -3192,9 +3301,11 @@
      "theta_rad": 0.157826,
      "z_m": 4.0,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.57,
+     "remaining_fraction": 0.757,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3202,30 +3313,36 @@
      "theta_rad": 0.157826,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.791,
+     "remaining_fraction": 0.4791,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.3,
      "theta_rad": 0.157826,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 4.077,
+     "remaining_fraction": 0.4077,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     },
     {
      "offset_m": 0.45,
      "theta_rad": 0.157826,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
-     "rejectable": false
+     "true_thickness_mm": 5.699,
+     "remaining_fraction": 0.5699,
+     "thinned_by": [
+      "D010"
+     ],
+     "rejectable": true
     }
    ],
    "probe_on_seam": {
@@ -3233,9 +3350,11 @@
     "theta_rad": 0.157826,
     "z_m": 4.0,
     "nominal_mm": 10.0,
-    "true_thickness_mm": 10.0,
-    "remaining_fraction": 1.0,
-    "thinned_by": [],
+    "true_thickness_mm": 7.57,
+    "remaining_fraction": 0.757,
+    "thinned_by": [
+     "D010"
+    ],
     "rejectable": false
    }
   },
@@ -3301,9 +3420,11 @@
      "theta_rad": 0.175217,
      "z_m": 4.15,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.825,
+     "remaining_fraction": 0.7825,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3311,9 +3432,11 @@
      "theta_rad": 0.175217,
      "z_m": 4.3,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 7.238,
+     "remaining_fraction": 0.7238,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     },
     {
@@ -3321,9 +3444,11 @@
      "theta_rad": 0.175217,
      "z_m": 4.45,
      "nominal_mm": 10.0,
-     "true_thickness_mm": 10.0,
-     "remaining_fraction": 1.0,
-     "thinned_by": [],
+     "true_thickness_mm": 8.569,
+     "remaining_fraction": 0.8569,
+     "thinned_by": [
+      "D010"
+     ],
      "rejectable": false
     }
    ],
@@ -3536,5 +3661,7 @@
     "rejectable": false
    }
   }
- ]
+ ],
+ "probe_truth_refreshed_from": "tank_scene.json",
+ "evaluation_scene": "The hidden wall loss on this run is heavier than a real shell of this age would carry. It is set that way so a probe planner can be measured against another one: with a single hidden patch the run held four rejectable points and no comparison on four points can separate anything."
 }

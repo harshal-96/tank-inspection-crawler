@@ -54,9 +54,10 @@ budget. It is the difference between a model being usable in a control loop and 
 and it does not correlate with size.
 
 **Nano punches above its price.** It took 88 of 89 routing decisions correctly in the
-welding cell against ground truth, and found a median 4 of 4 rejectable thickness points in
-the tank against a deterministic 2 for arithmetic and 0 for either camera-led
-baseline. Nothing in this
+welding cell against ground truth. On the tank's probe planning it is beaten by a
+plain coverage rule, 9 to 12 of 28 against a deterministic 16, which is a result about
+the task rather than about the model: sparse hidden defects on a fixed budget reward
+systematic coverage over reasoning. Nothing in this
 project needed to escalate to a larger Nemotron, and we removed the escalation path
 rather than leave a feature in that never fired.
 

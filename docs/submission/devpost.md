@@ -65,10 +65,10 @@ modelled tank with the answers written before any model saw a picture.
 | Is this seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
 | Naming the worst fault in the frame | 20 of 24 | the same |
 | Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
-| Choosing where to probe, 48 measurements out of 168 places | **Nemotron 3 Nano, median 4 of 4**, worst run 2 of 4 | the true remaining wall at all 168 |
-| the same, covering the band by arithmetic | 2 of 4, every single time | the same |
-| the same, probing where the camera saw corrosion | 0 of 4 | the same |
-| the same, always probing on the seam | 0 of 4 | the same |
+| Choosing where to probe, 48 measurements out of 168 places | **arithmetic coverage: 16 of 28** rejectable points | the true remaining wall at all 168 |
+| the same, planned by Nemotron Nano | 9 to 12 of 28 across three runs | the same |
+| the same, probing where the camera saw corrosion | 0 of 28 | the same |
+| the same, always probing on the seam | 2 of 28 | the same |
 
 The inspector runs at about 9 seconds a frame and the probe planner at about 8 seconds
 a station, one model call each.
@@ -139,16 +139,26 @@ reasoning out as prose and never reaches the JSON, with three thousand tokens of
 as readily as with three hundred. Nano and Super both answer cleanly on the identical
 question.
 
-**One run of anything proves nothing.** At temperature zero, over eight runs of the
-identical prompt, Nemotron Nano found 3, 4, 4, 3, 4, 2, 4 and 4 of the four rejectable
-probe points. The arithmetic baseline finds exactly 2 every single time. So the model's
-median beats the rule and its worst run only equals it. Nemotron Super, four times the
-size, is both worse and far less stable at 3, 3, 0, 3 and 0, with two runs finding
-nothing at all, while being about twice as fast per station.
+**The headline we nearly submitted was wrong, and finding that out is the best thing
+in this project.**
 
-We nearly published a single run of 3 of 4, then a single run of 4 of 4, either of
-which would have been true and neither of which would have been honest. The scorer
-takes a `--repeat` flag now and prints the spread and the worst run.
+The run originally held four rejectable probe points. On four points Nemotron Nano
+found three or four and the arithmetic sweep found two, so the model appeared to win.
+We wrote that down. Then we ran the paired test on it: p = 1.00. Not a near miss, no
+evidence in either direction. Four points cannot separate two planners.
+
+So the evaluation scene was given five patches of hidden wall loss instead of one,
+taking it from 4 rejectable points to 28. Nothing visible changed, because loss a
+camera cannot see adds no geometry, and the 24 scored frames stayed byte for byte
+identical.
+
+On 28 points the result reverses and is not close. The arithmetic finds **16, every
+run.** Nemotron Nano finds 9, 10 and 12. The rule wins because the task rewards what a
+rule is good at: the loss is sparse, the budget is two measurements of seven, and
+systematic coverage beats being clever.
+
+That tells us where a model belongs in this loop, and it is not driving the arm. It
+belongs on the picture, where there is something to judge.
 
 ## What we are still wrong about
 

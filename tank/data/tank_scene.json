@@ -786,6 +786,106 @@
   },
   {
    "id": "D007",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.148,
+   "z_m": 3.7,
+   "centre_m": [
+    9.8828,
+    -1.4734,
+    3.7
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.8,
+   "nominal_mm": 11.0,
+   "remaining_mm": 4.2,
+   "remaining_fraction": 0.382,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D008",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.032,
+   "z_m": 4.33,
+   "centre_m": [
+    9.9869,
+    -0.3197,
+    4.33
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.2,
+   "nominal_mm": 10.0,
+   "remaining_mm": 3.8,
+   "remaining_fraction": 0.38,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D009",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.028,
+   "z_m": 3.63,
+   "centre_m": [
+    9.9881,
+    0.2797,
+    3.63
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 7.2,
+   "nominal_mm": 11.0,
+   "remaining_mm": 3.8,
+   "remaining_fraction": 0.345,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D010",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.148,
+   "z_m": 4.27,
+   "centre_m": [
+    9.8828,
+    1.4734,
+    4.27
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.5,
+   "nominal_mm": 10.0,
+   "remaining_mm": 3.5,
+   "remaining_fraction": 0.35,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D011",
    "kind": "undercut",
    "seam": "C2",
    "theta_rad": 5.97192,
@@ -808,7 +908,7 @@
    "visible": true
   },
   {
-   "id": "D008",
+   "id": "D012",
    "kind": "undercut",
    "seam": "C4",
    "theta_rad": 0.61122,
@@ -831,7 +931,7 @@
    "visible": true
   },
   {
-   "id": "D009",
+   "id": "D013",
    "kind": "undercut",
    "seam": "C1",
    "theta_rad": 0.25261,
@@ -854,7 +954,7 @@
    "visible": true
   },
   {
-   "id": "D010",
+   "id": "D014",
    "kind": "porosity",
    "seam": "C5",
    "theta_rad": 3.46233,
@@ -874,7 +974,7 @@
    "visible": true
   },
   {
-   "id": "D011",
+   "id": "D015",
    "kind": "porosity",
    "seam": "V5_6",
    "theta_rad": 5.10509,
@@ -894,7 +994,7 @@
    "visible": true
   },
   {
-   "id": "D012",
+   "id": "D016",
    "kind": "porosity",
    "seam": "V4_2",
    "theta_rad": 1.5708,
@@ -914,7 +1014,7 @@
    "visible": true
   },
   {
-   "id": "D013",
+   "id": "D017",
    "kind": "crack",
    "seam": "C4",
    "theta_rad": 3.67907,
@@ -934,7 +1034,7 @@
    "visible": true
   },
   {
-   "id": "D014",
+   "id": "D018",
    "kind": "crack",
    "seam": "C1",
    "theta_rad": 0.29269,
@@ -954,7 +1054,7 @@
    "visible": true
   },
   {
-   "id": "D015",
+   "id": "D019",
    "kind": "lack_of_fusion",
    "seam": "V2_2",
    "theta_rad": 1.5708,
@@ -974,7 +1074,7 @@
    "visible": true
   },
   {
-   "id": "D016",
+   "id": "D020",
    "kind": "lack_of_fusion",
    "seam": "V4_4",
    "theta_rad": 3.14159,
@@ -994,7 +1094,7 @@
    "visible": true
   },
   {
-   "id": "D017",
+   "id": "D021",
    "kind": "lack_of_fusion",
    "seam": "V1_3",
    "theta_rad": 2.74889,
@@ -1014,7 +1114,7 @@
    "visible": true
   },
   {
-   "id": "D018",
+   "id": "D022",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 0.39451,
@@ -1111,7 +1211,7 @@
    ]
   },
   {
-   "id": "D019",
+   "id": "D023",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 4.88347,
@@ -1233,7 +1333,7 @@
    ]
   },
   {
-   "id": "D020",
+   "id": "D024",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 1.12951,
@@ -1258,7 +1358,7 @@
    "visible": false
   },
   {
-   "id": "D021",
+   "id": "D025",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 5.49865,

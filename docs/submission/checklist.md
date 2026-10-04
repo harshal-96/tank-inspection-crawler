@@ -58,9 +58,10 @@ Each is reproducible from the repository with the command beside it.
 | Tank, pass or defect | 24 of 24, nothing missed, no false alarms, none declined | `tank/score_survey.py` |
 | Tank, naming the worst fault | 20 of 24 | same |
 | Tank, every fault found | 9 of 13, none invented | same |
-| Probe planning, Nemotron Nano | median 4 of 4, worst run 2, over 8 runs | `tank/score_probes.py --repeat 5` |
-| Probe planning, arithmetic sweep | 2 of 4, deterministic | same |
-| Probe planning, follow the camera | 0 of 4 | same |
+| Probe planning, arithmetic sweep | **16 of 28**, every run | `tank/score_probes.py --repeat 3` |
+| Probe planning, Nemotron Nano | 9 to 12 of 28 | same |
+| Probe planning, follow the camera | 0 of 28 | same |
+| What those counts license | confidence bounds and paired test | `tank/significance.py` |
 | Cell, seam tracking | 22.802 mm to 0.668 mm, 50 of 50 under a millimetre | `scripts/run_seam_campaign.py` |
 | Cell, routing | 88 of 89 | `scripts/eval_router_truth.py` |
 | Cell, bead inspection | 91% pass or defect on 150 beads, no false alarms | `scripts/run_inspection.py` |
@@ -73,8 +74,8 @@ Each is reproducible from the repository with the command beside it.
 - **Undercut.** The inspector reports the corroded plate beside a weld-toe groove rather
   than the groove. Every image-capable model on the account does the same, so it is the
   simulated groove at fault. Written up in the README.
-- **The planner is not stable run to run.** Median 4 of 4, worst run 2, which only
-  equals the arithmetic baseline. The fix, letting the rule claim one offset and the
-  model spend the rest, is described but not built.
+- **The model planner loses to arithmetic**, 9 to 12 of 28 against a deterministic
+  16. Reported rather than buried: sparse defects on a fixed budget reward coverage
+  over reasoning, and the model belongs on the picture instead.
 - **No hardware.** Nothing physical exists yet. The video uses the no-hardware branch of
   the rule and makes no claim otherwise.
