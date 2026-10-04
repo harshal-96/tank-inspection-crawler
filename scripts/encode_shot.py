@@ -58,7 +58,10 @@ def main() -> int:
               "--allow-holes")
         return 2
 
-    out = Path(args.out) if args.out else frames.parent / f"{frames.name}.mp4"
+    # Named for the shot rather than for the folder of frames, because the
+    # shot is what the script and the edit refer to.
+    default = frames.parent / (frames.name.replace("_frames", "_shot") + ".mp4")
+    out = Path(args.out) if args.out else default
     cmd = [
         ffmpeg_exe(), "-y",
         "-framerate", str(args.fps),
