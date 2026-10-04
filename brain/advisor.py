@@ -52,6 +52,11 @@ Rules, in order of importance.
 4. Say what to do first, physically, by somebody standing at a machine. Not
    "review the process". Something a person can go and do in the next ten minutes.
 5. Short. An operator reads this between parts.
+6. Write units as words: mm, cm, in, ft. Never use the inch or foot prime mark.
+   A measurement written with one closes the JSON string it is sitting in, and
+   the whole brief is lost on the way back. One brief in six was lost this way.
+7. Where a source states a limit in inches, give the millimetres beside it. The
+   shop works in millimetres and the conversion is the reader's job otherwise.
 
 Answer with JSON only:
 {"headline": "one line naming the fault and the machine to touch",
@@ -91,6 +96,49 @@ class Brief:
 
 _CITATION = re.compile(r"\[(\d+)\]")
 _NUMBER = re.compile(r"(?<![\w.])\d+(?:[.,]\d+)?(?![\w])")
+_FRACTION = re.compile(r"(?<![\w.])(\d+)\s*/\s*(\d+)(?![\w])")
+MM_PER_INCH = 25.4
+
+
+def _values(text: str) -> set:
+    """Every number a piece of text states, including fractions, as floats.
+
+    Fractions matter because published welding limits are written as them. A
+    source that says 1/16 in has stated 1.5875 mm whether or not those
+    characters appear anywhere in it.
+    """
+    out = set()
+    for whole, part in _FRACTION.findall(text):
+        try:
+            if float(part):
+                out.add(float(whole) / float(part))
+        except (ValueError, ZeroDivisionError):
+            continue
+    for n in _NUMBER.findall(_FRACTION.sub(" ", text)):
+        try:
+            out.add(float(n.replace(",", "")))
+        except ValueError:
+            continue
+    return out
+
+
+def _supported(figure: float, pool: set) -> bool:
+    """Is this figure in the source, or a correct conversion of one that is?
+
+    A brief that reads 1/16 in from a code and writes 1.6 mm beside it has not
+    invented a number, it has done the conversion the reader would otherwise do
+    standing at the bench. Marking that as uncited taught the writer to quote
+    foreign units back at a shop that works in millimetres.
+    """
+    tolerance = max(0.05, abs(figure) * 0.02)
+    for value in pool:
+        if abs(figure - value) <= tolerance:
+            return True
+        if abs(figure - value * MM_PER_INCH) <= max(tolerance, 0.1):
+            return True
+        if value and abs(figure - value / MM_PER_INCH) <= max(tolerance, 0.01):
+            return True
+    return False
 
 
 def check_citations(brief: "Brief", texts: Optional[dict[int, str]] = None) -> "Brief":
@@ -110,12 +158,12 @@ def check_citations(brief: "Brief", texts: Optional[dict[int, str]] = None) -> "
     if not cited or not cited <= valid:
         problems.append("a missing or invalid citation")
     if texts and cited:
-        pool = " ".join(texts.get(n, "") for n in cited if n in valid)
-        pool = pool.replace(",", "")
-        figures = _NUMBER.findall(_CITATION.sub("", text))
-        missing = sorted({f for f in figures if f.replace(",", "") not in pool})
+        pool = _values(" ".join(texts.get(n, "") for n in cited if n in valid))
+        stated = _values(_CITATION.sub("", text))
+        missing = sorted(f for f in stated if not _supported(f, pool))
         if missing:
-            problems.append("figures the cited sources do not contain: " + ", ".join(missing))
+            problems.append("figures the cited sources do not contain: "
+                            + ", ".join(f"{f:g}" for f in missing))
     if problems:
         brief.citations_ok = False
         brief.confidence = "low"

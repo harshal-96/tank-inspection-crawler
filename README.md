@@ -245,24 +245,34 @@ Both of those were, for a long time, the parts of the cell nobody had checked. T
 ran, and whether what they said matched what their own tools returned was taken on
 trust. They are scored now, against the database they answer from.
 
-| | Result |
-| --- | --- |
-| Supervisor, on ten questions the database answers exactly | 9 right, 1 wrong, 20 model rounds |
-| Briefs: came back at all | 5 of 6 |
-| Briefs: carried the measured figure it was handed | 5 of 6 |
-| Briefs: said what to do | 5 of 6 |
-| Briefs: cited a source it was actually given | **3 of 6** |
+| | Result | Before the two fixes below |
+| --- | --- | --- |
+| Supervisor, on ten questions the database answers exactly | 9 right, 1 wrong | |
+| Briefs: came back at all | 6 of 6 | 5 of 6 |
+| Briefs: carried the measured figure it was handed | 6 of 6 | 5 of 6 |
+| Briefs: said what to do | 6 of 6 | 5 of 6 |
+| Briefs: cited a source it was actually given | 6 of 6 | 3 of 6 |
 
 The one supervisor answer marked wrong is the open question, "should we hold the line
 right now", where it summarised the state of the cell accurately and never committed to
 an answer. Being unwilling to say yes or no is a real failure for a supervisor, so it is
 scored as one rather than excused.
 
-Three briefs in six citing a real source is the weakest number in this repository and it
-is left in view. A brief that states a correct figure and attributes it to nothing is
-not usable by anyone who has to defend the repair afterwards, which is the entire
-purpose of writing it down. Run it yourself with `python scripts/eval_briefs.py
---limit 6`.
+The brief writer first scored three in six on citation, which was the worst number in
+this repository. Reading the three it failed, all three cite properly, with numbered
+markers and a source list, and what they were being punished for was **converting
+units**. The model writes "if root opening exceeds 1/16 in (1.6 mm)", the cited source
+contains the string 1/16 and never the string 1.6, and a check comparing figures as text
+called the conversion an invented number. It is the opposite of invented. It is the
+model doing the arithmetic a welder would otherwise do at the bench, for a shop that
+works in millimetres. The check now reads fractions and accepts a correct conversion.
+
+The sixth brief never came back at all, with a JSON parse error four lines in. The same
+inch mark did it: a model writing 1/16" inside a JSON string closes the string. The
+prompt now asks for "in" and forbids the prime mark, and says why.
+
+Both faults were in the harness, which is where almost every fault in this project has
+turned out to be. Run it yourself with `python scripts/eval_briefs.py --limit 6`.
 
 The division is deliberate. Geometry does what geometry is good at, which is turning
 surfaces into millimetres. The models do what geometry cannot: judge whether a
