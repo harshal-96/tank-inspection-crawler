@@ -89,6 +89,8 @@ assumes it will be, and raises the alarm when a machine upstream starts drifting
 | Seam tracked along its whole length | 22.8 mm to 0.67 mm, 50 of 50 parts under a millimetre |
 | Routing each part to the right model size | 88 of 89, no part welded on a failed view |
 | Post-weld bead inspection | 91% pass or defect on 150 beads, no false alarms |
+| Supervisor, on questions its own database answers exactly | 9 of 10 |
+| Corrective action briefs: back, cited, figure carried, steps | 6 of 6 on all four |
 
 Both halves share one call policy, one JSON contract, and the same rule that a parse
 failure is never allowed to become a verdict.
@@ -136,6 +138,17 @@ perfectly well and cannot plan the probing at all: given a station it writes its
 reasoning out as prose and never reaches the JSON, with three thousand tokens of room
 as readily as with three hundred. Nano and Super both answer cleanly on the identical
 question.
+
+**One run of anything proves nothing.** At temperature zero, over eight runs of the
+identical prompt, Nemotron Nano found 3, 4, 4, 3, 4, 2, 4 and 4 of the four rejectable
+probe points. The arithmetic baseline finds exactly 2 every single time. So the model's
+median beats the rule and its worst run only equals it. Nemotron Super, four times the
+size, is both worse and far less stable at 3, 3, 0, 3 and 0, with two runs finding
+nothing at all, while being about twice as fast per station.
+
+We nearly published a single run of 3 of 4, then a single run of 4 of 4, either of
+which would have been true and neither of which would have been honest. The scorer
+takes a `--repeat` flag now and prints the spread and the worst run.
 
 ## What we are still wrong about
 
