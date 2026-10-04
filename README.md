@@ -10,6 +10,27 @@ cleaned, ventilated and certified before anyone climbs in, and the inspection it
 person with a lamp and a probe standing inside a steel drum. The crawler does the looking
 and the measuring. What it cannot defend, it hands to a person, and it says so.
 
+## If you have ten minutes
+
+This file is long because the work is measured and every number has its method
+written next to it. If you are reading it against a clock, these four commands
+need no API key, no GPU and no download, and they are the whole argument.
+
+```bash
+pip install -r requirements.txt
+python tank/score_survey.py --replay    # the 24 tank frames, scored. 24/24
+python tank/score_probes.py             # where to probe, against three baselines
+python -m pytest -q                     # 319 tests
+```
+
+The 24 frames the first command scores are **in this repository**, in
+`tank/data/survey/frames`, alongside the answers that were written before any
+model saw them. You can open them yourself and disagree with the scoring.
+
+Then read the next section, which is the point of the whole thing, and
+[what is still wrong with it](#what-is-still-wrong-with-it), which is the part
+most projects leave out.
+
 ## The argument, in one dataset
 
 The survey run carries two patches of wall loss. One is rusted through to the surface and

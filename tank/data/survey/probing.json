@@ -46,147 +46,42 @@
      16,
      -0.3,
      6.281
-    ]
-   ],
-   "thinned_found": 11,
-   "seconds": 108.29769640002633,
-   "why": {
-    "0": "Cover the band to detect loss at both extremes.",
-    "1": "Cover unseen offsets to detect missed loss.",
-    "2": "Cover unmeasured region to detect potential wall loss.",
-    "3": "Measure the unmeasured centre and an edge to fully cover the band.",
-    "4": "Cover the full range to detect hidden thinning.",
-    "5": "Cover the outer edges to ensure full band coverage.",
-    "6": "Cover unmeasured region to ensure full band inspection.",
-    "7": "thin reading at +0.3 suggests adjacent +0.15 likely also thin, and both are unmeasured",
-    "8": "Both are thin spots needing confirmation",
-    "9": "Thin readings at +0.30 and +0.15 indicate likely wall loss patches.",
-    "10": "Thin recent readings at +0.30 and +0.15 suggest likely wall loss there.",
-    "11": "Cover unseen extremes to detect missed loss.",
-    "12": "Cover the full range to detect any hidden thinning.",
-    "13": "Cover the band with unmeasured extremes to catch any hidden thinning.",
-    "14": "Select unmeasured offsets to cover the band and detect hidden thinning.",
-    "15": "Chase the thin reading at -0.30 and cover adjacent offset.",
-    "16": "Thin reading at -0.30 suggests loss; measure it again and nearby -0.15 for coverage.",
-    "17": "Target the thin -0.30 reading and also measure the seam at 0.0.",
-    "18": "Thin reading at -0.30 and adjacent negative offset not yet covered.",
-    "19": "Thin reading at -0.15 indicates likely loss, so revisit it and adjacent -0.30 to cover the band.",
-    "20": "Chase the thin -0.30 reading and add a positive offset to cover the band",
-    "21": "Re\u2011measure the thin +0.30 reading and cover the adjacent negative side.",
-    "22": "Cover the outer edges to ensure full band coverage.",
-    "23": "Cover the extremes to ensure no loss is missed."
-   },
-   "attempt": 1
-  },
-  {
-   "label": "Nemotron 3 Nano 30B",
-   "spent": 48,
-   "rejectable_found": [
-    [
-     15,
-     -0.45,
-     5.869
-    ],
-    [
-     15,
-     -0.3,
-     6.35
     ],
     [
      16,
      -0.45,
      5.798
-    ],
-    [
-     16,
-     -0.3,
-     6.281
-    ]
-   ],
-   "thinned_found": 12,
-   "seconds": 101.6932532999781,
-   "why": {
-    "0": "Cover the band extremes to ensure full coverage.",
-    "1": "Cover outer band positions to detect loss not yet inspected.",
-    "2": "cover unmeasured area and check for thin spots",
-    "3": "Include the unmeasured centre and an extreme to fully cover the band.",
-    "4": "Cover the full band to catch any missed loss.",
-    "5": "Cover the band extremes to ensure full coverage.",
-    "6": "Fill gaps near measured points to cover the band.",
-    "7": "Chase the low reading at +0.30 and fill the central gap at 0.0 to maintain band coverage.",
-    "8": "Thin readings at +0.30 and 0.00 suggest likely wall loss nearby.",
-    "9": "Thin reading at +0.30 and need coverage of the negative side.",
-    "10": "Chase the thin reading at +0.30 and cover the central area.",
-    "11": "Cover extremes to ensure full band coverage.",
-    "12": "Cover the outer edges to ensure full band coverage.",
-    "13": "Cover the band extremes to ensure full coverage.",
-    "14": "Cover the extremes to ensure full band inspection.",
-    "15": "Target the low reading at -0.45 and its neighbor to confirm spread.",
-    "16": "Target the thin -0.45 spot and its neighbor -0.30 to confirm loss pattern.",
-    "17": "Both offsets show sub\u20116.6\u202fmm thickness, indicating potential wall loss that needs confirmation.",
-    "18": "Both are thin readings and need confirmation",
-    "19": "Target the thin -0.45 offset and its neighbor -0.3 to confirm loss pattern.",
-    "20": "Cover the band edges to ensure no unseen thinning.",
-    "21": "Cover extremes to ensure full band coverage",
-    "22": "Revisit the thin +0.45 spot and cover the opposite extreme -0.45.",
-    "23": "Pick unmeasured offsets to cover the band"
-   },
-   "attempt": 2
-  },
-  {
-   "label": "Nemotron 3 Nano 30B",
-   "spent": 48,
-   "rejectable_found": [
-    [
-     15,
-     -0.45,
-     5.869
-    ],
-    [
-     15,
-     -0.3,
-     6.35
-    ],
-    [
-     16,
-     -0.45,
-     5.798
-    ],
-    [
-     16,
-     -0.3,
-     6.281
     ]
    ],
    "thinned_found": 8,
-   "seconds": 90.92361739999615,
+   "seconds": 198.57864629999676,
    "why": {
-    "0": "Cover the band by sampling the most extreme offsets.",
-    "1": "Cover the band and target potential thin spots on both sides.",
-    "2": "Cover unseen offsets to detect potential thin spots",
-    "3": "Cover the band and check the unmeasured centre",
-    "4": "Cover the extremes to ensure full band monitoring.",
-    "5": "Cover the full offset range to detect any hidden loss",
-    "6": "Cover the band and revisit the thin +0.45 location.",
-    "7": "Cover extremes and revisit the thin +0.45 spot.",
-    "8": "Cover unmeasured extremes to detect hidden thinning before it spreads.",
-    "9": "Cover the outer extremes to ensure full band coverage.",
-    "10": "Cover extremes to ensure no unmeasured zone remains.",
-    "11": "They fill the unmeasured central band positions.",
-    "12": "Cover the extremes to ensure full band monitoring.",
-    "13": "Cover unmeasured extremes to ensure full band coverage.",
-    "14": "Cover the extremes to ensure no part of the band is missed.",
-    "15": "Measure the thin -0.45 spot and add adjacent coverage",
-    "16": "Thin readings at -0.45 and -0.30 suggest likely wall loss there.",
-    "17": "Target the thin, negative\u2011side spots to confirm loss and ensure band coverage.",
-    "18": "Thin readings at -0.45 and -0.3 indicate likely wall loss to verify.",
-    "19": "Revisit the thin -0.45 reading while covering the opposite side of the band.",
-    "20": "Thin reading at -0.45 suggests adjacent -0.30 may also be thin",
-    "21": "Cover extremes and revisit the thin +0.45 spot",
-    "22": "Cover extremes to ensure full band coverage.",
-    "23": "Cover unmeasured central offsets to detect possible thin spots."
+    "0": "Cover the extremes to detect loss at both ends of the band",
+    "1": "They fill the central band gaps to ensure full coverage.",
+    "2": "Cover both sides of the seam to detect any hidden thinning.",
+    "3": "Cover the unmeasured centre and an edge to ensure full band inspection.",
+    "4": "Cover the full range of offsets to detect hidden loss.",
+    "5": "Cover the band extremes to detect any missed thinning.",
+    "6": "Cover the band with the extreme offsets to detect any loss not yet seen.",
+    "7": "Cover unmeasured region and target potential thin area",
+    "8": "Chase the thin +0.30 reading and add coverage at 0.15 to sweep the band.",
+    "9": "Cover unmeasured zones and probe the thinnest area",
+    "10": "Thin reading at +0.30 suggests checking adjacent +0.45 to cover the upper band.",
+    "11": "Cover unmeasured extremes to avoid missing loss",
+    "12": "Cover extremes and the only unmeasured offset.",
+    "13": "Cover the remaining unmeasured offsets to complete band coverage.",
+    "14": "Thin readings at +0.15 and 0.0 indicate likely loss, so re\u2011measure those points.",
+    "15": "Cover unmeasured central offsets to detect potential thin spots.",
+    "16": "Target the thin -0.30 spot and extend coverage to -0.45 to fill the band.",
+    "17": "Thin readings at -0.30 and -0.45 indicate likely wall loss; measuring them again ensures coverage of the critical low\u2011thickness region.",
+    "18": "Target the thin -0.45 reading and adjacent -0.30 to confirm loss pattern.",
+    "19": "Thin readings at -0.30 and -0.45 indicate likely wall loss and cover the critical negative band.",
+    "20": "Thin readings at -0.30 and -0.45 suggest likely wall loss needing confirmation.",
+    "21": "Cover extremes to ensure full band inspection.",
+    "22": "Chase the thin +0.45 reading while covering the opposite side.",
+    "23": "Cover unmeasured offsets to detect hidden loss"
    },
-   "attempt": 3
+   "attempt": 1
   }
  ]
 }

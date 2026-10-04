@@ -13,6 +13,12 @@ openai>=1.60
 pillow>=10.4
 numpy>=1.26
 
+# Video and drawings. Blender here is built without video output, so shots
+# render as PNG sequences and are encoded with the bundled ffmpeg.
+imageio-ffmpeg>=0.5
+svglib>=1.5
+reportlab>=4.2
+
 # Dev
 pytest>=8.3
 ruff>=0.7

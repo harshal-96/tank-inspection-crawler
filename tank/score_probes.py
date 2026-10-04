@@ -105,6 +105,9 @@ def main() -> int:
     parser.add_argument("--floor", action="store_true",
                         help="reserve one probe for the arithmetic rule "
                              "and let the model spend the rest")
+    parser.add_argument("--baselines", action="store_true",
+                        help="the three arithmetic planners only, no model and "
+                             "no key needed")
     parser.add_argument("--repeat", type=int, default=1,
                         help="run each model this many times and report the "
                              "spread, because at temperature zero it moves")
@@ -134,6 +137,19 @@ def main() -> int:
     print(f"The camera can see wall loss in {seen_by_camera} frames. None of the "
           f"{rejectable} rejectable points are in them.\n")
 
+    # The three baselines are arithmetic and cost nothing. The model arm needs
+    # a key, and without one this used to stop with a credentials error after
+    # printing nothing, which makes the whole comparison unavailable to anyone
+    # who just cloned the repository. The baselines are most of the argument,
+    # so they run either way and the summary says what was skipped.
+    have_key = True
+    try:
+        nebius.api_key()
+    except Exception:
+        have_key = False
+    if args.baselines:
+        have_key = False
+
     results = []
     for label, chooser in (
         ("on the seam", lambda o, s, m, b, f, r: on_the_seam(o, s, m, b)),
@@ -143,7 +159,7 @@ def main() -> int:
         results.append(run(frames, answers, chooser, args.budget, label))
 
     latencies, fallbacks, spreads = [], 0, []
-    for model in (args.models or [planner_model()]):
+    for model in ((args.models or [planner_model()]) if have_key else []):
         plans: dict[int, object] = {}
 
         def choose(offsets, station, memory, budget, frame, row, model=model):
@@ -199,7 +215,20 @@ def main() -> int:
         print(f"\n  {round(statistics.median(latencies))} ms a station, "
               f"{fallbacks} fell back to the rule")
 
-    Path(args.out).write_text(json.dumps(
+    if not have_key:
+        print("\n  Baselines only. No Token Factory key found, so "
+              "the model planner was not run.")
+        print("  Set NEBIUS_API_KEY and run again to add it to the "
+              "comparison.")
+
+    # A baselines-only run must not overwrite a full one. It is a strictly
+    # smaller result and silently replacing the comparison with three of its
+    # four rows is how an artefact quietly loses the row that matters.
+    out_path = Path(args.out)
+    if not have_key and out_path == SURVEY / "probing.json":
+        out_path = SURVEY / "probing_baselines.json"
+
+    out_path.write_text(json.dumps(
         {"budget": args.budget, "places": total, "rejectable": rejectable,
          "thinned": thinned,
          "planners": [{k: v for k, v in r.items() if k != "rows"} for r in results]},

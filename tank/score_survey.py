@@ -1,6 +1,7 @@
 """Score a model on the survey run, against the answers written before it looked.
 
-    python tank/score_survey.py
+    python tank/score_survey.py                  # asks the model, needs a key
+    python tank/score_survey.py --replay         # scores the stored answers, no key
     python tank/score_survey.py --models deepseek-ai/DeepSeek-V4.1-Flash MiniMaxAI/MiniMax-M3
 
 Every frame carries a list of the faults that were actually in front of the
@@ -125,12 +126,66 @@ def score(rows: list[dict]) -> dict:
     }
 
 
+def replay(frames: list[dict], path: Path) -> int:
+    """Score answers that were already paid for.
+
+    The verdicts in the file came from real calls on these exact frames. This
+    recomputes the truth from the manifest and marks them again, so anybody can
+    check the arithmetic without an account. It does not re-ask the model, and
+    the summary says so, because "the scoring is right" and "the model is right"
+    are different claims and running them together would blur the two.
+    """
+    if not path.exists():
+        print(f"no recorded answers at {path}")
+        return 1
+    answers = {}
+    for line in path.open(encoding="utf-8"):
+        row = json.loads(line)
+        answers.setdefault(row["station"], row)
+
+    rows = []
+    print(f"{'frame':>6} {'in front of the lens':>22} {'headline':>16} {'ok':>4}"
+          f"   everything it listed")
+    print("-" * 78)
+    for frame in frames:
+        station = frame["station"]
+        if station not in answers:
+            continue
+        truth, seen, grazed = truth_for(frame)
+        row = dict(answers[station])
+        row.update(truth=truth, in_view=seen, grazed=grazed)
+        row.setdefault("faults", [] if row["called"] == "none" else [row["called"]])
+        rows.append(row)
+        mark = ("n/a" if row["verdict"] == "uncertain"
+                else "yes" if row["called"] == truth else "NO")
+        print(f"{station:>6} {truth:>22} {row['called']:>16} {mark:>4}"
+              f"   {','.join(row['faults']) or '-'}")
+
+    got = score(rows)
+    print(f"\n  pass or defect {got['pass_or_defect_right']}/{got['judged']}"
+          f"   faults found {got['faults_found']}/{got['faults_present']}"
+          f"   invented {got['invented']}"
+          f"   every fault found in {got['frames_all_found']}/{got['judged']} frames")
+    print(f"  headline right {got['named_right']}/{got['judged']}"
+          f"   false alarms {got['false_alarms']}"
+          f"   missed {got['missed']}"
+          f"   declined {got['declined']}")
+    print("\n  Replayed from answers already recorded against these frames. This "
+          "checks the\n  scoring, not the model. Drop --replay, with a Token "
+          "Factory key, to ask it again.")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", default=str(SURVEY / "manifest.json"))
     parser.add_argument("--models", nargs="*", default=None)
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--out", default=str(SURVEY / "inspection.jsonl"))
+    parser.add_argument("--replay", action="store_true",
+                        help="score the answers already in the jsonl instead of "
+                             "asking the model again. No API key needed. It "
+                             "checks the scoring, not the model")
     args = parser.parse_args()
 
     manifest = json.loads(Path(args.manifest).read_text(encoding="utf-8"))
@@ -143,6 +198,10 @@ def main() -> int:
         planted[truth_for(frame)[0]] += 1
     print(f"{len(frames)} frames from the survey run. What is actually in them: "
           f"{dict(planted)}\n")
+
+    if args.replay:
+        return replay(frames, Path(args.inspection if hasattr(args, "inspection")
+                                   else args.out))
 
     records: list[dict] = []
     for model in models:

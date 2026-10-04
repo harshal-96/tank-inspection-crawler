@@ -94,5 +94,8 @@ tank/data/tank.blend1
 tank/data/shots/
 tank/data/bench.blend
 tank/data/bench.blend1
-tank/data/survey/frames/
+# The 24 scored frames DO ship, at 21 MB after lossless optimisation, because
+# a headline result nobody can reproduce from the repository is an assertion.
+# The depth arrays stay out: 85 MB of float32 that no scorer reads, only the
+# capture writes them, and they regenerate with the scene.
 tank/data/survey/depth/
