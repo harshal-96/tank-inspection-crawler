@@ -241,6 +241,29 @@ what a code permits or what a filler is rated for, and a model's recollection of
 standard is the least trustworthy thing in the building. Those questions are searched
 and answered with sources attached, so an operator can check them.
 
+Both of those were, for a long time, the parts of the cell nobody had checked. They
+ran, and whether what they said matched what their own tools returned was taken on
+trust. They are scored now, against the database they answer from.
+
+| | Result |
+| --- | --- |
+| Supervisor, on ten questions the database answers exactly | 9 right, 1 wrong, 20 model rounds |
+| Briefs: came back at all | 5 of 6 |
+| Briefs: carried the measured figure it was handed | 5 of 6 |
+| Briefs: said what to do | 5 of 6 |
+| Briefs: cited a source it was actually given | **3 of 6** |
+
+The one supervisor answer marked wrong is the open question, "should we hold the line
+right now", where it summarised the state of the cell accurately and never committed to
+an answer. Being unwilling to say yes or no is a real failure for a supervisor, so it is
+scored as one rather than excused.
+
+Three briefs in six citing a real source is the weakest number in this repository and it
+is left in view. A brief that states a correct figure and attributes it to nothing is
+not usable by anyone who has to defend the repair afterwards, which is the entire
+purpose of writing it down. Run it yourself with `python scripts/eval_briefs.py
+--limit 6`.
+
 The division is deliberate. Geometry does what geometry is good at, which is turning
 surfaces into millimetres. The models do what geometry cannot: judge whether a
 measurement deserves trust, judge whether a weld is sound, diagnose a machine from a
