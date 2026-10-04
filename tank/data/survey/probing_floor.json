@@ -1,0 +1,297 @@
+{
+ "budget": 2,
+ "places": 168,
+ "rejectable": 4,
+ "thinned": 30,
+ "planners": [
+  {
+   "label": "on the seam",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 12
+  },
+  {
+   "label": "where it saw",
+   "spent": 48,
+   "rejectable_found": [],
+   "thinned_found": 7
+  },
+  {
+   "label": "sweep (no model)",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 11
+  },
+  {
+   "label": "Nemotron 3 Nano 30B + rule floor",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 14,
+   "seconds": 122.43678380001802,
+   "why": {
+    "0": "rule floor +0.00; Cover the extremes to sample the full band",
+    "1": "rule floor -0.15; Cover lower negative and upper positive extremes to fill unmeasured gaps.",
+    "2": "rule floor +0.15; Cover unmeasured extremes to detect missed loss",
+    "3": "rule floor +0.30; Cover the previously unmeasured positive offset and reinforce edge coverage.",
+    "4": "rule floor +0.00; Cover extremes to ensure full band coverage.",
+    "5": "rule floor -0.15; Pick the unmeasured -0.3 to cover the band and re\u2011measure the thin 0.0 spot.",
+    "6": "rule floor +0.15; Target the two thinnest recent measurements to confirm wall loss.",
+    "7": "rule floor +0.15; Thin reading at +0.15 suggests loss may extend; also covers next station to complete band coverage.",
+    "8": "rule floor +0.15; Chase the thinnest recent reading at +0.15 and cover its adjacent -0.15 for band completeness.",
+    "9": "rule floor +0.45; Chase the thin +0.15 reading and cover the negative side.",
+    "10": "rule floor +0.00; Target the thin +0.15 spot and check the seam.",
+    "11": "rule floor -0.45; Cover extremes to fill gaps in band.",
+    "12": "rule floor -0.30; They fill the only gaps not yet covered in this band.",
+    "13": "rule floor -0.15; Cover extremes to ensure full band monitoring.",
+    "14": "rule floor +0.00; Cover the full range of offsets to detect any hidden thinning.",
+    "15": "rule floor -0.45; Low reading at -0.45 suggests thinning; remeasure adjacent -0.30 to confirm and keep band coverage.",
+    "16": "rule floor -0.30; Thin readings at -0.45 and -0.3 suggest likely loss and need to confirm coverage.",
+    "17": "rule floor -0.45; Thin readings at -0.45 and -0.3 suggest wall loss; re\u2011measure to confirm.",
+    "18": "rule floor -0.30; Fill gap near thin -0.30/-0.45 area to ensure full band coverage",
+    "19": "rule floor -0.30; Thin readings at -0.30 and -0.45 indicate potential loss that should be verified.",
+    "20": "rule floor +0.15; Thin readings at -0.45 and -0.30 need confirmation",
+    "21": "rule floor +0.45; Target the thin +0.15 spot and the opposite extreme -0.45 to cover the band",
+    "22": "rule floor +0.30; Cover unseen offsets to detect hidden thinning.",
+    "23": "rule floor +0.00; Cover extremes to ensure full band coverage."
+   },
+   "attempt": 1
+  },
+  {
+   "label": "Nemotron 3 Nano 30B + rule floor",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 14,
+   "seconds": 125.13271620002342,
+   "why": {
+    "0": "rule floor +0.00; Cover the full range of the seam to detect loss early.",
+    "1": "rule floor -0.15; Cover unmeasured negative and positive sides to detect potential thin spots.",
+    "2": "rule floor +0.15; Cover unmeasured positive offsets to fill gaps in the band",
+    "3": "rule floor +0.30; Cover the unmeasured 0.3 and extreme -0.45 to fill band gaps",
+    "4": "rule floor +0.00; Cover the extremes to detect any hidden loss across the band.",
+    "5": "rule floor -0.15; Thin at +0.00 and need full band coverage",
+    "6": "rule floor +0.00; thin spot at +0.00 and edge coverage at -0.45",
+    "7": "rule floor +0.00; Target the thin +0.00 spot and check adjacent -0.15 to track loss spread",
+    "8": "rule floor +0.00; Target the thin +0.00 spot and its neighboring -0.15 to fill the band",
+    "9": "rule floor -0.30; Target the thin +0.00 reading and cover adjacent negative side",
+    "10": "rule floor +0.15; Chase the thin +0.00 reading and add a negative offset to cover the band.",
+    "11": "rule floor +0.45; Cover the outer edges of the band to ensure full coverage.",
+    "12": "rule floor +0.30; Cover unmeasured zones to detect hidden loss.",
+    "13": "rule floor -0.30; Cover unmeasured extremes to catch potential thin spots early",
+    "14": "rule floor +0.00; Cover the band with extremes to ensure no region is missed.",
+    "15": "rule floor -0.45; Thin reading at -0.45 indicates likely loss nearby, so measuring -0.45 and adjacent -0.3 covers the band.",
+    "16": "rule floor -0.30; Target the two thin spots below the reject threshold to verify loss patches.",
+    "17": "rule floor -0.45; Thin readings at -0.45 and -0.30 indicate potential loss patches to verify.",
+    "18": "rule floor -0.30; Thin readings at -0.45 and -0.3 indicate likely wall loss to re\u2011measure.",
+    "19": "rule floor -0.30; Target the low reading at -0.45 and adjacent -0.3 to verify thinness and maintain band coverage.",
+    "20": "rule floor +0.15; Thin readings at -0.45 and -0.30 indicate possible loss; measuring them again ensures coverage of the critical band.",
+    "21": "rule floor +0.45; Verify the thin +0.15 reading and cover adjacent negative side",
+    "22": "rule floor -0.15; Cover extremes to ensure no loss missed across the band.",
+    "23": "rule floor +0.30; Cover the extremes to ensure the whole band is inspected."
+   },
+   "attempt": 2
+  },
+  {
+   "label": "Nemotron 3 Nano 30B + rule floor",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 16,
+   "seconds": 169.38538289998542,
+   "why": {
+    "0": "rule floor +0.00; Cover the band by sampling the outermost points.",
+    "1": "rule floor -0.15; Cover the band to avoid missing loss on either side.",
+    "2": "rule floor +0.15; Cover unmeasured positive offsets to fill gaps and test for thin spots.",
+    "3": "rule floor +0.30; Cover the unmeasured 0.3 offset and revisit the thin +0.15 location",
+    "4": "rule floor +0.00; Cover the full negative\u2011positive range to detect hidden loss.",
+    "5": "rule floor -0.15; Target the thin spot at +0.00 and cover an adjacent unmeasured area.",
+    "6": "rule floor +0.00; Chase the thin +0.00 reading and cover the negative side",
+    "7": "rule floor +0.00; Re\u2011measure +0.00 thin spot and adjacent -0.15 to verify loss",
+    "8": "rule floor +0.00; They are the only unmeasured extremes, ensuring full band coverage.",
+    "9": "rule floor -0.30; Cover unseen negative side and probe the adjacent thin positive side.",
+    "10": "rule floor +0.45; Re-measure the thin +0.00 spot and add coverage on the -0.45 side.",
+    "11": "rule floor +0.30; Cover unmeasured offsets to avoid missing loss.",
+    "12": "rule floor +0.00; Cover the extremes to ensure full band coverage.",
+    "13": "rule floor +0.15; Cover the full offset range to detect hidden thinning.",
+    "14": "rule floor -0.30; Cover extremes to ensure full band monitoring.",
+    "15": "rule floor -0.45; They fill the unmeasured negative and positive zones near the thin -0.30 reading.",
+    "16": "rule floor -0.15; Target the unmeasured zero offset and revisit the low\u2011reading -0.45 spot.",
+    "17": "rule floor -0.45; Thin reading at -0.45 suggests adjacent -0.3 may also be thin, and both cover the band.",
+    "18": "rule floor -0.30; Thin reading at -0.45 warrants repeat; 0.45 is unmeasured and balances coverage.",
+    "19": "rule floor -0.30; Measure -0.45 to verify thin spot and 0.15 to cover the positive side of the band.",
+    "20": "rule floor +0.45; ...",
+    "21": "rule floor +0.30; Re\u2011measure the thin +0.45 offset and its neighbor 0.3 for coverage.",
+    "22": "rule floor +0.00; Cover central band by measuring -0.15 and 0.15.",
+    "23": "rule floor +0.15; Cover the extremes to ensure full band coverage."
+   },
+   "attempt": 3
+  },
+  {
+   "label": "Nemotron 3 Nano 30B + rule floor",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ]
+   ],
+   "thinned_found": 14,
+   "seconds": 113.34756799999741,
+   "why": {
+    "0": "rule floor +0.00; Cover the extremes to map the full band.",
+    "1": "rule floor -0.15; Cover the band by measuring the next unmeasured points on each side.",
+    "2": "rule floor +0.15; Cover the unmeasured positive side to detect any missed wall loss.",
+    "3": "rule floor +0.30; Cover the unmeasured 0.3 and confirm the thin area at 0.15.",
+    "4": "rule floor +0.00; Cover the band by measuring the extreme offsets to detect any loss at the edges.",
+    "5": "rule floor -0.15; Cover the negative side and revisit the thin +0.00 location",
+    "6": "rule floor +0.00; Chasing the low reading at +0.00 and covering adjacent area.",
+    "7": "rule floor +0.15; Thin readings at +0.00 and +0.15 need verification to confirm loss.",
+    "8": "rule floor +0.15; Both are recent thin readings indicating likely wall loss.",
+    "9": "rule floor -0.30; Cover unseen extremes to fill the band.",
+    "10": "rule floor +0.45; Target the thin +0.15 and +0.00 spots to verify loss.",
+    "11": "rule floor +0.30; Cover both ends of the band to detect any hidden loss.",
+    "12": "rule floor -0.15; Cover unmeasured central positions to detect hidden thinning.",
+    "13": "rule floor -0.30; Cover the outer edges to ensure full band coverage.",
+    "14": "rule floor +0.15; Prioritize the thin spots to verify loss while maintaining band coverage.",
+    "15": "rule floor +0.45; Cover extremes to ensure full band monitoring.",
+    "16": "rule floor -0.45; Thin reading at -0.45 suggests adjacent loss; measure it again and its neighbor for coverage.",
+    "17": "rule floor -0.30; Thin readings at -0.45 and -0.30 indicate likely wall loss, so re\u2011measure those offsets.",
+    "18": "rule floor -0.45; Both offsets show thin wall near reject threshold and cover the critical negative side.",
+    "19": "rule floor -0.45; Thin readings at -0.45 and -0.30 indicate potential loss to verify.",
+    "20": "rule floor +0.00; Cover central region not yet measured",
+    "21": "rule floor +0.15; Cover extremes to ensure full band coverage",
+    "22": "rule floor +0.30; Cover the extremes to ensure full band monitoring.",
+    "23": "rule floor +0.45; Cover unmeasured extremes to fill gaps"
+   },
+   "attempt": 4
+  },
+  {
+   "label": "Nemotron 3 Nano 30B + rule floor",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     15,
+     -0.45,
+     5.869
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     16,
+     -0.45,
+     5.798
+    ]
+   ],
+   "thinned_found": 13,
+   "seconds": 123.03842840000289,
+   "why": {
+    "0": "rule floor +0.00; Cover the band to detect loss at both ends.",
+    "1": "rule floor -0.15; covers both negative and positive sides of the seam to fill gaps",
+    "2": "rule floor +0.15; Cover unmeasured positive side and capture potential thin spot near centre.",
+    "3": "rule floor +0.30; Cover the unmeasured positive offset and the negative edge for full band coverage.",
+    "4": "rule floor +0.00; Cover the band by measuring unmeasured offsets near the centre where corrosion appears.",
+    "5": "rule floor -0.30; Cover the missing -0.3 offset and re\u2011measure the thin +0.00 spot.",
+    "6": "rule floor +0.00; Verify the thin +0.00 spot and cover the unmeasured +0.45 side.",
+    "7": "rule floor +0.00; Cover an unmeasured side and revisit the thin +0.00 location.",
+    "8": "rule floor +0.00; Chasing the thin +0.00 reading and covering the unmeasured -0.15 to protect the band.",
+    "9": "rule floor +0.15; Cover the negative side and re\u2011measure the thin +0.00 location.",
+    "10": "rule floor +0.30; Target the thin +0.00 region and its adjacent -0.15 offset",
+    "11": "rule floor -0.30; Cover extremes to ensure full band monitoring.",
+    "12": "rule floor +0.45; Cover the full range to detect any loss that might be missed.",
+    "13": "rule floor +0.00; Cover the extremes to ensure full band monitoring.",
+    "14": "rule floor +0.15; Cover both sides of the seam to detect any missed thinning.",
+    "15": "rule floor -0.45; Target unmeasured negative offsets near the thin -0.45 reading to verify loss spread.",
+    "16": "rule floor -0.30; Target the two lowest readings to verify loss patches",
+    "17": "rule floor -0.45; Thin readings at -0.45 and -0.30 indicate likely wall loss, so re\u2011measure those offsets.",
+    "18": "rule floor -0.30; Thin readings at -0.45 and -0.3 indicate likely wall loss, so re\u2011measure to confirm.",
+    "19": "rule floor -0.30; Both offsets show thin readings below the reject threshold.",
+    "20": "rule floor -0.15; Thin spots at -0.45 and -0.30 need verification",
+    "21": "rule floor +0.30; Cover the full range of offsets to detect any hidden thinning.",
+    "22": "rule floor +0.45; Target the thin reading at +0.30 and its symmetric counterpart to cover the band.",
+    "23": "rule floor +0.00; Cover the band with extreme offsets to ensure no gap."
+   },
+   "attempt": 5
+  }
+ ]
+}

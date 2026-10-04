@@ -241,3 +241,44 @@ def plan_probes(station: int, offsets: list[float], nominal_mm: float,
                 picked.append(offset)
     return ProbePlan(picked, str(data.get("why") or "").strip()[:160],
                      model, elapsed, raw=reply.raw)
+
+
+def plan_with_floor(station: int, offsets: list[float], nominal_mm: float,
+                    limit_fraction: float, inspector_said: str, memory: Memory,
+                    budget: int = DEFAULT_BUDGET, model: Optional[str] = None,
+                    api: Optional[Any] = None) -> ProbePlan:
+    """The rule claims one measurement, the model spends the rest.
+
+    Measured over eight runs, the model planner beats the arithmetic sweep on
+    its median and only equals it on its worst run. That is the wrong shape for
+    something pointed at a pressure boundary: the useful property of the sweep
+    is not that it is clever, it is that it is the same every time, and a floor
+    you can state is worth more than an average you cannot.
+
+    So the sweep's first pick is reserved. It is the offset that has gone
+    longest without a reading, or one that came back thin in the last two
+    stations, which is the coverage the model is most likely to drop when it
+    becomes interested in something. The model fills what is left. The result
+    cannot do worse than the sweep on coverage, and keeps whatever the model
+    adds on top.
+    """
+    floor = sweep_rule(offsets, station, memory, 1)
+    if budget <= 1:
+        return ProbePlan(floor, "budget of one, the rule takes it", model)
+
+    plan = plan_probes(station, offsets, nominal_mm, limit_fraction,
+                       inspector_said, memory, budget=budget, model=model, api=api)
+    picked = list(floor)
+    for offset in plan.offsets:
+        if len(picked) >= budget:
+            break
+        if offset not in picked:
+            picked.append(offset)
+    # The model may have agreed with the rule, in which case there is room
+    # left; the sweep fills it rather than leaving the arm idle.
+    if len(picked) < budget:
+        for offset in sweep_rule(offsets, station, memory, budget):
+            if offset not in picked and len(picked) < budget:
+                picked.append(offset)
+    return ProbePlan(picked, f"rule floor {floor[0]:+.2f}; {plan.why}"[:160],
+                     plan.model, plan.latency_ms, plan.fell_back, plan.raw)

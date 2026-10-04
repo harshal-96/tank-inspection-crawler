@@ -38,8 +38,9 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from brain import nebius, registry  # noqa: E402
-from tank.probe_planner import (DEFAULT_BUDGET, Memory, Reading, plan_probes,  # noqa: E402
-                                planner_model, sweep_rule)
+from tank.probe_planner import (DEFAULT_BUDGET, Memory, Reading,  # noqa: E402
+                                plan_probes, plan_with_floor, planner_model,
+                                sweep_rule)
 
 SURVEY = ROOT / "tank" / "data" / "survey"
 
@@ -101,6 +102,9 @@ def main() -> int:
     parser.add_argument("--inspection", default=str(SURVEY / "inspection.jsonl"))
     parser.add_argument("--budget", type=int, default=DEFAULT_BUDGET)
     parser.add_argument("--models", nargs="*", default=None)
+    parser.add_argument("--floor", action="store_true",
+                        help="reserve one probe for the arithmetic rule "
+                             "and let the model spend the rest")
     parser.add_argument("--repeat", type=int, default=1,
                         help="run each model this many times and report the "
                              "spread, because at temperature zero it moves")
@@ -145,8 +149,9 @@ def main() -> int:
         def choose(offsets, station, memory, budget, frame, row, model=model):
             nonlocal fallbacks
             course = frame["probe_candidates"][0]["nominal_mm"]
-            plan = plan_probes(station, offsets, course, limit, said(row), memory,
-                               budget=budget, model=model)
+            planner = plan_with_floor if args.floor else plan_probes
+            plan = planner(station, offsets, course, limit, said(row),
+                           memory, budget=budget, model=model)
             latencies.append(plan.latency_ms)
             fallbacks += int(plan.fell_back)
             plans[station] = plan
@@ -162,7 +167,8 @@ def main() -> int:
             plans.clear()
             started = time.perf_counter()
             got = run(frames, answers, choose, args.budget,
-                      registry.display(model))
+                      registry.display(model)
+                      + (" + rule floor" if args.floor else ""))
             got["seconds"] = time.perf_counter() - started
             got["why"] = {k: v.why for k, v in plans.items()}
             got["attempt"] = index + 1

@@ -60,14 +60,28 @@ and 0 over five runs. Two of those five are total failures where it found nothin
 all. It is also about twice as fast per station as Nano, which is its own small
 surprise.
 
-The honest engineering conclusion is that a model planner of this kind is a better
-default than a fixed pattern and is not yet something to run unsupervised against a
-pressure boundary. The useful shape is probably both: let the rule claim the stalest
-offset and let the model spend the rest, so the floor is the rule's floor. That is not
-built yet, and claiming the median without the spread would have hidden the reason it
-needs to be.
+The obvious fix is to give it a floor: let the arithmetic claim one of the two probes
+and let the model spend the other, so the worst case cannot fall below the rule. That
+is built, in `plan_with_floor`, and **it does not work**. Over five runs it scored 2, 3,
+4, 4 and 4, which is the same median and the same worst case as the model alone.
 
-Reproduce it with `python tank/score_probes.py --repeat 5`.
+The reason is worth writing down, because the idea sounds right. Reserving one probe of
+two does not give you the rule as a floor. It gives you half the rule, and half of a
+coverage sweep is not half as good, it is a sweep that takes twice as long to come back
+round to any given offset. The rule scores 2 using both of its probes. Crippled to one,
+it contributes almost nothing, and what is left is the model with a smaller budget.
+
+What would actually put a floor under it is running both planners in full and probing
+the union, which costs three or four measurements a station instead of two. Whether
+that is worth it is a question about arm time on a real crawler, not about models, and
+this project cannot answer it from a simulation.
+
+So the finding stands as a limitation rather than a solved problem: better than
+arithmetic on the median, no better on the worst run, and the cheap fix for that is
+measured and does not help.
+
+Reproduce it with `python tank/score_probes.py --repeat 5` and
+`python tank/score_probes.py --floor --repeat 5`.
 
 ### What is still wrong with it
 
@@ -1091,6 +1105,9 @@ cannot drift apart.
 ## Repository layout
 
 ```
+tank/       the crawler: seam inspector, probe planner, scorers
+tank/sim/   the modelled tank, the capture that turns it into a dataset with
+            answers, the render look, the crawler detail pass, the seam shot
 cell/       cell geometry, press forming and drift, weld thermal distortion,
             adaptive weld parameters, depth seam tracking, Isaac simulation
 brain/      Nebius client, model router, view planner, inspection prompt,
@@ -1098,7 +1115,7 @@ brain/      Nebius client, model router, view planner, inspection prompt,
 service/    FastAPI service, database schema, API
 dashboard/  operator web UI
 scripts/    campaign runners, evaluations, figures, cell visualisation
-docs/       platform notes and measured results
+docs/       platform notes, measured results, submission text
 tests/      unit tests
 ```
 
@@ -1106,6 +1123,11 @@ The pieces that carry the argument:
 
 | File | What it settles |
 | --- | --- |
+| `tank/probe_planner.py` | where to spend a measurement when the camera cannot help, and why it needs a floor under it |
+| `tank/score_probes.py` | the planner against three baselines, repeated, so the spread is visible |
+| `tank/inspect_seam.py` | what a tank seam is judged on, and why it is not the cell's vocabulary |
+| `tank/score_survey.py` | a miss, a misname and a decline counted as three different things |
+| `tank/sim/capture_tank.py` | how much of a fault is in frame, asked from both sides |
 | `cell/seam_track.py` | follows the seam along its length instead of fitting it straight |
 | `cell/forming.py` | what a press in spec still leaves on a folded side, and what a drifting one leaves |
 | `cell/thermal.py` | what the arc does to the joint while it is welding it |
