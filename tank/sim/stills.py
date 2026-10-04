@@ -127,15 +127,32 @@ def main() -> dict:
 
     # 3 and 4. The pair that carries the argument, shot identically so the
     # only difference between them is the wall.
+    # Park the machine right out of the way first. It happened to sit beside
+    # the visible patch and not the hidden one, so the pair differed by a
+    # robot as well as by the wall, and a pair that differs in two things
+    # demonstrates neither of them.
+    if rig is not None:
+        rig.matrix_world = T.crawler_matrix(2.4, RUN_Z)
+        bpy.context.view_layer.update()
+
     for name, spot in (("still_corroded.png", visible), ("still_clean.png", hidden)):
         theta, z = spot["theta_rad"], spot["z_m"]
-        target = T.wall_point(theta, z, inset=0.0)
-        eye = T.wall_point(theta, z + 0.55, inset=1.15)
-        _light("Still_Key", T.wall_point(theta - 0.07, z + 1.3, inset=1.9),
-               target, 95.0, 0.9)
-        _light("Still_Rim", T.wall_point(theta + 0.10, z + 0.4, inset=0.8),
-               target, 55.0, 0.45)
-        took[name.split(".")[0]] = shoot(name, eye, target, 34.0, fstop=9.0)
+        # Framed to hold both the seam and the patch, for both shots. Centred
+        # on the patch alone the hidden one is a rectangle of grey, and a
+        # viewer reads that as nothing rather than as sound-looking plate.
+        # With the weld in shot the two pictures carry the same furniture and
+        # the only difference between them is the wall, which is the argument.
+        centre_z = (z + RUN_Z) / 2
+        target = T.wall_point(theta, centre_z, inset=0.0)
+        eye = T.wall_point(theta, centre_z + 0.30, inset=1.45)
+        # Softer, and off to one side. At ninety five watts head on, bare
+        # plate blows out to white and looks like a mistake with the exposure
+        # rather than a deliberate shot of clean steel.
+        _light("Still_Key", T.wall_point(theta - 0.085, centre_z + 1.1, inset=2.1),
+               target, 42.0, 1.1)
+        _light("Still_Rim", T.wall_point(theta + 0.11, centre_z + 0.3, inset=0.9),
+               target, 26.0, 0.5)
+        took[name.split(".")[0]] = shoot(name, eye, target, 30.0, fstop=9.0)
 
     return {"rendered": {k: round(v, 1) for k, v in took.items()},
             "out": str(OUT),
