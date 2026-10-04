@@ -27,6 +27,17 @@ The repository is still local, with no git remote configured. A public repo is a
 requirement and there is no private submission route. Nothing else on this list can
 compensate for it.
 
+**If and when it is published, the history is clean.** All 115 commits were scanned for
+files that were ever added and later gitignored, and for key-shaped strings. Nothing
+sensitive has ever been committed: `.env` has been ignored from the start and only
+`.env.example` is tracked. That matters because gitignoring a file today does nothing
+about a file committed last month, and publishing would expose the whole history, not
+the working tree. Re-check before pushing with:
+
+```
+git log --all --pretty=format: --name-only --diff-filter=A | sort -u | grep -iE "\.env$|secret|\.key$"
+```
+
 Three ways to resolve it are set out at the end of `devpost.md` discussion notes:
 publish and rely on the Apache licence, publish the tank half only, or do not submit
 and use the work for customer conversations instead. It is a decision, not an oversight.
