@@ -131,10 +131,26 @@ function tiles() {
   const untrained = (d.edge || []).find((r) => r.tier === "edge_base");
   const sevSuper = d.severe.find((r) => r.tier === "super");
 
+  // The headline is the boundary test. The trained model's 12 of 12 on the
+  // three-cause set is real, but that set has no hard case in it, so it is
+  // labelled for what it is and comes second.
+  const h = ev.hard && ev.hard.available ? ev.hard : null;
+  const hardEdge = h ? h.arms.find((a) => a.label.includes("on the cell")) : null;
+  const hardRule = h ? h.arms.find((a) => a.label.includes("threshold as arithmetic")) : null;
+  const hardSuper = h ? h.arms.find((a) => a.label === "Nemotron 3 Super 120B") : null;
+  const p = hardEdge && hardEdge.vs_rule ? hardEdge.vs_rule.p : null;
+
   V.$("dg-tiles").innerHTML = [
+    hardEdge
+      ? tile("Trained, on the cell, boundary test", `${hardEdge.correct}/${hardEdge.n}`, "warn",
+          (hardRule ? `against ${hardRule.per_run[0]} for the fixed rule` : "")
+          + (p != null ? ` (p ${p < 0.05 ? p.toFixed(3) : p.toFixed(2)}${p < 0.05 ? "" : ", not shown to beat it"})` : "")
+          + (hardSuper ? `, and ${hardSuper.per_run.join(" and ")} for Nemotron 3 Super` : ""))
+      : "",
     trained
-      ? tile("Trained, on the cell's own GPU", `${trained.correct}/${trained.n}`, "after",
-          `a 1.7B with no network, against ${best.correct}/${best.n} for the 120B`)
+      ? tile("Trained, easy three-cause set", `${trained.correct}/${trained.n}`, "",
+          `a 1.7B with no network, against ${best.correct}/${best.n} for the 120B, on a set `
+          + "with no case near the decision boundary")
       : "",
     tile("Best in the cloud", `${best.correct}/${best.n}`, "good",
       `${best.model} reading the same twelve runs`),
@@ -282,7 +298,8 @@ function edge() {
   if (trained) {
     const best = [...ev.drift.runs].sort((a, b) => b.correct - a.correct)[0];
     V.$("dg-edge-meta").innerHTML =
-      `<b>${trained.correct}/${trained.n}</b> on cases the training never saw, against
+      `<b>${trained.correct}/${trained.n}</b> on the easy three-cause set, on cases the
+       training never saw, against
        <b>${best.correct}/${best.n}</b> for the largest cloud model that reads the evidence.
        ${untrained ? `The same model untrained scores <b>${untrained.correct}/${untrained.n}</b>
        by answering <b>${untrained.always_said}</b> every time. ` : ""}

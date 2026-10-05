@@ -24,11 +24,14 @@ import * as briefs from "./pages/briefs.js";
 import * as method from "./pages/method.js";
 import * as platform from "./pages/platform.js";
 
-// Pipeline order. A reader following the rail top to bottom follows a part
-// through the cell, which the old "Study 1..7" numbering did not: thermal
+// The tank first, because it is what the project leads with; then the cell in
+// pipeline order. A reader following the rest of the rail top to bottom follows
+// a part through the cell, which the old "Study 1..7" numbering did not: thermal
 // compensation was Study 6 and happens between the routing call and the weld.
-const PAGES = [overview, tank, seam, routing, compensation, inspection, diagnosis,
+const PAGES = [tank, overview, seam, routing, compensation, inspection, diagnosis,
                briefs, limits, budget, cell, parts, supervisor, method, platform];
+// Where the dashboard opens, and where a link to a page that does not exist lands.
+const HOME = tank;
 const BY_ID = new Map(PAGES.map((p) => [p.meta.id, p]));
 const GROUPS = ["Result", "What happens to a part", "What it leaves out",
                 "The cell, live", "Reference"];
@@ -72,7 +75,7 @@ function rail() {
     ${groups}
     <div class="spacer"></div>
     <div class="foot">
-      Fifty parts, one thousand measured stations.<br>
+      A tank survey of 24 stations, and fifty parts through the cell.<br>
       Every figure is drawn from the run that produced it.
     </div>`;
 }
@@ -144,8 +147,8 @@ function flipTheme() {
 }
 
 async function route() {
-  const id = (location.hash.replace(/^#\/?/, "") || "overview").split("?")[0];
-  const page = BY_ID.get(id) || overview;
+  const id = (location.hash.replace(/^#\/?/, "") || HOME.meta.id).split("?")[0];
+  const page = BY_ID.get(id) || HOME;
   if (current === page) return;
 
   const ticket = ++visit;

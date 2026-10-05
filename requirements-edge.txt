@@ -1,0 +1,21 @@
+# The edge model: the fine-tuned Qwen3 1.7B that answers the drift question on
+# the cell's own GPU (scripts/eval_drift_edge.py, and the edge arm of
+# scripts/eval_hard_drift.py). Nothing else in the repository needs these, so they
+# are kept out of requirements.txt, which stays small enough to install anywhere.
+#
+#   pip install -r requirements.txt -r requirements-edge.txt
+#
+# pip's default torch wheel is CPU only on Windows. For a CUDA build, install torch
+# first from the PyTorch index for your CUDA version, for example
+#
+#   pip install torch --index-url https://download.pytorch.org/whl/cu124
+#
+# The development environment has torch 2.6.0+cu124, transformers 5.17.0,
+# accelerate 1.15.0, peft 0.21.0 and safetensors 0.8.0. The floors below are what
+# the code needs: it passes `dtype=` to from_pretrained, which transformers takes
+# from 4.56, and device_map, which needs accelerate.
+torch>=2.4
+transformers>=4.56
+accelerate>=1.0
+peft>=0.13
+safetensors>=0.4

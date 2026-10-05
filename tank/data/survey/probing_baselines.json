@@ -1,37 +1,293 @@
 {
  "budget": 2,
  "places": 168,
- "rejectable": 4,
- "thinned": 30,
+ "rejectable": 28,
+ "thinned": 82,
+ "counts": {
+  "frames_showing_wall_loss": 4,
+  "rejectable_under_them": 3,
+  "frames_touching_a_visible_patch": 9,
+  "rejectable_under_those": 7,
+  "rejectable_on_a_visible_patch": 0,
+  "rejectable_under_passed_frames": 20,
+  "rejectable_under_frames_with_nothing_in_view": 18
+ },
+ "hidden_rejectable_patches": [
+  "D006",
+  "D007",
+  "D008",
+  "D009",
+  "D010"
+ ],
  "planners": [
   {
-   "label": "on the seam",
+   "label": "on the seam, then -0.15",
    "spent": 48,
-   "rejectable_found": [],
-   "thinned_found": 12
+   "rejectable_found": [
+    [
+     2,
+     -0.15,
+     5.747
+    ],
+    [
+     3,
+     -0.15,
+     6.021
+    ]
+   ],
+   "thinned_found": 27,
+   "patches_found": [
+    "D007"
+   ]
   },
   {
-   "label": "where it saw",
+   "label": "probe beside reported rust",
    "spent": 48,
-   "rejectable_found": [],
-   "thinned_found": 7
+   "rejectable_found": [
+    [
+     2,
+     -0.15,
+     5.747
+    ],
+    [
+     3,
+     -0.15,
+     6.021
+    ]
+   ],
+   "thinned_found": 25,
+   "patches_found": [
+    "D007"
+   ]
   },
   {
    "label": "sweep (no model)",
    "spent": 48,
    "rejectable_found": [
     [
+     2,
+     -0.3,
+     4.5
+    ],
+    [
+     3,
+     -0.3,
+     4.793
+    ],
+    [
+     3,
+     -0.45,
+     6.021
+    ],
+    [
+     8,
+     0.3,
+     5.635
+    ],
+    [
+     9,
+     0.3,
+     3.859
+    ],
+    [
+     9,
+     0.15,
+     5.449
+    ],
+    [
+     10,
+     0.3,
+     5.138
+    ],
+    [
+     13,
+     -0.45,
+     4.581
+    ],
+    [
+     13,
+     -0.3,
+     4.492
+    ],
+    [
+     14,
+     -0.3,
+     5.587
+    ],
+    [
+     14,
+     -0.45,
+     5.263
+    ],
+    [
      15,
      -0.45,
      5.869
     ],
     [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
      16,
      -0.45,
      5.798
+    ],
+    [
+     20,
+     0.45,
+     5.699
     ]
    ],
-   "thinned_found": 11
+   "thinned_found": 31,
+   "patches_found": [
+    "D006",
+    "D007",
+    "D008",
+    "D009",
+    "D010"
+   ]
+  },
+  {
+   "label": "sweep, model's view",
+   "spent": 48,
+   "rejectable_found": [
+    [
+     2,
+     -0.3,
+     4.5
+    ],
+    [
+     3,
+     -0.3,
+     4.793
+    ],
+    [
+     3,
+     -0.45,
+     6.021
+    ],
+    [
+     8,
+     0.3,
+     5.635
+    ],
+    [
+     9,
+     0.3,
+     3.859
+    ],
+    [
+     9,
+     0.15,
+     5.449
+    ],
+    [
+     10,
+     0.3,
+     5.138
+    ],
+    [
+     14,
+     -0.3,
+     5.587
+    ],
+    [
+     15,
+     -0.3,
+     6.35
+    ],
+    [
+     16,
+     -0.3,
+     6.281
+    ],
+    [
+     20,
+     0.15,
+     4.791
+    ]
+   ],
+   "thinned_found": 32,
+   "patches_found": [
+    "D006",
+    "D007",
+    "D008",
+    "D009",
+    "D010"
+   ]
   }
- ]
+ ],
+ "chance": {
+  "what": "picking 2 of the places at random at every station, exact hypergeometric per station, convolved",
+  "mean": 8.0,
+  "band_95": [
+   4,
+   12
+  ],
+  "band_mass": 0.9727654852190633,
+  "pmf": [
+   1.585681554107191e-05,
+   0.00026005177487357933,
+   0.0019741735348634526,
+   0.009216615465092637,
+   0.02965620926568974,
+   0.06986925204600351,
+   0.12500696746580728,
+   0.1738950044627773,
+   0.19105025534442988,
+   0.1675102513424385,
+   0.11799546831989031,
+   0.06702999065740918,
+   0.030752086314617497,
+   0.011386233296227385,
+   0.003392895173782463,
+   0.0008095282043063399,
+   0.00015344583710979727,
+   2.284419266491518e-05,
+   2.627536573156614e-06,
+   2.2793775919902343e-07,
+   1.4375194338953003e-08,
+   6.203979080444385e-10,
+   1.6352341026730407e-11,
+   1.9821019426339886e-13,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0
+  ]
+ },
+ "oracle": {
+  "what": "best possible with 2 probes a station, knowing the answers",
+  "found": 23,
+  "under_flagged_frames": 8,
+  "under_flagged_frames_reachable": 6
+ }
 }

@@ -32,7 +32,7 @@ Polygon count is nowhere on that list. The geometry was already dense enough.
 
 from __future__ import annotations
 
-import math
+import contextlib
 import sys
 from pathlib import Path
 
@@ -185,8 +185,7 @@ def rust(mat):
     ], y=200)
     # Part of the ramp steps rather than blends. Oxide comes off in flakes with
     # edges, and a pure gradient reads as an airbrushed wash.
-    for element in list(colour.color_ramp.elements)[1:3]:
-        colour.color_ramp.interpolation = "B_SPLINE"
+    colour.color_ramp.interpolation = "B_SPLINE"
     links.new(colour.outputs["Color"], bsdf.inputs["Base Color"])
 
     grain = _noise(nodes, links, coords, 140.0, detail=10.0, y=-60)
@@ -387,10 +386,8 @@ def render_settings(samples=HERO_SAMPLES, res=HERO_RES):
     scene.cycles.use_adaptive_sampling = True
     scene.cycles.adaptive_threshold = NOISE_FLOOR
     scene.cycles.use_denoising = True
-    try:
+    with contextlib.suppress(Exception):
         scene.cycles.denoiser = "OPTIX"
-    except Exception:
-        pass
     # Bounces: a steel drum is a box of mirrors, so starving the glossy path is
     # what makes an interior look flat and dead.
     scene.cycles.max_bounces = 12

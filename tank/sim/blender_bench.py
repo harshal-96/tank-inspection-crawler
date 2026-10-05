@@ -16,9 +16,16 @@ instead of a probe on a couplant pump.
 The plate is the honest part. Three weld runs laid by a fabricator, with the
 faults put in on purpose: a stretch left unwelded, a grinder notch along a toe,
 drilled pores, a hole burnt through. And on the BACK of the plate, where no
-camera can ever see them, two ground pockets. From above the plate is perfect.
-Only the thickness gauge finds them, and that is the whole argument of the
-project standing on a bench for the price of a plate of steel.
+camera can ever see them, two flat-bottomed pockets cut with an end mill. From
+above the plate is perfect. Only the thickness gauge finds them, and that is
+the premise of the project standing on a bench for the price of a plate of
+steel.
+
+The twin follows docs/bench/fabrication_spec.md and test_plate_drawing.svg,
+which are what the fabricator works from. When the plate comes back, the
+fabricator's measured remaining thickness under each pocket replaces the
+nominal figure here, because that measurement is the known truth the gauge is
+checked against.
 """
 
 from __future__ import annotations
@@ -137,7 +144,11 @@ DATA_PATH = {
 
 # Millimetres, because every one of these came off a product page.
 PLATE = (0.600, 0.300, 0.006)
-BEAD_R = 0.0035                  # a bead-on-plate run stands about 3.5 mm proud
+# bead_surface (meshkit) puts the crown at 1.05 of this and the toes 1.35 of
+# it either side, so the modelled run stands about 3.7 mm proud and 9.5 mm wide.
+# The spec asks for about 3.5 high and 10 to 14 wide, so the twin's bead is a
+# little narrow; one radius cannot set both.
+BEAD_R = 0.0035
 BEAD_LEN = 0.500
 BEAD_Y = (-0.090, 0.0, 0.090)
 RIPPLE_PITCH = 0.006             # a hand-laid run, tighter than a machine weld
@@ -146,6 +157,9 @@ PLATE_TOP = PLATE[2]
 CAM_STANDOFF = 0.075             # what the mast holds the ESP32-CAM at
 CAM_LENS_MM = 28.0               # about 66 degrees, which is the OV2640 lens
 
+# The same illustrative limits as the tank scene (see ACCEPTANCE in
+# blender_tank.py). The thinning figure is a screening threshold chosen for
+# this benchmark, not an API 653 minimum thickness.
 ACCEPTANCE = {
     "undercut": {"limit_mm": 0.8, "measure": "depth below the plate surface"},
     "porosity": {"limit_count": 4, "measure": "pores in any 100 mm of bead"},
@@ -249,41 +263,51 @@ def build_beads(mats, coll, rng, defects):
 def plan_defects() -> list[dict]:
     """The faults to put in the plate, written down before anything looks at it.
 
-    Chosen so a fabricator can make every one of them with a torch and a
-    grinder, and so that two of them are invisible from the side the camera is
-    on. Positions are from the centre of the plate, x along the weld runs.
+    Chosen so a fabricator can make every one of them with a torch, a grinder
+    and an end mill (the two pockets), and so that two of them are invisible
+    from the side the camera is on. Positions are from the centre of the
+    plate, x along the weld runs.
+
+    The fabrication spec measures from the bottom left corner of the front
+    face instead, X along the 600 and Y across the 300, so spec X is
+    300 + x and spec Y is 150 + y, in millimetres. spec_ref names the line of
+    the spec each one is made from: the pockets are P1 and P2 there.
     """
     out = [
         {"id": "B001", "kind": "lack_of_fusion", "bead": "A", "y_m": BEAD_Y[0],
          "x_m": 0.050, "x_from_m": 0.020, "x_to_m": 0.080, "length_mm": 60.0,
          "how": "stop the run for 60 mm and restart", "visible": True,
-         "rejectable": True},
+         "rejectable": True, "spec_ref": "B001"},
         {"id": "B002", "kind": "undercut", "bead": "B", "y_m": BEAD_Y[1],
          "x_m": -0.110, "x_from_m": -0.150, "x_to_m": -0.070, "length_mm": 80.0,
-         "depth_mm": 1.5, "how": "run a grinder along the toe of the bead",
-         "visible": True, "rejectable": True},
+         "depth_mm": 1.5,
+         "how": "run a grinder along the lower toe of the bead, into the plate",
+         "visible": True, "rejectable": True, "spec_ref": "B002"},
         {"id": "B003", "kind": "porosity", "bead": "B", "y_m": BEAD_Y[1],
          "x_m": 0.100, "count": 5, "pore_mm": 2.0,
          "how": "drill five 2 mm dimples in the bead face", "visible": True,
-         "rejectable": True},
+         "rejectable": True, "spec_ref": "B003"},
         {"id": "B004", "kind": "burn_through", "bead": "C", "y_m": BEAD_Y[2],
          "x_m": -0.020, "hole_mm": 6.0,
-         "how": "burn or drill a 6 mm hole through the bead", "visible": True,
-         "rejectable": True},
-        {"id": "B005", "kind": "thinning", "bead": None, "y_m": -0.040,
-         "x_m": 0.200, "patch_mm": 40.0, "loss_mm": 2.6, "nominal_mm": 6.0,
-         "remaining_mm": 3.4, "remaining_fraction": round(3.4 / 6.0, 3),
-         "how": "grind a 40 mm pocket 2.6 mm deep in the BACK of the plate",
-         "visible": False, "rejectable": True},
-        {"id": "B006", "kind": "thinning", "bead": None, "y_m": 0.070,
-         "x_m": -0.210, "patch_mm": 40.0, "loss_mm": 2.0, "nominal_mm": 6.0,
+         "how": "burn or drill a 6 mm hole through the bead and the plate",
+         "visible": True, "rejectable": True, "spec_ref": "B004"},
+        {"id": "B005", "kind": "thinning", "bead": None, "y_m": -0.045,
+         "x_m": 0.160, "patch_mm": 40.0, "loss_mm": 3.0, "nominal_mm": 6.0,
+         "remaining_mm": 3.0, "remaining_fraction": round(3.0 / 6.0, 3),
+         "how": "end mill a flat-bottomed 40 mm pocket in the BACK of the "
+                "plate, leaving 3.0 mm",
+         "visible": False, "rejectable": True, "spec_ref": "P1"},
+        {"id": "B006", "kind": "thinning", "bead": None, "y_m": 0.045,
+         "x_m": -0.160, "patch_mm": 40.0, "loss_mm": 2.0, "nominal_mm": 6.0,
          "remaining_mm": 4.0, "remaining_fraction": round(4.0 / 6.0, 3),
-         "how": "grind a 40 mm pocket 2.0 mm deep in the BACK of the plate",
-         "visible": False, "rejectable": False},
-        {"id": "B007", "kind": "pitting", "bead": None, "y_m": 0.115,
-         "x_m": 0.235, "patch_mm": 55.0,
-         "how": "leave a corner to rust, or etch it", "visible": True,
-         "rejectable": False},
+         "how": "end mill a flat-bottomed 40 mm pocket in the BACK of the "
+                "plate, leaving 4.0 mm",
+         "visible": False, "rejectable": False, "spec_ref": "P2"},
+        # The 60 x 60 corner at spec X = 600, Y = 300, left bare and unoiled.
+        {"id": "B007", "kind": "pitting", "bead": None, "y_m": 0.120,
+         "x_m": 0.270, "patch_mm": 60.0,
+         "how": "leave the corner bare and unoiled so it rusts naturally",
+         "visible": True, "rejectable": False, "spec_ref": "section 8"},
     ]
     for d in out:
         d["acceptance"] = ACCEPTANCE.get(d["kind"], {"measure": "reported, not gated"})
@@ -301,10 +325,12 @@ def build_defects(mats, coll, defects, rng):
                  mat=mats["dark"], smooth=False, collection=coll)
 
         elif kind == "undercut":
+            # On the lower toe, the -y side, which is where the spec and the
+            # drawing put it. It was on the upper toe.
             depth = d["depth_mm"] / 1000
             make(f"Defect_{d['id']}_undercut",
                  *box((d["x_to_m"] - d["x_from_m"], 0.0035, depth * 1.4),
-                      (d["x_m"], d["y_m"] + BEAD_R * 1.5, PLATE_TOP - depth * 0.3)),
+                      (d["x_m"], d["y_m"] - BEAD_R * 1.5, PLATE_TOP - depth * 0.3)),
                  mat=mats["dark"], smooth=False, collection=coll)
 
         elif kind == "porosity":
@@ -326,8 +352,8 @@ def build_defects(mats, coll, defects, rng):
                  mat=mats["dark"], collection=coll)
 
         elif kind == "thinning":
-            # A pocket ground into the BACK face. From above there is nothing to
-            # see, which is the point: only the gauge finds it.
+            # A flat-bottomed pocket milled into the BACK face. From above there
+            # is nothing to see, which is the point: only the gauge finds it.
             r = d["patch_mm"] / 2000
             make(f"Defect_{d['id']}_back_pocket",
                  *shift(tube(r, d["loss_mm"] / 1000, 28, caps=True),
@@ -493,8 +519,11 @@ def build_robot(mats, coll, x_centre):
 
     # The OV2640 focuses close, and so must the render camera.
     # The OV2640 on a 2.8 mm lens is about 66 degrees, which is 28 mm on a full
-    # frame. Held 120 mm off the plate it covers 154 by 87 mm, so a 500 mm weld
-    # run is four frames and a 2 mm pore is twenty pixels.
+    # frame. The arm is CAM_STANDOFF (75 mm) off the plate and the lens hangs
+    # 10 mm below it, so the lens itself is about 71 mm up. From there it covers
+    # about 91 by 51 mm, a 500 mm weld run is five and a half frames and a 2 mm
+    # pore is about 35 pixels across a 1600 pixel frame. covers_mm in main() is
+    # quoted at the nominal 75 mm, which gives 96 by 54.
     cam = camera("ESP32_Cam", CAM_LENS_MM, coll)
     cam.parent = rig
     # Below the lens barrel, not level with it, or the camera photographs the
@@ -732,8 +761,10 @@ def main() -> dict:
         "parked_over": subject["id"],
         "thickness_model": (
             "nominal is 6.0 mm everywhere. A thinning defect removes loss_mm inside "
-            "patch_mm of its centre, ground into the back face, so nothing on the "
-            "camera side changes and only the gauge finds it."
+            "patch_mm of its centre, milled flat into the back face, so nothing on "
+            "the camera side changes and only the gauge finds it. On the real "
+            "plate the fabricator's measured plate thickness and remaining "
+            "thickness under each pocket replace these nominal figures."
         ),
     }
     OUT.parent.mkdir(parents=True, exist_ok=True)

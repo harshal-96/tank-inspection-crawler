@@ -57,9 +57,12 @@ function liveBand() {
 export function render() {
   return `
     <p class="lede">
-      A welding robot follows the same path every time, but folded sheet metal never comes
-      out of the press the same shape twice, so the joint is never quite where the path
-      says. This cell finds the joint on every part and welds there. Fifty parts, measured.
+      A welding robot follows the same path every time, but no two parts arrive in quite the
+      same place, and folded sheet metal never comes out of the press the same shape twice:
+      springback and camber move the joint on every part. So the joint is never
+      quite where the path says. This cell finds it on every part and welds there. Fifty
+      parts, measured. In this simulation the arrival spread is exaggerated for visibility;
+      the part variation on top of it is what no locator removes.
     </p>
 
     <div class="stage brief">
@@ -179,8 +182,10 @@ export async function mount() {
 
     A number says the taught path is 22.8 mm off. A picture of the taught path
   running beside the real joint says it without a number, which is why this sits
-  at the top of the page rather than in a tile. It is true scale, and says so: an
-  earlier version exaggerated it tenfold and put the part through its own fixture.
+  at the top of the page rather than in a tile. The drawing is true scale, and says
+  so: an earlier version exaggerated it tenfold and put the part through its own
+  fixture. What is exaggerated is the simulated arrival spread itself, so the chip
+  says that too.
 */
 async function viewport(geo) {
   const canvas = V.$("ov-view");
@@ -212,7 +217,8 @@ function drawPart() {
     chips.push(glass("Where the cell welded", `${V.fmt(t.error_mm, 2)} mm off`,
       `worst of ${t.stations_measured} points ${V.fmt(t.worst_station_mm, 2)} mm`, "var(--good)"));
   }
-    chips.push(glass("Display", "true scale", "nothing exaggerated", "var(--text-muted)"));
+    chips.push(glass("Display", "true scale", "arrival spread exaggerated for visibility",
+      "var(--text-muted)"));
   V.$("ov-chips").innerHTML = chips.join("");
 }
 
@@ -244,7 +250,13 @@ export function unmount() {
 function flow(ev) {
   const host = V.$("ov-flow");
   if (!host) return;
-  const s = ev.seam, r = ev.router, i = ev.inspection, h = ev.hard;
+  const s = ev.seam, r = ev.router, i = ev.inspection, h = ev.hard, c = ev.compensation;
+  // The range of distortion-model error over which compensating still beats not
+  // compensating. The 0.03 mm at nominal is the case where the model is exactly
+  // right, which measures nothing, so the box carries the range instead.
+  const signed = (v) => `${v > 0 ? "+" : ""}${Math.round(v * 100)}%`;
+  const helps = c && c.available && c.helps_from != null
+    ? `helps ${signed(c.helps_from)} to ${signed(c.helps_to)}` : "";
 
   const LANE = 34;                 // the return path down the left
   const X0 = 78;                   // where boxes start, clear of the lane
@@ -260,7 +272,7 @@ function flow(ev) {
   const top = [
     ["1", "Find the joint", s.available ? `${V.fmt(s.tracked.mean_mm, 3)} mm` : "", false, "seam"],
     ["2", "Trust it?", r.available ? `${r.arms[0].correct}/${r.arms[0].n}` : "", true, "routing"],
-    ["3", "Aim ahead of heat", "0.55 \u2192 0.03 mm", false, "compensation"],
+    ["3", "Aim ahead of heat", helps, false, "compensation"],
   ];
   const bottom = [
     ["4", "Judge the bead", i.available ? V.pct(i.binary_accuracy) : "", true, "inspection"],

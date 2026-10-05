@@ -528,9 +528,10 @@ def tank_summary() -> dict[str, Any]:
 
     The dashboard was built for the welding cell and knew nothing about the
     tank, so the one interactive artefact in the repository showed the wrong
-    project. Nothing here recomputes a result: it reads the manifest, the
-    recorded verdicts and the probe comparison, so a page cannot drift away
-    from the run it says it is showing.
+    project. The verdicts and probe runs are read as recorded. The answer
+    they are marked against is recomputed through tank/truth.py, the same
+    rule the scorer uses, so a page cannot drift away from the run it says it
+    is showing, or from the scorer.
     """
     from service import tank_view
 

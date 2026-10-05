@@ -34,7 +34,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import importlib  # noqa: E402
+
 from tank.sim import blender_tank as T  # noqa: E402
+
 importlib.reload(T)
 from tank.sim.meshkit import look_at  # noqa: E402
 

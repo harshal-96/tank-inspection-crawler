@@ -1,0 +1,39 @@
+This repository is licensed under the Apache License, Version 2.0 (see LICENSE).
+It includes the third-party material listed below, which keeps its own terms.
+
+
+assets/robot/kr16_2.glb
+-----------------------
+
+A visual model of a six-axis industrial arm, used only to draw the welding cell
+(dashboard/static/cell3d.js and scripts/build_cell_blender.py). Nothing is
+measured or scored against it.
+
+Source
+  The kuka_kr16_support package of ROS-Industrial kuka_experimental:
+  https://github.com/ros-industrial/kuka_experimental
+  The package manifest names Lars Tingelstad as its author.
+
+Licence
+  The kuka_experimental repository is distributed under the Apache License,
+  Version 2.0. The kuka_kr16_support package manifest (package.xml) declares
+  BSD instead. The two statements disagree and it is not settled here which one
+  the upstream authors intend for this package. No copyright line was recorded
+  when the model was brought into this repository, so this notice does not
+  reproduce one, and it does not reproduce BSD licence text either. What it
+  gives is the attribution above and the record of changes below. If the BSD
+  reading is the one that applies, the copyright line, conditions and disclaimer
+  are still owed here, once the holder is confirmed from the upstream package.
+
+Changes from the upstream files
+  The kr16_2 robot description and its visual meshes were imported into NVIDIA
+  Isaac Sim with its URDF importer, saved as USD, and converted to binary glTF
+  with the Omniverse glTF converter. The file's own header records that last
+  step ("Exported from Omniverse GLTF Converter."). The converter renamed some
+  parts (for example tn__Link3Motor1_lB6) and wrote no copyright field into the
+  file, which is why this notice exists.
+
+  The description that was imported is a copy prepared for the Isaac Sim
+  importer (kr16_2_isaac.urdf), not the upstream kr16_2 file itself. It has not
+  been compared line by line with upstream, so this notice does not claim the
+  geometry is unchanged.

@@ -26,7 +26,7 @@ Nothing here touches the dataset.
 
 from __future__ import annotations
 
-import math
+import contextlib
 import sys
 from pathlib import Path
 
@@ -38,7 +38,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 import importlib  # noqa: E402
+
 from tank.sim import blender_tank as T  # noqa: E402
+
 # Reloaded, because Blender caches the module between runs and an edit
 # to it is otherwise invisible to this script.
 importlib.reload(T)
@@ -168,10 +170,8 @@ def main() -> dict:
     # letting Blender lay its own curve over the top makes the move float.
     # Set before inserting rather than fixed afterwards, because Blender 5
     # moved actions to slots and there is no longer an action.fcurves to walk.
-    try:
+    with contextlib.suppress(Exception):
         bpy.context.preferences.edit.keyframe_new_interpolation_type = "LINEAR"
-    except Exception:
-        pass
 
     for frame in range(1, FRAMES + 1):
         t = ease((frame - 1) / (FRAMES - 1))

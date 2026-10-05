@@ -4,15 +4,17 @@ Run inside Blender:
 
     python scripts/blender_send.py tank/sim/blender_tank.py
 
-Why a tank. A person enters a tank to look at its welds and its wall, and that
-entry is what kills people: US confined spaces take about a hundred lives a
-year, a quarter of them during inspection and cleaning, and most of the dead
-are the second person who went in after the first. Emptying, cleaning and
-gas-freeing a tank so that entry is legal is what makes an internal inspection
-take weeks rather than days. A crawler that goes in instead has to do three
+Why a tank. A person enters a tank to look at its welds and its wall, and
+confined spaces are where that goes wrong: 90 to 130 US workers a year die in
+them (BLS), and NIOSH reports that a large share of those are would-be
+rescuers. The tank is drained, cleaned and gas-freed for its floor inspection
+whatever happens to the shell, so a crawler does not remove that outage; it
+cuts the hours people spend inside during it. To do that it has to do three
 things a camera alone cannot: find the seams, judge them, and decide where the
-ultrasonic probe is worth putting, because a thirty metre wall cannot be probed
-everywhere.
+ultrasonic probe is worth putting. That last one is a stated design
+assumption: a single-element spot probe is set down, wetted and allowed to
+settle for every reading, so readings are rationed. A dense scanning array
+would make the choice moot.
 
 What this file makes, and why each piece is here.
 
@@ -33,12 +35,19 @@ What this file makes, and why each piece is here.
   the faults      injected on purpose, each recorded before anything looks at
                   it, so every verdict can be marked against an answer written
                   in advance. Some are visible to a camera and some are not:
-                  general wall loss shows nothing on the surface, and that is
-                  the whole reason the probe has to be aimed rather than swept.
+                  wall loss eaten from the far side (corrosion under
+                  insulation on an insulated or heated shell, soil-side and
+                  chime loss) shows nothing on the face the crawler sees. The
+                  scene encodes that premise on purpose, one visible patch
+                  beside the survey run inside limits and five hidden ones
+                  outside, so what it measures is how each probe planner
+                  copes with it, not whether it holds.
   the crawler     magnetic wheels, a sensor head on a boom ahead of the body so
                   the body is not in its own shot, two lamps set wide so a bead
                   throws a shadow, an ultrasonic probe in a sprung holder, and
-                  the tether hanging down the wall behind it.
+                  the tether hanging down the wall behind it. The cross-slide
+                  that would carry the probe across the seam is notional: the
+                  scoring assumes it and nothing here models it.
 
 Ground truth goes to tank/data/tank_scene.json in metres, with the thinning
 patches as parameters rather than a grid, so wall thickness can be asked for at
@@ -111,7 +120,18 @@ SURVEY_SEAM = "C2"
 SURVEY_CENTRE_RAD = 0.0
 SURVEY_ARC_M = 4.0
 
-BEAD_R = 0.008           # a weld bead stands 8 mm proud of the plate
+# The bead's tube radius. bead_surface (meshkit) builds the crown at 1.05 of
+# it and the toes 1.35 of it either side of the centreline, so the modelled
+# cap stands 8.4 mm proud and is 21.6 mm wide. API 650 lets butt-weld
+# reinforcement on plate up to 13 mm thick stand at most REINFORCEMENT_LIMIT_MM
+# proud on a horizontal joint (less on a vertical one), so this bead is 2.8
+# times that: exaggerated for visibility, so the toe shadows the inspector
+# reads survive at render resolution. It is not a claim about real welds, and
+# changing it re-renders every frame. The plain stand-in bead outside the
+# detail window is a whole tube and stands twice BEAD_R proud; no survey
+# frame reaches it.
+BEAD_R = 0.008
+REINFORCEMENT_LIMIT_MM = 3.0   # for the comparison above; nothing builds from it
 RIPPLE_PITCH = 0.009     # the spacing of the pools a welder leaves behind
 DETAIL_ARC_M = SURVEY_ARC_M + 1.2   # the run, plus enough that its edge is
                                     # never inside a frame. Matched exactly to
@@ -119,6 +139,13 @@ DETAIL_ARC_M = SURVEY_ARC_M + 1.2   # the run, plus enough that its edge is
                                     # the end of the modelled bead at a smooth
                                     # tube, and the inspector reported a break
                                     # in the weld. It was right: there was one.
+# Where the camera sits on the crawler, in the crawler's own frame (+X along
+# the seam, +Z off the plate), and its lens. Named here rather than written
+# into the call that places it, because the answer key projects every fault
+# through this same camera without Blender (tank/truth.py), and a second copy
+# of these numbers is a key that can quietly stop matching the pictures.
+CAMERA_EYE = (0.46, 0.0, 0.126)
+CAMERA_LENS_MM = 14.0
 # The running gear, named here because the detail pass hangs parts off these
 # wheels and the animation has to know how big they are to roll them.
 WHEEL_R = 0.078          # tyre radius, and therefore metres per radian
@@ -135,6 +162,24 @@ OUT = ROOT / "tank" / "data" / "tank_scene.json"
 # What counts as a fault worth reporting, so a brief can cite a limit rather
 # than an opinion. It lives with the thing being made and is carried into the
 # ground truth, so a scorer and a report read the same number.
+#
+# The limits are illustrative, set for this benchmark loosely after the visual
+# acceptance criteria of API 650, and are not a code check. API 650 is
+# stricter in places. It allows 0.8 mm of undercut on a horizontal butt joint
+# but 0.4 mm on a vertical one; every undercut planted here is on a horizontal
+# seam, so the single figure holds for this scene and would not for a vertical
+# one. It limits surface porosity by clusters rather than by a count of pores.
+# And lack_of_fusion here is a visible skip, a stretch of joint with no bead
+# laid in it. True lack of fusion lies under the surface at the fusion face,
+# where a camera would not see it.
+#
+# The thinning limit is a screening threshold chosen for this benchmark, not
+# an API 653 minimum thickness. API 653 sets t_min for each shell course from
+# the course design calculation (fill height, diameter, the product's
+# specific gravity, allowable stress and joint efficiency), so it differs
+# course to course and tank to tank. A deployment would take each course's
+# t_min from the tank's own fitness-for-service assessment rather than one
+# fraction of nominal.
 ACCEPTANCE = {
     "undercut": {"limit_mm": 0.8, "measure": "depth below the plate surface"},
     "porosity": {"limit_count": 4, "measure": "pores in any 100 mm of bead"},
@@ -568,8 +613,15 @@ def plan_defects(seams, rng) -> list[dict]:
     # different heights so they fall across different parts of the probe grid
     # rather than stacking on the same rows.
     #
+    # The hidden patches were placed by hand, after the four-point result, and
+    # every one of them is centred 0.27 to 0.41 m off the seam, while the
+    # visible one is at 0.075 m. The camera images about 0.083 m either side of
+    # the seam, so the scene puts the rejectable loss where only the probe can
+    # reach it by construction. That is the premise being encoded, not a
+    # finding, and a planner comparison on this layout belongs to this layout.
+    #
     # This is more severe loss than a tank of this age would really carry, and
-    # it is marked in the ground truth as an evaluation scene so that nobody
+    # it is marked in the survey manifest (evaluation_scene) so that nobody
     # reads it as a claim about real shells.
     for fraction, visible, loss, offset in (
             (0.28, True, 3.1, 0.075),
@@ -684,7 +736,10 @@ def build_defects(mats, coll, defects, rng):
             # an undercut and no camera could have found.
             fade = min(0.35, 0.012 / max(1e-6, (hi - lo) * RADIUS))
 
-            def section(i):
+            # Bound now rather than looked up when called. It is only ever
+            # called inside this pass, so the values are the same either way.
+            def section(i, lo=lo, hi=hi, segs=segs, fade=fade, toe=toe,
+                        width=width):
                 f = i / segs
                 along = (hi - lo) * f * RADIUS
                 beat = math.tau * along / (RIPPLE_PITCH * 3.5)
@@ -1019,7 +1074,20 @@ def build_crawler(mats, coll, theta, z):
     # delivers at the face rather than near it.
     #
     # Water and not gel. Gel will not pump through a small bore and it dries on
-    # a vertical wall. Pumped systems and wheel probes both run water.
+    # a vertical wall. Pumped systems and water-filled wheel probes both run
+    # water. Dry-coupled wheel probes, a soft tyre rolled on the steel with no
+    # liquid at all, also exist and suit continuous scanning. This design uses
+    # a single-element spot probe set down at each reading instead, which is
+    # what makes a reading costly enough to ration and is the assumption the
+    # probe planner's budget rests on.
+    #
+    # Where it is drawn is not where it is scored. The probe sits on the seam
+    # centreline, inside the bead, 0.36 m behind the camera, and nothing here
+    # moves it. The scoring reads it at seven offsets across the seam, up to
+    # 0.45 m either side, which assumes a cross-slide or arm that is notional:
+    # not modelled and not designed. Offset 0 is the weld cap itself, where a
+    # real thickness reading would not be taken; it stands in for a reading on
+    # the plate just beside the toe.
     part("Crawler_Probe_Holder", *box((0.075, 0.075, 0.055), (0.10, 0.0, 0.088)),
          mat=mats["frame"], smooth=False)
     # Dropped so the face all but touches the plate. It sat two and a half
@@ -1095,14 +1163,18 @@ def build_crawler(mats, coll, theta, z):
                 0.009, 8), mat=mats["tether"])
 
 
-    # 14 mm at 126 mm off the plate covers 324 mm of seam across the frame, so a
+    # 126 mm off the plate square to where the crawler stands, which is about
+    # 115 mm off the plate under the lens, because the wall curves away under
+    # the boom. There a 14 mm lens covers
+    # 295 mm of seam across the frame and 166 mm up the wall (measured through
+    # tank/truth.py), so a
     # bead is a seventh of the height and a run of pores is a pattern rather
     # than a landscape. It sits just under the lens ring, not level with the
     # housing: at 175 mm it was inside its own sensor head, which a 100 mm near
     # clip hid until the clip was set to something a robot can use.
-    cam = camera("Crawler_Cam", 14.0, coll)
+    cam = camera("Crawler_Cam", CAMERA_LENS_MM, coll)
     cam.parent = rig
-    cam.matrix_basis = look_at((0.46, 0.0, 0.126), (0.46, 0.0, 0.0),
+    cam.matrix_basis = look_at(CAMERA_EYE, (CAMERA_EYE[0], CAMERA_EYE[1], 0.0),
                                up_hint=(0.0, 1.0, 0.0))
 
     # Watts, at a tenth of a metre. The first build used 260 and returned a white
@@ -1253,7 +1325,7 @@ def main() -> dict:
         "crawler": {"parked_at": {"theta_rad": round(park_theta, 5), "z_m": park_z},
                     "looking_at": subject["id"], "camera": "Crawler_Cam",
                     "probe": "Crawler_UT_Probe",
-                    "camera_standoff_m": 0.126, "camera_lens_mm": 14.0},
+                    "camera_standoff_m": CAMERA_EYE[2], "camera_lens_mm": CAMERA_LENS_MM},
         "survey_run": {"seam": SURVEY_SEAM, "z_m": run["z_m"],
                        "theta_from_rad": round(window_lo, 5),
                        "theta_to_rad": round(window_hi, 5),

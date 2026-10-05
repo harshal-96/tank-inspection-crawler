@@ -349,6 +349,106 @@
   },
   {
    "id": "D007",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.148,
+   "z_m": 3.7,
+   "centre_m": [
+    9.8828,
+    -1.4734,
+    3.7
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.8,
+   "nominal_mm": 11.0,
+   "remaining_mm": 4.2,
+   "remaining_fraction": 0.382,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D008",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": -0.032,
+   "z_m": 4.33,
+   "centre_m": [
+    9.9869,
+    -0.3197,
+    4.33
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.2,
+   "nominal_mm": 10.0,
+   "remaining_mm": 3.8,
+   "remaining_fraction": 0.38,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D009",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.028,
+   "z_m": 3.63,
+   "centre_m": [
+    9.9881,
+    0.2797,
+    3.63
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 7.2,
+   "nominal_mm": 11.0,
+   "remaining_mm": 3.8,
+   "remaining_fraction": 0.345,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D010",
+   "kind": "thinning",
+   "seam": null,
+   "theta_rad": 0.148,
+   "z_m": 4.27,
+   "centre_m": [
+    9.8828,
+    1.4734,
+    4.27
+   ],
+   "on_survey_run": false,
+   "acceptance": {
+    "limit_fraction": 0.6,
+    "measure": "remaining wall as a fraction of the original"
+   },
+   "patch_radius_m": 0.38,
+   "loss_mm": 6.5,
+   "nominal_mm": 10.0,
+   "remaining_mm": 3.5,
+   "remaining_fraction": 0.35,
+   "rejectable": true,
+   "falloff": "cosine",
+   "visible": false
+  },
+  {
+   "id": "D011",
    "kind": "undercut",
    "seam": "C2",
    "theta_rad": 5.97192,
@@ -371,7 +471,7 @@
    "visible": true
   },
   {
-   "id": "D008",
+   "id": "D012",
    "kind": "undercut",
    "seam": "C4",
    "theta_rad": 0.61122,
@@ -394,7 +494,7 @@
    "visible": true
   },
   {
-   "id": "D009",
+   "id": "D013",
    "kind": "undercut",
    "seam": "C1",
    "theta_rad": 0.25261,
@@ -417,7 +517,7 @@
    "visible": true
   },
   {
-   "id": "D010",
+   "id": "D014",
    "kind": "porosity",
    "seam": "C5",
    "theta_rad": 3.46233,
@@ -437,7 +537,7 @@
    "visible": true
   },
   {
-   "id": "D011",
+   "id": "D015",
    "kind": "porosity",
    "seam": "V5_6",
    "theta_rad": 5.10509,
@@ -457,7 +557,7 @@
    "visible": true
   },
   {
-   "id": "D012",
+   "id": "D016",
    "kind": "porosity",
    "seam": "V4_2",
    "theta_rad": 1.5708,
@@ -477,7 +577,7 @@
    "visible": true
   },
   {
-   "id": "D013",
+   "id": "D017",
    "kind": "crack",
    "seam": "C4",
    "theta_rad": 3.67907,
@@ -497,7 +597,7 @@
    "visible": true
   },
   {
-   "id": "D014",
+   "id": "D018",
    "kind": "crack",
    "seam": "C1",
    "theta_rad": 0.29269,
@@ -517,7 +617,7 @@
    "visible": true
   },
   {
-   "id": "D015",
+   "id": "D019",
    "kind": "lack_of_fusion",
    "seam": "V2_2",
    "theta_rad": 1.5708,
@@ -537,7 +637,7 @@
    "visible": true
   },
   {
-   "id": "D016",
+   "id": "D020",
    "kind": "lack_of_fusion",
    "seam": "V4_4",
    "theta_rad": 3.14159,
@@ -557,7 +657,7 @@
    "visible": true
   },
   {
-   "id": "D017",
+   "id": "D021",
    "kind": "lack_of_fusion",
    "seam": "V1_3",
    "theta_rad": 2.74889,
@@ -577,7 +677,7 @@
    "visible": true
   },
   {
-   "id": "D018",
+   "id": "D022",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 0.39451,
@@ -674,7 +774,7 @@
    ]
   },
   {
-   "id": "D019",
+   "id": "D023",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 4.88347,
@@ -796,7 +896,7 @@
    ]
   },
   {
-   "id": "D020",
+   "id": "D024",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 1.12951,
@@ -821,7 +921,7 @@
    "visible": false
   },
   {
-   "id": "D021",
+   "id": "D025",
    "kind": "thinning",
    "seam": null,
    "theta_rad": 5.49865,
@@ -867,14 +967,28 @@
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.549,
-     "v": 0.9856,
-     "range_m": 0.1068,
+     "u": 0.5471,
+     "v": 0.9554,
+     "range_m": 0.1139,
      "of_the_fault": 0.016,
      "of_the_frame": 0.0,
      "coverage": 0.016,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D007",
+     "kind": "thinning",
+     "u": 0.7081,
+     "v": 0.9957,
+     "range_m": 0.1116,
+     "of_the_fault": 0.081,
+     "of_the_frame": 0.0,
+     "coverage": 0.081,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -979,26 +1093,41 @@
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.8716,
-     "v": 0.5,
-     "range_m": 0.1024,
-     "of_the_fault": 0.222,
+     "u": 0.8942,
+     "v": 0.549,
+     "range_m": 0.1087,
+     "of_the_fault": 0.22,
      "of_the_frame": 0.0,
-     "coverage": 0.222,
+     "coverage": 0.22,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
      "rejectable": true
     },
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.6185,
-     "v": 0.9232,
-     "range_m": 0.1059,
-     "of_the_fault": 0.016,
+     "u": 0.6123,
+     "v": 0.8966,
+     "range_m": 0.113,
+     "of_the_fault": 0.032,
      "of_the_frame": 0.0,
-     "coverage": 0.016,
+     "coverage": 0.032,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D007",
+     "kind": "thinning",
+     "u": 0.1278,
+     "v": 0.0821,
+     "range_m": 0.1191,
+     "of_the_fault": 0.081,
+     "of_the_frame": 0.273,
+     "coverage": 0.273,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -1109,26 +1238,41 @@
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.4164,
-     "v": 0.5,
-     "range_m": 0.1085,
-     "of_the_fault": 0.556,
+     "u": 0.7018,
+     "v": 0.5507,
+     "range_m": 0.1116,
+     "of_the_fault": 0.632,
      "of_the_frame": 0.061,
-     "coverage": 0.556,
+     "coverage": 0.632,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
      "rejectable": true
     },
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.9366,
-     "v": 0.2344,
-     "range_m": 0.1015,
-     "of_the_fault": 0.048,
+     "u": 0.9095,
+     "v": 0.2517,
+     "range_m": 0.1086,
+     "of_the_fault": 0.063,
      "of_the_frame": 0.03,
-     "coverage": 0.048,
+     "coverage": 0.063,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D007",
+     "kind": "thinning",
+     "u": 0.1787,
+     "v": 0.6697,
+     "range_m": 0.1185,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.03,
+     "coverage": 0.03,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -1243,26 +1387,41 @@
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.5463,
-     "v": 0.5,
-     "range_m": 0.1068,
-     "of_the_fault": 0.667,
+     "u": 0.6278,
+     "v": 0.5501,
+     "range_m": 0.1126,
+     "of_the_fault": 0.647,
      "of_the_frame": 0.091,
-     "coverage": 0.667,
+     "coverage": 0.647,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
      "rejectable": true
     },
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.2892,
-     "v": 0.2548,
-     "range_m": 0.11,
+     "u": 0.3029,
+     "v": 0.2697,
+     "range_m": 0.1171,
      "of_the_fault": 0.032,
      "of_the_frame": 0.394,
      "coverage": 0.394,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D007",
+     "kind": "thinning",
+     "u": 0.8457,
+     "v": 0.6451,
+     "range_m": 0.1096,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -1377,26 +1536,54 @@
     {
      "id": "D001",
      "kind": "undercut",
-     "u": 0.3014,
-     "v": 0.5,
-     "range_m": 0.1098,
-     "of_the_fault": 0.222,
+     "u": 0.2221,
+     "v": 0.5449,
+     "range_m": 0.1179,
+     "of_the_fault": 0.234,
      "of_the_frame": 0.091,
-     "coverage": 0.222,
+     "coverage": 0.234,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
      "rejectable": true
     },
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.3711,
-     "v": 0.9757,
-     "range_m": 0.109,
+     "u": 0.38,
+     "v": 0.9466,
+     "range_m": 0.1161,
      "of_the_fault": 0.016,
      "of_the_frame": 1.0,
      "coverage": 1.0,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D007",
+     "kind": "thinning",
+     "u": 0.2479,
+     "v": 0.6351,
+     "range_m": 0.1177,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.3818,
+     "v": 0.5417,
+     "range_m": 0.1161,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -1513,12 +1700,13 @@
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.4546,
-     "v": 0.2503,
-     "range_m": 0.108,
+     "u": 0.4584,
+     "v": 0.2657,
+     "range_m": 0.1151,
      "of_the_fault": 0.032,
      "of_the_frame": 1.0,
      "coverage": 1.0,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
     }
@@ -1635,26 +1823,41 @@
     {
      "id": "D002",
      "kind": "porosity",
-     "u": 0.7076,
-     "v": 0.5,
-     "range_m": 0.1047,
+     "u": 0.6303,
+     "v": 0.4876,
+     "range_m": 0.1071,
      "of_the_fault": 1.0,
      "of_the_frame": 0.0,
      "coverage": 1.0,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
      "rejectable": true
     },
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.4855,
-     "v": 0.9819,
-     "range_m": 0.1076,
+     "u": 0.4875,
+     "v": 0.9521,
+     "range_m": 0.1147,
      "of_the_fault": 0.016,
      "of_the_frame": 0.333,
      "coverage": 0.333,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.4538,
+     "v": 0.5055,
+     "range_m": 0.1151,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -1773,13 +1976,53 @@
     {
      "id": "D002",
      "kind": "porosity",
-     "u": 0.1386,
-     "v": 0.5,
-     "range_m": 0.1116,
-     "of_the_fault": 0.8,
+     "u": 0.031,
+     "v": 0.4899,
+     "range_m": 0.1147,
+     "of_the_fault": 0.857,
      "of_the_frame": 0.091,
-     "coverage": 0.8,
+     "coverage": 0.857,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D005",
+     "kind": "thinning",
+     "u": 0.812,
+     "v": 0.9711,
+     "range_m": 0.1101,
+     "of_the_fault": 0.016,
+     "of_the_frame": 0.0,
+     "coverage": 0.016,
+     "footprint": "described",
+     "visible_to_a_camera": true,
+     "rejectable": false
+    },
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.5082,
+     "v": 0.1978,
+     "range_m": 0.1144,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.6484,
+     "v": 0.211,
+     "range_m": 0.1124,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
      "rejectable": true
     }
    ],
@@ -1896,14 +2139,41 @@
     {
      "id": "D005",
      "kind": "thinning",
-     "u": 0.1997,
-     "v": 0.9672,
-     "range_m": 0.111,
+     "u": 0.2187,
+     "v": 0.9391,
+     "range_m": 0.1181,
      "of_the_fault": 0.016,
      "of_the_frame": 0.0,
      "coverage": 0.016,
+     "footprint": "described",
      "visible_to_a_camera": true,
      "rejectable": false
+    },
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.5632,
+     "v": 0.5055,
+     "range_m": 0.1136,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.091,
+     "coverage": 0.091,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.0748,
+     "v": 0.2285,
+     "range_m": 0.1197,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
     }
    ],
    "probe_candidates": [
@@ -2015,7 +2285,21 @@
     "max_m": 1.2773,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.7253,
+     "v": 0.246,
+     "range_m": 0.1113,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2124,7 +2408,34 @@
     "max_m": 1.0898,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.6384,
+     "v": 0.543,
+     "range_m": 0.1126,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.1429,
+     "v": 0.2622,
+     "range_m": 0.1189,
+     "of_the_fault": 0.054,
+     "of_the_frame": 0.0,
+     "coverage": 0.054,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2237,13 +2548,40 @@
     {
      "id": "D003",
      "kind": "crack",
-     "u": 0.5966,
+     "u": 0.5997,
      "v": 0.5,
-     "range_m": 0.1062,
+     "range_m": 0.1117,
      "of_the_fault": 1.0,
      "of_the_frame": 0.0,
      "coverage": 1.0,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D008",
+     "kind": "thinning",
+     "u": 0.066,
+     "v": 0.5404,
+     "range_m": 0.1198,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.1939,
+     "v": 0.5584,
+     "range_m": 0.1184,
+     "of_the_fault": 0.054,
+     "of_the_frame": 0.0,
+     "coverage": 0.054,
+     "footprint": "described",
+     "visible_to_a_camera": false,
      "rejectable": true
     }
    ],
@@ -2357,7 +2695,34 @@
     "max_m": 1.2139,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D003",
+     "kind": "crack",
+     "u": 0.0243,
+     "v": 0.5,
+     "range_m": 0.1186,
+     "of_the_fault": 1.0,
+     "of_the_frame": 0.0,
+     "coverage": 1.0,
+     "footprint": "drawn",
+     "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.2454,
+     "v": 0.2598,
+     "range_m": 0.1178,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2466,12 +2831,26 @@
     {
      "id": "D006",
      "kind": "thinning",
-     "u": 0.1135,
-     "v": 0.0002,
-     "range_m": 0.1119,
+     "u": 0.1374,
+     "v": 0.03,
+     "range_m": 0.119,
      "of_the_fault": 0.054,
      "of_the_frame": 0.0,
      "coverage": 0.054,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.9242,
+     "v": 0.2002,
+     "range_m": 0.1084,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
      "visible_to_a_camera": false,
      "rejectable": true
     }
@@ -2588,12 +2967,39 @@
     {
      "id": "D006",
      "kind": "thinning",
-     "u": 0.1676,
-     "v": 0.3137,
-     "range_m": 0.1113,
+     "u": 0.1884,
+     "v": 0.3249,
+     "range_m": 0.1184,
      "of_the_fault": 0.027,
      "of_the_frame": 0.0,
      "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D009",
+     "kind": "thinning",
+     "u": 0.3155,
+     "v": 0.2221,
+     "range_m": 0.1169,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.5876,
+     "v": 0.1766,
+     "range_m": 0.1133,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
      "visible_to_a_camera": false,
      "rejectable": true
     }
@@ -2705,7 +3111,34 @@
     "max_m": 1.0811,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D006",
+     "kind": "thinning",
+     "u": 0.2398,
+     "v": 0.0253,
+     "range_m": 0.1178,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    },
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.0206,
+     "v": 0.1953,
+     "range_m": 0.1202,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -2814,13 +3247,27 @@
     {
      "id": "D004",
      "kind": "lack_of_fusion",
-     "u": 0.6919,
-     "v": 0.5,
-     "range_m": 0.1049,
+     "u": 0.6775,
+     "v": 0.5145,
+     "range_m": 0.1145,
      "of_the_fault": 1.0,
      "of_the_frame": 0.0,
      "coverage": 1.0,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.9426,
+     "v": 0.964,
+     "range_m": 0.1081,
+     "of_the_fault": 0.081,
+     "of_the_frame": 0.0,
+     "coverage": 0.081,
+     "footprint": "described",
+     "visible_to_a_camera": false,
      "rejectable": true
     }
    ],
@@ -2932,13 +3379,27 @@
     {
      "id": "D004",
      "kind": "lack_of_fusion",
-     "u": 0.1702,
-     "v": 0.5,
-     "range_m": 0.1113,
-     "of_the_fault": 0.667,
+     "u": 0.1405,
+     "v": 0.5137,
+     "range_m": 0.1216,
+     "of_the_fault": 0.846,
      "of_the_frame": 0.091,
-     "coverage": 0.667,
+     "coverage": 0.846,
+     "footprint": "drawn",
      "visible_to_a_camera": true,
+     "rejectable": true
+    },
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.0881,
+     "v": 0.1583,
+     "range_m": 0.1195,
+     "of_the_fault": 0.081,
+     "of_the_frame": 0.091,
+     "coverage": 0.091,
+     "footprint": "described",
+     "visible_to_a_camera": false,
      "rejectable": true
     }
    ],
@@ -3046,7 +3507,21 @@
     "max_m": 1.1816,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.5114,
+     "v": 0.9386,
+     "range_m": 0.1144,
+     "of_the_fault": 0.081,
+     "of_the_frame": 0.455,
+     "coverage": 0.455,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -3155,7 +3630,21 @@
     "max_m": 1.0977,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.6539,
+     "v": 0.9922,
+     "range_m": 0.1124,
+     "of_the_fault": 0.054,
+     "of_the_frame": 0.182,
+     "coverage": 0.182,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -3264,7 +3753,21 @@
     "max_m": 1.1943,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.8586,
+     "v": 0.1649,
+     "range_m": 0.1094,
+     "of_the_fault": 0.054,
+     "of_the_frame": 0.0,
+     "coverage": 0.054,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -3373,7 +3876,21 @@
     "max_m": 1.1963,
     "sky_fraction": 0.0
    },
-   "faults_in_view": [],
+   "faults_in_view": [
+    {
+     "id": "D010",
+     "kind": "thinning",
+     "u": 0.2591,
+     "v": 0.1884,
+     "range_m": 0.1176,
+     "of_the_fault": 0.027,
+     "of_the_frame": 0.0,
+     "coverage": 0.027,
+     "footprint": "described",
+     "visible_to_a_camera": false,
+     "rejectable": true
+    }
+   ],
    "probe_candidates": [
     {
      "offset_m": -0.45,
@@ -3663,5 +4180,11 @@
   }
  ],
  "probe_truth_refreshed_from": "tank_scene.json",
- "evaluation_scene": "The hidden wall loss on this run is heavier than a real shell of this age would carry. It is set that way so a probe planner can be measured against another one: with a single hidden patch the run held four rejectable points and no comparison on four points can separate anything."
+ "evaluation_scene": "The hidden wall loss on this run is heavier than a real shell of this age would carry. It is set that way so a probe planner can be measured against another one: with a single hidden patch the run held four rejectable points and no comparison on four points can separate anything.",
+ "answer_key": {
+  "computed_by": "tank/truth.py and tank/thickness.py, from tank_scene.json",
+  "frames_checked_against": "frames.sha256",
+  "seam_faults_projected_from": "fault_geometry.json, the rendered vertices",
+  "projection_checked_against": "projection_check.json, Blender's own numbers"
+ }
 }

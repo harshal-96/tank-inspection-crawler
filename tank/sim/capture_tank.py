@@ -163,122 +163,58 @@ def depth_to_npy(exr: Path, npy: Path) -> dict:
             "sky_fraction": round(float(sky.mean()), 4)}
 
 
-def footprint(d) -> list[tuple[float, float]]:
-    """Points spread over the whole of a fault, in wall coordinates.
+# The answer key is computed by tank/truth.py, which needs no Blender, so the
+# capture, the scorer, the dashboard and the tests all apply one rule. It used
+# to be computed here, projecting every fault as if it sat on the crown of the
+# bead, and at station 12 that put a crack outside a frame it was plainly in.
+# What the capture owes the rule is what only the scene knows: the vertices of
+# every fault mesh on the run, and proof that truth.py's camera still projects
+# exactly the way Blender's does.
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from tank import truth  # noqa: E402
 
-    A corrosion patch is three quarters of a metre across and a frame is a
-    third of one, so a patch whose centre is a metre away still fills the
-    corner of the picture. Projecting the centre alone said it was not there,
-    and the inspector was marked wrong twice for naming rust it could plainly
-    see. The truth has to cover the thing, not point at the middle of it.
-    """
-    theta, z = d["theta_rad"], d["z_m"]
-    if "arc_from" in d:                       # runs along a circumferential seam
-        lo, hi = d["arc_from"], d["arc_to"]
-        return [(lo + (hi - lo) * i / 8, z) for i in range(9)]
-    if d["kind"] == "thinning":               # a patch, and islands beyond it
-        r = d["patch_radius_m"]
-        points = [(theta, z)]
-        for k in range(12):
-            a = math.tau * k / 12
-            for reach in (0.6, 1.0, 1.7):
-                points.append((theta + math.cos(a) * r * reach / blender_tank.RADIUS,
-                               z + math.sin(a) * r * reach))
-        # The islands themselves, where the scene actually put them, rather
-        # than a ring at the radius they roughly live on.
-        points.extend((it, iz) for it, iz, _ in (d.get("rust_islands") or []))
-        return points
-    if "length_mm" in d:                      # runs up a vertical seam
-        half = d["length_mm"] / 2000
-        return [(theta, z - half + 2 * half * i / 6) for i in range(7)]
-    if d["kind"] == "porosity":               # a short cluster of pores
-        return [(theta + (i - 2) * 0.014 / blender_tank.RADIUS, z) for i in range(5)]
-    return [(theta, z)]
+importlib.reload(truth)
 
 
-# How wide each kind of fault actually is, half width in metres, across the
-# line it runs along. One shared figure made a crack as wide as the bead.
-HALF_WIDTH_M = {"crack": 0.002, "lack_of_fusion": 0.006, "undercut": 0.006,
-                "burn_through": 0.009, "porosity": 0.012}
-
-
-def covers(d):
-    """A test for whether a point on the wall is inside this fault."""
-    theta, z, R = d["theta_rad"], d["z_m"], blender_tank.RADIUS
-    hw = HALF_WIDTH_M.get(d["kind"], 0.010)
-    if "arc_from" in d:                       # runs along a circumferential seam
-        lo, hi = d["arc_from"], d["arc_to"]
-        return lambda t, y: lo <= t <= hi and abs(y - z) <= hw
-    if d["kind"] == "thinning":               # a patch, and its islands
-        r = d["patch_radius_m"] * 0.70        # the mean reach of the ragged edge
-        islands = d.get("rust_islands") or []
-
-        def rusted(t, y):
-            if math.hypot((t - theta) * R, y - z) <= r:
-                return True
-            return any(math.hypot((t - it) * R, y - iz) <= ir
-                       for it, iz, ir in islands)
-
-        return rusted
-    if "length_mm" in d:                      # runs up a vertical seam
-        half = d["length_mm"] / 2000
-        return lambda t, y: abs(y - z) <= half and abs((t - theta) * R) <= hw
-    if d["kind"] == "porosity":               # a short cluster of pores
-        return lambda t, y: abs((t - theta) * R) <= 0.035 and abs(y - z) <= hw
-    return lambda t, y: math.hypot((t - theta) * R, y - z) <= 0.02
-
-
-def wall_in_frame(scene, cam, centre_theta, centre_z) -> list[tuple[float, float]]:
-    """A grid of wall points the lens can actually see, sampled once a station.
-
-    Computed here rather than per fault because it does not depend on the
-    fault, and every fault at the station is then a cheap test against it.
-    """
-    R = blender_tank.RADIUS
-    shown = []
-    # Twenty millimetre steps. At thirty the grid walked over rust islands
-    # small enough to fit between two samples and reported clean plate.
-    for i in range(37):
-        t = centre_theta + (i - 18) * 0.020 / R
-        for j in range(25):
-            y = centre_z + (j - 12) * 0.016
-            world = blender_tank.wall_point(t, y, blender_tank.BEAD_R)
-            uvw = world_to_camera_view(scene, cam, Vector(world))
-            if uvw.z > 0 and 0.0 <= uvw.x <= 1.0 and 0.0 <= uvw.y <= 1.0:
-                shown.append((t, y))
-    return shown
-
-
-def faults_in_view(scene, cam, defects, centre_theta, centre_z) -> list[dict]:
-    """Every fault the lens is pointing at, and how much of the picture it is."""
-    shown = wall_in_frame(scene, cam, centre_theta, centre_z)
-    seen = []
-    for d in defects:
-        points = footprint(d)
-        inside = []
-        for theta, z in points:
-            world = blender_tank.wall_point(theta, z, blender_tank.BEAD_R)
-            uvw = world_to_camera_view(scene, cam, Vector(world))
-            if uvw.z > 0 and 0.0 <= uvw.x <= 1.0 and 0.0 <= uvw.y <= 1.0:
-                inside.append(uvw)
-        here = covers(d)
-        share = (sum(1 for t, y in shown if here(t, y)) / len(shown)) if shown else 0.0
-        if not inside and share <= 0.0:
+def export_fault_geometry(run) -> int:
+    """Write the drawn vertices of the faults on the run, in wall coordinates."""
+    radius = blender_tank.RADIUS
+    on_run = set(run["faults_on_it"])
+    faults, meshes = {}, {}
+    for obj in sorted(bpy.data.objects, key=lambda o: o.name):
+        if obj.type != "MESH" or not obj.name.startswith("Defect_"):
             continue
-        if inside:
-            middle = inside[len(inside) // 2]
-            u, v, rng_m = float(middle.x), float(1.0 - middle.y), float(middle.z)
-        else:
-            u, v, rng_m = 0.5, 0.5, 0.0
-        seen.append({"id": d["id"], "kind": d["kind"],
-                     "u": round(u, 4), "v": round(v, 4),
-                     "range_m": round(rng_m, 4),
-                     "of_the_fault": round(len(inside) / len(points), 3),
-                     "of_the_frame": round(share, 3),
-                     "coverage": round(max(len(inside) / len(points), share), 3),
-                     "visible_to_a_camera": d["visible"],
-                     "rejectable": bool(d.get("rejectable"))})
-    return seen
+        fid = obj.name.split("_")[1]
+        if fid not in on_run:
+            continue
+        meshes.setdefault(fid, []).append(obj.name)
+        points = faults.setdefault(fid, [])
+        for v in obj.data.vertices:
+            w = obj.matrix_world @ v.co
+            points.append([round(math.atan2(w.y, w.x), 7), round(w.z, 6),
+                           round(radius - math.hypot(w.x, w.y), 6)])
+    truth.GEOMETRY.write_text(json.dumps(
+        {"what_this_is": truth.GEOMETRY_NOTE, "meshes": meshes, "faults": faults},
+        separators=(",", ":")), encoding="utf-8")
+    truth.drawn_geometry.cache_clear()
+    return sum(len(v) for v in faults.values())
+
+
+def check_projection(scene, cam, theta, z) -> float:
+    """Stop the capture if truth.py and Blender disagree about the camera."""
+    worst = 0.0
+    for i in range(-3, 4):
+        for inset in (-0.0016, 0.0, 0.0024, 0.008):
+            t = theta + 0.47 / blender_tank.RADIUS + i * 0.06 / blender_tank.RADIUS
+            world = blender_tank.wall_point(t, z + 0.04, inset)
+            want = world_to_camera_view(scene, cam, Vector(world))
+            x, y, _ = truth.project(world, theta, z)
+            worst = max(worst, abs(x - want.x) * RES[0], abs(y - want.y) * RES[1])
+    if worst > 0.05:
+        raise RuntimeError(f"tank/truth.py projects {worst:.3f} px away from "
+                           f"Blender at theta {theta:.5f}; the key would be wrong")
+    return worst
 
 
 def main() -> dict:
@@ -316,11 +252,14 @@ def main() -> dict:
 
     lo, hi = run["theta_from_rad"], run["theta_to_rad"]
     z = run["z_m"]
+    drawn = export_fault_geometry(run)
+    print(f"  {drawn} drawn fault vertices written to {truth.GEOMETRY.name}", flush=True)
     records = []
     for index in range(STATIONS):
         theta = lo + (hi - lo) * index / max(1, STATIONS - 1)
         rig.matrix_world = blender_tank.crawler_matrix(theta, z)
         bpy.context.view_layer.update()
+        check_projection(scene, cam, theta, z)
 
         scene.frame_set(index + 1)
         rgb = frames / f"rgb_{index:04d}.png"
@@ -361,7 +300,7 @@ def main() -> dict:
             "theta_rad": round(theta, 6), "z_m": z,
             "rgb": f"frames/{rgb.name}", "depth": f"depth/{npy.name}",
             "depth_stats": stats,
-            "faults_in_view": faults_in_view(scene, cam, defects, theta, z),
+            "faults_in_view": truth.faults_in_view(defects, round(theta, 6), z),
             "probe_candidates": candidates,
             "probe_on_seam": on_seam,
         })

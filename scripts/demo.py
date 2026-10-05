@@ -45,7 +45,8 @@ OUT = "data/demo_run"
 def have_key() -> bool:
     from dotenv import load_dotenv
     load_dotenv(ROOT / ".env")
-    return bool(os.getenv("INFERENCE_API_KEY"))
+    from brain import nebius
+    return nebius.have_key()
 
 
 def service_up(api: str) -> bool:

@@ -102,12 +102,15 @@ Requirements:
 
 ### What actually matters, and what does not
 
-Hitting 3.0 and 4.0 exactly is **not** critical. Anything within about plus or minus 0.3
-is fine.
+Hitting 3.0 and 4.0 exactly is **not** critical. For P1, anything within about plus or
+minus 0.3 is fine. For P2, anything from **3.9 to 4.3** is fine, and please do not go
+thinner than 3.9: P2 is meant to be the pocket that is still inside limits, and if the
+plate comes in thick, a P2 below 3.9 may not be.
 
 **Measuring what you achieved and writing it down is critical.** The piece is used to
 check an instrument against a known truth, and your measurement is the known truth. A
-pocket that came out at 3.17 is perfectly good as long as the sheet says 3.17.
+pocket that came out at 3.17 is perfectly good as long as the sheet says 3.17. The trials
+are scored against your measured figures, not against the 3.0 and 4.0 on the drawing.
 
 Please measure and report, to 0.05 where you can:
 

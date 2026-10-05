@@ -1,7 +1,7 @@
 [project]
 name = "self-correcting-cell"
 version = "0.1.0"
-description = "A robotic welding cell that measures every part, inspects its own welds and supervises itself."
+description = "A storage tank inspection crawler that triages weld seams from its camera and spot-checks wall thickness with a probe, and a robotic welding cell that measures every part, inspects its own welds and supervises itself."
 requires-python = ">=3.12"
 
 [tool.ruff]
@@ -19,6 +19,11 @@ ignore = [
 # nested with-blocks are its authoring DSL, not a style choice.
 "cell/sim/*" = ["E402", "SIM117"]
 "scripts/*" = ["E402"]      # sys.path is set up before local imports
+# The tank scripts run as files, so they put the repository root on sys.path
+# before importing the package. The Blender scripts do the same with their own
+# folder, or the root, before importing their siblings.
+"tank/*.py" = ["E402"]
+"tank/sim/*" = ["E402"]
 "tests/*" = ["E402"]
 
 [tool.pytest.ini_options]

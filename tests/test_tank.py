@@ -14,10 +14,16 @@ from __future__ import annotations
 import pytest
 
 from tank import adhesion
-from tank.inspect_seam import SEAM_DEFECTS, SeamVerdict, _coerce, worst
-from tank.probe_planner import (DEFAULT_BUDGET, Memory, Reading, WATCH_FRACTION,
-                                _coerce as coerce_offsets, plan_with_floor,
-                                sweep_rule)
+from tank.inspect_seam import SeamVerdict, _coerce, worst
+from tank.probe_planner import (
+    DEFAULT_BUDGET,
+    WATCH_FRACTION,
+    Memory,
+    Reading,
+    plan_with_floor,
+    sweep_rule,
+)
+from tank.probe_planner import _coerce as coerce_offsets
 from tank.score_survey import CAMERA_WORD, TRACE, score, truth_for
 
 OFFSETS = [-0.45, -0.30, -0.15, 0.0, 0.15, 0.30, 0.45]
@@ -153,10 +159,26 @@ def test_the_rule_otherwise_spends_on_what_it_has_never_measured():
     assert sweep_rule(OFFSETS, 10, memory, 1) == [0.45]
 
 
-def test_the_rule_is_deterministic():
-    memory = Memory([Reading(1, -0.15, 11.0, 11.0)])
-    first = sweep_rule(OFFSETS, 2, memory, 2)
-    assert first == sweep_rule(OFFSETS, 2, memory, 2)
+def test_the_rule_walks_the_band_in_a_fixed_order():
+    """Six stations from an empty memory, every pick written down.
+
+    Asking for the same answer twice would pass for any function without
+    randomness in it, including a wrong one. This pins the actual order:
+    never measured first, ties nearest the seam and below it first, a thin
+    reading chased for as long as it sits inside the two station window, then
+    the stalest offsets. Every score the README gives the rule, and every
+    paired test against it, rests on this order, and score_probes.py
+    --tiebreaks shows how much it moves them.
+    """
+    thin = {(3, -0.45): 7.0}            # 64 percent of nominal, under the watch level
+    memory, walked = Memory(), []
+    for station in range(1, 7):
+        picked = sweep_rule(OFFSETS, station, memory, 2)
+        walked.append(picked)
+        memory.readings.extend(Reading(station, o, thin.get((station, o), 11.0), 11.0)
+                               for o in picked)
+    assert walked == [[0.0, -0.15], [0.15, -0.30], [0.30, -0.45],
+                      [-0.45, 0.45], [-0.45, 0.0], [-0.15, 0.15]]
 
 
 def test_offsets_the_arm_cannot_reach_are_dropped_not_snapped_from_far_away():
@@ -212,11 +234,22 @@ def test_a_coating_costs_grip_without_being_catastrophic():
     assert adhesion.gap_derate(1.2) < half
 
 
-def test_it_holds_on_clean_thick_plate_and_lets_go_under_corrosion():
+def test_it_holds_on_clean_thick_plate_and_falls_below_sf_3_at_a_1_2_mm_gap_on_thin_plate():
     clean = adhesion.budget(6.8, 0.35, 3.0, 0.2, 12.0)
     fouled = adhesion.budget(6.8, 0.35, 3.0, 1.2, 6.0)
     assert clean["margin"] > 1.0
+    # A margin below 1 is below safety factor 3, not sliding: dry, it still holds.
     assert fouled["margin"] < 1.0
+    assert fouled["actual_factor"] > 1.0
+    assert adhesion.flag(fouled) == "below SF"
+
+
+def test_wet_at_a_1_2_mm_gap_on_thin_plate_it_slides():
+    """Couplant on the wheels, at the assumed wet friction, is the one case
+    that lets go outright rather than only falling below the factor."""
+    wet = adhesion.budget(6.8, adhesion.WET_FRICTION, 3.0, 1.2, 6.0)
+    assert wet["actual_factor"] < 1.0
+    assert adhesion.flag(wet) == "SLIDES"
 
 
 def test_the_tether_is_counted_because_it_is_not_nothing():

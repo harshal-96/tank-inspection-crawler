@@ -2,17 +2,21 @@
 
 The crawler carries two instruments and they disagree about what matters. The
 camera sees the surface: rust, a groove at a weld toe, a pore in a bead. The
-ultrasonic probe sees through the plate and reports what is left of it. Neither
-is enough on its own, and the run in tank/data/survey says why in one line: of
-the four probe points on it that fail the acceptance limit, every one is on a
-patch with nothing on the surface at all, under frames the inspector reads as
-clean, while the patch that is plainly rusty measures inside limits.
+ultrasonic probe sees through the plate and reports what is left of it. The
+run in tank/data/survey is built on that premise on purpose. It carries six
+patches of wall loss: one with rust showing on the surface, which measures inside
+limits, and five with nothing on the surface, which hold all 28 of the 168
+probe points that fail the screening limit. 20 of those 28 sit under frames
+the inspector passes. tank/score_probes.py prints these counts from the
+manifest.
 
-So a planner that probes where the camera saw something finds nothing, and a
-planner that always probes on the seam finds nothing either. It has to cover
-the band the arm can reach, notice a thin reading when it gets one, and go back
-to it. That is a decision about where to spend a scarce measurement, which is
-the kind of thing a text model can do and a fixed pattern cannot.
+So probing on the seam, or beside the rust the camera reports, finds 2 of the
+28 (score_probes.py --baselines). A planner has to cover the band the arm can
+reach, notice a thin reading when it gets one, and go back to it. This module
+asks a text model to make that choice, and sweep_rule below makes it with
+arithmetic. On the recorded runs the arithmetic is ahead: the sweep finds 16
+of 28 and the model 9 to 12 (tank/significance.py), so the rule drives the
+arm and this planner is kept as the measured alternative.
 
 The arm offers seven places across the seam at every station and there is time
 for two, so this is 2 of 7, twenty four times, with the answers written before
@@ -20,7 +24,10 @@ it started.
 
 Nothing here is allowed to see the ground truth. The planner is given what the
 crawler knows: what the inspector said about the picture, which offsets exist,
-and the readings already taken on this run.
+which have never been measured, and the last six readings on this run. The
+sweep reads the whole run's history, so the two are not matched on
+information; score_probes.py --baselines has a "sweep, model's view" arm that
+holds the rule to the model's six readings.
 """
 
 from __future__ import annotations
@@ -32,12 +39,18 @@ from brain import nebius
 
 NL = chr(10)
 
-# How many of the seven the arm has time for at one station.
+# How many of the seven the arm has time for at one station. An assumption,
+# not a measured cycle time: a spot probe that is placed, coupled and read at
+# each place. A probe that reads continuously as it rolls would take the
+# choice away altogether.
 DEFAULT_BUDGET = 2
 
 # A reading at or below this share of nominal is worth going back to, even
-# though it is not yet a rejection. The acceptance limit itself is 0.60, and a
-# planner that only reacts at 0.60 reacts one station too late.
+# though it is not yet a rejection. The screening limit itself is 0.60 of
+# nominal, a threshold chosen for this benchmark rather than an API 653
+# retirement thickness, and a planner that only reacts at 0.60 reacts one
+# station too late. This is the rule's own setting: the model's prompt gives
+# the reject level and never this number.
 WATCH_FRACTION = 0.80
 
 SYSTEM_PROMPT = """You are planning ultrasonic thickness measurements for a \
@@ -69,13 +82,15 @@ Reply with JSON only, no prose and no code fence:
 {"offsets": [the offsets you choose, exactly as given in the list],
  "why": "one short sentence"}
 
-Answer with the JSON object and nothing else. Do not write your reasoning out as prose first: the one sentence in "why" is all the room there is for it."""
+Answer with the JSON object and nothing else. Do not write your reasoning out as prose first: the one sentence in "why" is all the room there is for it."""  # noqa: E501  the recorded runs used this exact text
 
-# Which NVIDIA model plans the probing. Nemotron 3.5 Lightning, the project's
-# default for text, will not do this job: given a station it writes its
-# reasoning out in prose and never reaches the JSON, with three thousand tokens
-# of room as readily as with three hundred. Nano and Super both answer cleanly.
-# The envelope changes per model; the question does not.
+# Which NVIDIA model plans the probing. Nano and Super both answered cleanly.
+# Nemotron 3.5 Lightning, the project's default for text, wrote its reasoning
+# out in prose and did not reach the JSON in the runs tried, but plan_probes
+# makes its call with default reasoning: unlike the cell's other Nemotron
+# calls it passes no reasoning_effort. So that is a note about this envelope,
+# not evidence that Lightning cannot plan, and the recorded Nano runs were made
+# in the same envelope. The envelope changes per model; the question does not.
 DEFAULT_PLANNER_MODEL = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
 
 
@@ -249,18 +264,21 @@ def plan_with_floor(station: int, offsets: list[float], nominal_mm: float,
                     api: Optional[Any] = None) -> ProbePlan:
     """The rule claims one measurement, the model spends the rest.
 
-    Measured over eight runs, the model planner beats the arithmetic sweep on
-    its median and only equals it on its worst run. That is the wrong shape for
-    something pointed at a pressure boundary: the useful property of the sweep
-    is not that it is clever, it is that it is the same every time, and a floor
-    you can state is worth more than an average you cannot.
+    Measured only on the retired four point scene (tank/data/survey/
+    archive_four_point). There the model alone found 4, 3 and 4 of the 4
+    rejectable points against the sweep's 2, and with this floor it found 4,
+    4, 2, 3 and 4 over five runs. It has not been run on the 28 point scene,
+    where the model alone found fewer than the sweep in every recorded run, so
+    nothing here says how the floor does there.
 
-    So the sweep's first pick is reserved. It is the offset that has gone
-    longest without a reading, or one that came back thin in the last two
-    stations, which is the coverage the model is most likely to drop when it
-    becomes interested in something. The model fills what is left. The result
-    cannot do worse than the sweep on coverage, and keeps whatever the model
-    adds on top.
+    The idea: the useful property of the sweep is not that it is clever, it is
+    that it is the same every time. So the sweep's first pick is reserved. It
+    is the offset that has gone longest without a reading, or one that came
+    back thin in the last two stations, which is the coverage the model is
+    most likely to drop when it becomes interested in something. The model
+    fills what is left. The plan always includes the sweep's first pick at
+    every station; that is all it guarantees; the sweep's second pick can
+    still be lost, so this is not a promise to match the sweep's score.
     """
     floor = sweep_rule(offsets, station, memory, 1)
     if budget <= 1:

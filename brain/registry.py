@@ -37,18 +37,26 @@ class Model:
 SIZES = (
     Model("nano", "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
           "Nemotron 3 Nano 30B", "30B-A3B",
-          "Every per-part decision: is this measurement good enough to weld on",
+          "Every per-part decision: is this measurement good enough to weld on. "
+          "Also measured as the tank's probe planner: never ahead of a coverage rule, "
+          "and level with it when the rule is shown only what the model sees",
           "NVIDIA",
           aliases=("Nemotron 3 Nano 30B-A3B", "NVIDIA-Nemotron-3-Nano-30B-A3B",
                    "nemotron-3-nano-30b-a3b")),
     Model("lightning", "nvidia/Nemotron-3_5-Lightning",
           "Nemotron 3.5 Lightning", "undisclosed",
-          "Scored on the same per-part decision, not routed to",
+          "Drives the supervisor agent and writes the corrective action briefs; "
+          "scored on the per-part decision, not routed to",
           "NVIDIA",
           aliases=("Nemotron-3_5-Lightning", "Nemotron 3.5 Lightning")),
     Model("super", "nvidia/nemotron-3-super-120b-a12b",
           "Nemotron 3 Super 120B", "120B-A12B",
-          "The shift-level question: which machine is drifting",
+          # Asked the same boundary-stated question twice: 44 in data/hard64_a.jsonl
+          # and 46 as the "cloud" arm of data/hard64_c.jsonl, which
+          # service/evidence.hard_study() pools as 90 of 128. The diagnosis default
+          # is DeepSeek V4.1 Flash (brain/nebius.py), so Super is measured here,
+          # not called in the loop.
+          "Scored on the drift question (44 and 46 of 64 in two runs), not deployed",
           "NVIDIA",
           aliases=("Nemotron 3 Super 120B-A12B", "nemotron-3-super-120b-a12b",
                    "nemotron-3-super-120", "Super 120B, boundary withheld")),

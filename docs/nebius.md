@@ -42,7 +42,12 @@ NVIDIA's two multimodal models were withdrawn from serverless inference on
 | `nvidia/Nemotron-3-Nano-Omni` | `nvidia/Nemotron-3_5-Lightning`, which is text only |
 | `nvidia/Cosmos3-Super-Reasoner` | `MiniMaxAI/MiniMax-M3`, which is not an NVIDIA model |
 
-All four NVIDIA models remaining in the catalog are text only. Nebius marketing pages
+All four NVIDIA models remaining in the catalog are text only. That was measured, not
+read from the catalog: on 19 September 2026 `scripts/probe_vision_field.py` put every
+model the key reaches, 23 of them, through the inspection path with one clean bead and
+one burnt through (`data/vision_field.jsonl`). 15 refused the image outright, all four
+NVIDIA models among them. 8 accepted it; 6 of those judged the bead and 2 answered
+"uncertain" on both beads (MiniMax-M3 and Kimi K3). Nebius marketing pages
 still announce "Nemotron Nano 2 VL in AI Studio"; that is stale. The Hugging Face repo
 `nvidia/Nemotron-Nano-12B-v2-VL` does not exist either, the real ones are suffixed
 `-BF16`, `-FP8` and `-NVFP4-QAD`.
@@ -66,7 +71,8 @@ Serverless and confirmed for this project:
 
 | Role | `model_id` | In / out per 1M | Context | Tools |
 | --- | --- | --- | --- | --- |
-| Supervisor agent | `nvidia/Nemotron-3_5-Lightning` | $0.06 / $0.24 | 1M | yes |
+| Supervisor agent, and the corrective action briefs | `nvidia/Nemotron-3_5-Lightning` | $0.06 / $0.24 | 1M | yes |
+| View planning in the cell; measured as the tank's probe planner | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | see the catalog | see the catalog | see the catalog |
 | Weld inspection, and the shift diagnosis | `deepseek-ai/DeepSeek-V4.1-Flash` | see the catalog | see the catalog | yes |
 | Weld inspection, earlier choices | `MiniMaxAI/MiniMax-M3`, `google/gemma-3-27b-it` | see the catalog | see the catalog | yes |
 
@@ -75,10 +81,20 @@ model the picture is a rendering. Under it MiniMax-M3, DeepSeek V4.1 Flash and G
 within noise on 50 beads. On 150 beads DeepSeek V4.1 Flash wins the pass-or-defect call
 outright, so it is the inspector; the README has the tables.
 
+Nemotron 3 Nano does live work in the cell, deciding whether a view is worth believing
+or the part should be presented again. On the tank it was measured as the planner that
+picks where the thickness probe goes, and it lost: 9, 10 and 12 of the 28 rejectable
+points in three recorded runs, and 11 with the camera's report withheld, against 16 for
+a coverage rule given the same budget (`tank/data/survey/probing.json`,
+`probing_power.json`, `probing_blind.json`). So the rule drives the probe and the model
+result is reported as a negative one. Those runs used the default reasoning setting,
+unlike the cell's view planner and brief writer, which set `reasoning_effort` to
+`"none"` (see below); the result holds for that setting only.
+
 Twelve of the twenty-four catalog entries carry a `dedicated-endpoint` use case. Whether
-that means dedicated-only or merely dedicated-also is undocumented. Neither model above
-carries the tag. Confirm what a given key can reach with `client.models.list()`, which
-is what `scripts/hello_nemotron.py` does.
+that means dedicated-only or merely dedicated-also is undocumented. Every model in the
+table above answered serverless calls on a plain project key. Confirm what a given key
+can reach with `client.models.list()`, which is what `scripts/hello_nemotron.py` does.
 
 ## Request details that matter
 

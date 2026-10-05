@@ -22,6 +22,13 @@ made easier for it:
 
     python scripts/eval_drift_edge.py
     python scripts/eval_drift_edge.py --base-only      # the untrained 1.7B, for contrast
+    python scripts/eval_drift_edge.py --with-camera    # the four-way question
+
+A run writes to runs/ (gitignored) with a timestamp in the name. The recorded
+results the dashboard reads, data/drift_eval_edge*.jsonl, are never replaced by
+a rerun unless --out names one of them and --force is given: latencies always
+differ between runs and answers can, so a quiet overwrite would change published
+evidence.
 """
 
 from __future__ import annotations
@@ -33,7 +40,8 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT))
 
 from cell.drift import (  # noqa: E402
     SCENARIOS,
@@ -48,6 +56,10 @@ from cell.drift import (  # noqa: E402
 
 BASE_MODEL = "Qwen/Qwen3-1.7B"
 ADAPTER = "data/finetune/adapter"
+# The adapter is about 81 MB of weights and is not in git. It is to be attached
+# to a release of the repository as a zip; this is that asset's download link,
+# and it stays empty until the release exists rather than pointing at nothing.
+ADAPTER_RELEASE_URL = ""
 MAX_NEW_TOKENS = 220
 
 
@@ -112,6 +124,11 @@ def safe(text: object) -> str:
     return str(text).encode("ascii", "replace").decode("ascii")
 
 
+def protected_paths() -> set[Path]:
+    """The recorded edge results, which a new run must not quietly replace."""
+    return {p.resolve() for p in (ROOT / "data").glob("drift_eval_edge*.jsonl")}
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--parts", type=int, default=30)
@@ -121,7 +138,10 @@ def main() -> int:
     parser.add_argument("--base-only", action="store_true",
                         help="Score the untrained model, to show what training bought")
     parser.add_argument("--severity", type=float, default=1.0)
-    parser.add_argument("--out", default=None)
+    parser.add_argument("--out", default=None,
+                        help="Where to write. Default: runs/<stem>_<timestamp>.jsonl")
+    parser.add_argument("--force", action="store_true",
+                        help="Allow --out to replace a recorded data/drift_eval_edge*.jsonl")
     parser.add_argument("--with-camera", action="store_true",
                         help="The four-way question, including a drifting camera, with "
                              "the reference feature that separates it from a drifting "
@@ -132,10 +152,25 @@ def main() -> int:
 
     adapter = None if args.base_only else args.adapter
     if adapter and not Path(adapter).is_dir():
-        raise SystemExit(f"no adapter at {adapter}; run scripts/finetune_drift.py --fetch")
+        where = ADAPTER_RELEASE_URL or "no release yet; the weights are to be attached to one"
+        raise SystemExit(
+            f"no adapter at {adapter}. The trained weights are not in git.\n"
+            f"  download: {where}\n"
+            f"  unzip it so that {adapter}/adapter_model.safetensors exists, or, with the\n"
+            f"  Token Factory key that trained it, run scripts/finetune_drift.py --fetch\n"
+            f"  (--base-only runs the untrained control without it)")
 
     stem = "drift_eval_edge4" if args.with_camera else "drift_eval_edge"
-    out = Path(args.out or f"data/{stem}{'_base' if args.base_only else ''}.jsonl")
+    stem += "_base" if args.base_only else ""
+    if args.out:
+        out = Path(args.out)
+    else:
+        out = ROOT / "runs" / f"{stem}_{time.strftime('%Y%m%d_%H%M%S')}.jsonl"
+    # Checked before the model loads, so a refused run costs nothing.
+    if out.resolve() in protected_paths() and not args.force:
+        raise SystemExit(
+            f"refusing to write over {out}: it is a recorded result. Write elsewhere,\n"
+            f"  or pass --force if replacing it is the intent.")
 
     tokenizer, model = load(args.base, adapter)
 

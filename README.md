@@ -1,16 +1,36 @@
 # Tank Inspection Crawler
 
-A robot that crawls the weld seams inside a steel storage tank with two instruments: a
-camera that judges the surface, and an ultrasonic probe that measures what is left of the
-plate behind it. The finding this project is built on is that **neither instrument can do
-the other's job**, and that the right place for a model is on the picture, not on the arm.
+A robot that crawls the weld seams inside a steel storage tank, the lines where its steel
+plates are welded together, with two instruments: a camera that judges the surface, and an
+ultrasonic probe that measures what is left of the plate behind it. The premise this project is built on, and standard API 653 practice, is
+that **neither instrument can do the other's job**. The camera cannot find wall loss that
+leaves no mark on the face it sees, and here it cannot even see 6 of the 7 places the probe
+can reach. The probe cannot judge a weld surface. So the model belongs on the picture, and
+arithmetic drives the arm.
+
+What we measured, on a replayable scene built so that only the probe can find the
+rejectable wall loss: a vision model, DeepSeek V4.1 Flash, makes the walk-in call right on
+23 of 24 frames (a development set; the one miss is a crack the frame before had already
+named). For choosing where to probe, NVIDIA Nemotron 3 Nano was never ahead of a short
+coverage rule: the rule as shipped found 16 of 28 rejectable points and all 5 hidden
+patches, the model 9 to 12 and 4 of 5 in each run. Given only the state the model is shown,
+the rule finds 11, level with the model. Hiding the camera from the model changed nothing,
+which on this rig is largely by construction. Arithmetic drives the arm because on this
+evidence it is no worse, and it is deterministic, free, and adds no hours to a tank.
+
+Nemotron does live work on the welding cell this loop was first built on (below): Nano
+makes every per-part decision about whether a measurement is good enough to weld on, and
+Nemotron 3.5 Lightning drives the supervisor agent and writes the corrective action
+briefs. In the tank, Nemotron is measured as a probe planner and not used.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 
 Confined space entry is what makes this work dangerous. A tank has to be emptied,
 cleaned, ventilated and certified before anyone climbs in, and the inspection itself is a
-person with a lamp and a probe standing inside a steel drum. The crawler does the looking
-and the measuring. What it cannot defend, it hands to a person, and it says so.
+person with a lamp and a probe standing inside a steel drum. The crawler does not remove
+that outage. It works in air, inside a tank already drained for its floor inspection, and
+cuts the hours people spend inside it. What it cannot defend, it hands to a person, and it
+says so.
 
 ## If you have ten minutes
 
@@ -19,49 +39,112 @@ reading it against a clock, these commands need no API key, no GPU and no downlo
 
 ```bash
 pip install -r requirements.txt
-python tank/score_survey.py --replay    # the 24 tank frames, scored against the answers
-python tank/score_probes.py             # where to probe; baselines run without a key
-python tank/significance.py             # what each of those counts actually licenses
-python -m pytest -q                     # 319 tests
+python tank/score_survey.py --replay      # the 24 tank frames, recorded verdicts re-marked
+python tank/score_probes.py --baselines   # where to probe: arithmetic, chance and oracle
+python tank/significance.py               # what each of those counts actually licenses
+python -m pytest -q                       # 362 tests
 ```
 
+None of these calls a model, even with a Token Factory key set, and none of them writes a
+file. Asking a model again is a separate flag on each scorer, `--live`, which is paid and
+writes into `tank/data/survey/runs/` by default, not over the recorded results.
+
 The 24 frames are **in this repository**, in `tank/data/survey/frames`, next to the
-answers that were written into the scene before any model saw them. Open them and
-disagree with the scoring if you like. With a Token Factory key, drop `--replay` to ask
-the model again rather than re-mark its recorded answers.
+answer key, which is computed from the scene and not from any model's answer. Open them and
+disagree with the scoring if you like.
 
 ## The argument: two instruments, and neither is enough
 
-The survey run carries patches of wall loss. One is rusted through to the surface and a
-camera finds it at once. The others have nothing on the surface at all.
+The survey run carries six patches of wall loss. One shows as rust on the surface and a
+camera finds it at once; it has **69 percent** of its wall left and passes. The other
+five leave no mark on the face the crawler sees; the worst has **34.5 percent** left and
+fails. The limit is 60 percent of nominal wall, a screening threshold set for this
+benchmark. It is not an API 653 minimum thickness, which is calculated course by course
+from the tank's dimensions, fill height and product.
 
-The rusty one has **69 percent** of its wall left and passes. The worst of the clean
-looking ones has **35 percent** left and fails. The limit is 60.
+The scene encodes that premise on purpose (`tank/sim/blender_tank.py`): one visible patch
+inside limits, five hidden ones outside, placed by hand 0.27 to 0.41 m off the seam. What
+it measures is how each planner copes with that, not whether it holds in a given tank. The
+loss it stands for is eaten from the far side of the plate: corrosion under insulation on
+an insulated or heated shell, soil-side and chime loss, and, the strongest case, floor
+plates whose underside nobody can see.
 
-Across the run, 28 of the 168 places the probe can reach fail the limit, and **20 of
-those 28 sit under a frame the camera calls sound**. The loss worth finding is the loss
-that leaves no mark. So a camera cannot find what matters, and a probe with time for two
-measurements in seven cannot look everywhere. Something has to decide where to measure.
+Across the run, 28 of the 168 places the probe can reach fail the limit, all of them on
+the five hidden patches and none on the visible one. **20 of those 28 sit under frames the
+inspector passed**, and 18 under frames with no visible fault in them at all.
+`tank/score_probes.py` prints these counts from the manifest every time it runs.
+
+The geometry leaves the camera very little to say about the probe. A frame covers 0.295 m
+along the seam and 0.166 m across it, about ±0.083 m. The probe reaches seven offsets: 0,
+±0.15, ±0.30 and ±0.45 m. So the camera images only the on-seam position, and 6 of the 7
+offsets are never in any frame. The camera also sits 0.36 m ahead of the probe contact, so
+the picture of a station is taken before the probe gets there.
+
+The arm has time for two measurements in seven at each station. That is a stated design
+assumption for a single-element spot probe, placed, coupled and read at each point, not a
+measured cycle time; a probe that reads continuously as it rolls would take the choice
+away. With two in seven, something has to decide where to measure.
 
 ## What was measured, and what it licenses
 
 Every result is a count out of a small number, so each one is printed with the bound it
-supports rather than left to look better than it is. `tank/significance.py` produces the
-right hand column.
+supports rather than left to look better than it is. `tank/significance.py` prints every
+figure in this section, and `tank/score_survey.py --replay` shows the inspection marks
+frame by frame.
 
-| | Result | What it licenses |
+**The inspection.** DeepSeek V4.1 Flash, one recorded verdict a frame, 24 frames.
+
+| | Result | One sided 95 percent exact lower bound |
 | --- | --- | --- |
-| Is this seam sound, or does somebody have to walk in | **24 of 24**, nothing missed, no false alarms, none declined | at least 88 percent, one sided 95 percent bound |
-| Finding every fault in the frame, not only the worst | **9 of 13**, none invented | at least 42 percent; this is the harder number |
-| Naming the worst fault | 20 of 24 | the four misses all had a second real fault in frame |
-| Where to probe: plain coverage, no model | **16 of 28**, every run | deterministic |
-| Where to probe: Nemotron 3 Nano | 9, 10 and 12 of 28 | behind the rule; paired test p = 0.14 |
-| Where to probe: Nano with the camera hidden | 11 of 28 | the camera adds nothing to the probing |
-| Where to probe: always on the seam | 2 of 28 | |
-| Where to probe: wherever the camera saw rust | 0 of 28 | worse than not looking |
+| Is this seam sound, or does somebody have to walk in | **23 of 24**; 1 missed, no false alarms, none declined | 0.817 |
+| The same call, counted only when the fault it names is really in the frame | 21 of 24 | 0.708 |
+| Finding every fault in the frame, not only the worst | **9 of 14**, none invented | 0.390 |
+| Frames with every fault found | 19 of 24 | 0.611 |
+| Naming the worst fault | 19 of 24 | 0.611 |
+| Distinct faults on the run named in at least one frame that holds them | 4 of 5 | 0.343 |
 
-The inspector takes about 9 seconds a frame and the planner 6 to 8 seconds a station,
-one model call each.
+- The miss is station 12: the frame holds the same 64 mm crack that frame 11 had already
+  named, and the inspector passed it.
+- Calling every frame sound would score 13 of 24 on the first row, because 13 frames hold
+  no fault.
+- The strict row is lower because frames 1 and 2 hold D001, a 1.7 mm undercut against a
+  0.8 mm limit, and were called defect for a sliver of rust below the counting threshold.
+  The right call for the wrong reason. All five headline misses are that same undercut,
+  reported in frames 1 to 4 as the corroded plate beside it, and the station 12 crack.
+- These are not independent trials. A frame shows 0.295 m of seam and the stations are
+  0.1739 m apart, so 41 percent of each frame is also in the next, and the 14 sightings of
+  a fault are 5 physical faults. The bounds treat each frame as a fresh draw, so they are,
+  if anything, too kind.
+
+**The probe.** Two of seven offsets at each of 24 stations, 48 measurements, against 28
+rejectable points on 5 hidden patches. "Chance" is the exact probability that picking two
+of seven at random finds at least as many. "Paired p" is an exact McNemar test against the
+shipped sweep, one per run and never pooled.
+
+| Planner | Rejectable found, of 28 | Hidden patches reached, of 5 | Chance | Paired p |
+| --- | --- | --- | --- | --- |
+| Oracle, knows the answers | 23 | | | |
+| Sweep: coverage plus return to thin readings, no model, as shipped | **16** | 5 | 0.0002 | |
+| the same sweep under all 5040 orders of its tie-break | 7 to 18, median 12 | | | |
+| the same sweep, given only the state the model is shown | 11 (7 to 19 over tie-break orders, median 13) | 5 | 0.11 | |
+| Nemotron 3 Nano, run 1 | 9 | 4 | 0.40 | 0.143 |
+| Nemotron 3 Nano, run 2 | 12 | 4 | 0.047 | 0.344 |
+| Nemotron 3 Nano, run 3 | 10 | 4 | 0.23 | 0.146 |
+| Nemotron 3 Nano, camera hidden (one run) | 11; no change seen | 4 | 0.11 | 0.267 |
+| Two of seven at random | 8 expected, central 95 percent 4 to 12 | | | |
+| Always on the seam, then -0.15 | 2 | 1 | 0.9997 | |
+| Probe beside reported rust | 2 | 1 | 0.9997 | |
+
+The model was never ahead of the rule, in any run, and no single gap is significant on its
+own; the 28 points cluster in 5 patches, so the pairs are not independent either. Three of
+the four model runs are results that random picks reach more often than one time in ten.
+"Probe beside reported rust" is what steering the probe by the camera alone can do on this
+rig: it finds 2, the same as never moving off the seam.
+
+`python tank/score_probes.py --tiebreaks` prints the tie-break distribution and
+`python tank/layout_sweep.py` the layout sweep in the next section. Neither calls a model.
+
+The inspector takes 9.2 s a frame and the planner 7.1 s a station, one model call each.
 
 ## How the headline changed, and why that is the result
 
@@ -72,45 +155,129 @@ way it was caught is the most useful thing here.
 The run originally held **four** rejectable probe points, from one hidden patch. On four
 points Nano found three or four and the coverage rule found two, so the model appeared to
 win. The exact paired test on that is p = 1.00: not a near miss, no evidence in either
-direction. Repeating it eight times did not help, because all eight re-measured the same
-four points.
+direction. Repeating it did not help, because every repeat re-measured the same four
+points. Those runs are kept in `tank/data/survey/archive_four_point/` as the record, and
+no result from them is used here; Nemotron Super and a hybrid floor planner were measured
+only there and are not reported.
 
 So the evaluation scene was given five hidden patches instead of one, taking it to **28**
 rejectable points. Hidden loss adds no geometry, so the 24 scored frames stayed byte for
-byte identical, checked by digest, and every recorded verdict still applies.
-`tank/refresh_probes.py` recomputes the probe answers from the scene without re-rendering,
-and refuses to run if the frames have moved.
+byte identical and every recorded verdict still applies. `tank/data/survey/frames.sha256`
+records their digests, `tank/refresh_probes.py` recomputes the probe answers from the scene
+without re-rendering and refuses to write unless every frame still matches, and
+`git diff --stat 24208a0^ -- tank/data/survey/frames` prints nothing.
 
-On 28 points the result reverses and is not close. The rule finds 16 every run; the model
-finds 9 to 12. The task rewards what a rule is good at: the loss is sparse, the budget is
-fixed, and systematic coverage beats reasoning about where loss might be. The model keeps
-returning to places it has reasons about and leaves bands of wall unvisited.
+On 28 points the rule was ahead in every run: 16 against 9, 10 and 12. We first read that
+as coverage beating reasoning. Two checks say the gap is mostly something else.
 
-Then the ablation. Replace the one sentence about the picture with "no camera on this
-run" and the model finds 11 of 28, the same as with it. The camera contributes nothing
-to choosing where to probe, which is what the physics said it would do.
+The first is information. The model is shown the inspector's sentence about the picture,
+which offsets exist, which have never been measured on the run, the last six readings, and
+one nominal wall and reject level for the station. It is not told how long ago each offset
+was last measured; the rule reads the whole run's history. Held to the model's six readings
+and nothing more, the rule finds 11 of 28, level with the model's 9 to 12.
 
-So the architecture this evidence supports is the one the README now leads with: **the
-model judges the picture, where there is something to see, and arithmetic drives the
-arm.** Nemotron Super and a hybrid floor planner were measured only on the discarded four
-point set, and no figure from that set is reported here.
+The second is the draw. The rule's 16 comes from one tie-break order: over all 5040 orders
+it finds 7 to 18, median 12, and 93.9 percent of orders find fewer than 16. The layout is
+favourable too. The hidden patches were placed by hand after the four-point result, every
+one 0.27 to 0.41 m off the seam. `tank/layout_sweep.py` puts the same five patches in 1000
+random places (seed 1): the sweep finds 57.1 percent of the rejectable points on the
+shipped layout against a median of 40.7 percent, and 94.9 percent of layouts give it less.
+The same layout punishes probing on the seam, 7.1 percent shipped against a median of 34.8.
+On random layouts the sweep beats always-on-the-seam in only 572 of 1000.
+
+Then the ablation. Replace the one sentence about the picture with "no camera on this run"
+and the model finds 11 of 28, inside the range of its three sighted runs. That is largely
+by construction: the camera images only the on-seam probe position, so on this rig there is
+almost nothing for the picture to tell the planner. It is one run, so read it as no change
+seen, not as a measured zero.
+
+So nothing here shows a model choosing probe points better than coverage, and nothing
+shows coverage reasoning better than the model; what the gap measures is mostly the state
+the planner keeps. That fits published evaluations of language models as planners
+(PlanBench, Valmeekam et al.) and the LLM-Modulo argument for pairing them with external
+checkers (Kambhampati et al., arXiv 2402.01817). The standard approach to this kind of
+sparse search is kriging, or Gaussian-process thickness mapping, which measures next where
+the map is least certain. We have not run it here, and it is the baseline a serious version
+of this comparison should add.
+
+The architecture this evidence supports is the one the README leads with: **the model
+judges the picture, where there is something to see, and arithmetic drives the arm**,
+because it is no worse, deterministic, free and instant. A model planner would also add
+5.3 hours to a real tank, 4.0 even overlapped with driving, because each plan waits for the
+last station's readings.
+
+## How the answer key was corrected
+
+The survey score this README used to lead with had no misses. It was scored against an
+answer key that hid a crack visible in frame 12.
+
+The old key projected every fault through the camera at the bead crown, 8 mm proud of the
+plate. The crack is drawn lower, 2.4 mm proud, and shows on the plate above and below the
+bead. Near the edge of the 14 mm lens that moved its projection to u = -0.006, just outside
+a frame it is plainly in, at pixels 16 to 33 of 1280. The verdict at station 12 had been
+recorded against "crack"; the old replay overwrote that with the key's "none" without
+saying so.
+
+The key is now rebuilt without Blender, in `tank/truth.py`. Seam faults are projected from
+their rendered vertices (`tank/data/survey/fault_geometry.json`), and the camera model is
+checked against Blender's own projection on 630 points
+(`tank/data/survey/projection_check.json`, worst 0.02 px). `tank/refresh_probes.py`
+rebuilds the key and refuses to write unless the frames match `frames.sha256`, and
+`tests/test_tank_truth.py` pins all of it. The recorded verdicts were not touched; only
+station 12's answer moved, and `--replay` prints any row where the answer stored with a
+verdict and the rebuilt key disagree. Every inspection number above is scored against the
+corrected key.
+
+This is the second time the project has caught its own headline, after the four-point probe
+result.
 
 ## What is still wrong with it
 
-- **Undercut.** Four frames carry a groove at the weld toe and the inspector reports the
-  corroded plate beside it. Asked to list everything it names the groove first; asked to
-  judge, it calls the toe a normal shadowed junction. Every image-capable model on the
-  account agrees, so this is the simulated groove, not the inspector. Written up, not
-  tuned away.
-- **The model is the bottleneck, not the robot.** A real 473 m shell is about 1.3 hours of
-  driving and about 13 hours of inference at the measured rates. Inference has to run
-  while the crawler moves, and nothing here does that yet.
+- **Station 12.** The inspector passed a frame holding a 64 mm crack, the same crack it
+  named in frame 11. The run still flagged the crack, but one frame's pass is not a clean
+  bill for the seam it shows.
+- **Undercut.** Four frames carry D001, a 1.7 mm groove at the weld toe against a 0.8 mm
+  limit. The inspector reported the corroded plate beside it every time and never named
+  the groove. Whether that is the simulated groove or the model is not separated: the
+  recorded verdicts are one model's. Written up, not tuned away.
+- **A development set.** The scene was corrected after reading the model's answers (commit
+  048b919, six faults fixed). There is no held-out survey, so every inspection number here
+  is a development-set number.
+- **Choices that favour the inspector.** The four weld faults share one near-black
+  material, and the prompt describes the crack, the undercut and the porosity as dark.
+  "Declined" is only allowed when
+  no bead is in the frame, so "none declined" holds by construction. The counting
+  threshold matters at the edges: re-scored with it moved, the walk-in count stays 23 for
+  anything from 0.02 to 0.2 of a fault or of the frame (the scorer uses 0.08), falls to
+  21 below that and to 22 above it. `tank/significance.py` prints the whole sweep.
+- **Overlap and clustering.** Frames share 41 percent of their seam with the next, so 24
+  frames are not 24 trials, and the 28 probe points sit in 5 patches, so neither are they.
+- **The bead is exaggerated for visibility**, about 2.8 times the API 650 reinforcement
+  limit for this joint, so its toe shadows read at render resolution.
+- **The probe cross-slide is notional.** The scoring assumes the probe can be put down at
+  seven offsets up to 0.45 m either side of the seam; nothing models that mechanism or its
+  time, and the two-in-seven budget is an assumption.
+- **Adhesion is an envelope, not a margin.** `tank/adhesion.py`, at 6.80 kg with 6 m of
+  tether and an assumed 220 N rated pull a wheel: dry (friction 0.35) it holds safety
+  factor 3 at 0.2 mm liftoff on every course, and fails it at 1.2 mm everywhere and at
+  0.6 mm on 6 mm plate. With couplant on the wheels (friction 0.2, assumed) it is below
+  safety factor 3 in every case and slides at 1.2 mm on 6 mm plate. Holding safety factor
+  3 in the worst dry case needs about 435 N a wheel. The wheels have to be kept out of the
+  couplant or rated higher.
+- **One inspection pass.** Each frame was judged once, so the inspector's spread across
+  repeats is not measured. The planner ran three times sighted and once blind.
+- **The model is the bottleneck, not the robot.** A real 473 m shell is 2720 stations:
+  1.3 hours of driving at an assumed 0.10 m/s and 7.0 hours of serial vision inference at
+  9.2 s a frame. About six requests in flight would keep the inference at drive speed, and
+  nothing here does that yet. A model planner would add 5.3 hours (4.0 overlapped), one
+  more reason arithmetic drives the arm. Cost per tank is not yet measured.
 - **The world is ours.** We built the tank, planted the faults and wrote the answers. That
   is how a simulated test works, but it means every number here is a statement about this
   scene, and the evaluation scene deliberately carries more hidden loss than a real tank
   of this age would.
-- **Small samples.** 24 frames and 28 rejectable points. Enough to rule things out, which
-  is what they did. Not enough to rank closely matched models.
+- **Small samples.** 24 frames and 28 rejectable points. Enough to rule some things out;
+  not enough to rank closely matched planners, and no single probe comparison here is
+  significant on its own.
 - **No hardware yet.** A bench plate with machined back-face pockets and a real gauge is
   specified in `docs/bench/`. Nothing physical has been measured.
 
@@ -123,40 +290,48 @@ the measured numbers in this repository come from.
 ![Weld seam found to under a millimetre on parts arriving centimetres out](docs/figures/seam_result.png)
 
 Every row is one part. The pale dot is where a taught program would have welded; the
-dark dot is where the cell put the seam after measuring it. Drawn from the campaign
-file by `scripts/draw_result_chart.py`, so a number on the chart cannot drift away from
-the run that produced it.
+dark dot is where the cell put the seam after measuring it. The arrival scatter is
+exaggerated for visibility; on a real line the joint moves with part variation such as
+camber, springback and fit-up. Drawn from the campaign file by
+`scripts/draw_result_chart.py`, so a number on the chart cannot drift away from the run
+that produced it.
 
 ## Run it
 
 ```bash
 pip install -r requirements.txt
-uvicorn service.app:app            # every study page is live immediately
+uvicorn service.app:app            # the dashboard, which opens on the tank page
 python scripts/demo.py --offline   # three seconds, and the cell is running
 ```
 
-The tank run. The first two commands work without a key: one re-marks the recorded
-verdicts, the other runs the three arithmetic planners. With a Token Factory key they ask
-the models again.
+For the welding cell: no GPU, no API key and no download. Six parts of captured depth
+ship with the repository, and the demo runs the actual pipeline over them rather than
+replaying saved numbers. Without `--offline`, a Token Factory key turns on the half that
+calls a model.
+
+The tank run. None of these calls a model or writes a file, with a key or without one:
 
 ```bash
-python tank/score_survey.py --replay   # re-mark recorded verdicts; drop --replay to re-ask
-python tank/score_probes.py            # planners; add --blind to hide the camera
-python tank/significance.py            # bounds and the paired test
+python tank/score_survey.py --replay      # re-mark the recorded verdicts
+python tank/score_probes.py --baselines   # the arithmetic planners, chance and the oracle
+python tank/score_probes.py --tiebreaks   # the sweep under every order of its tie-break
+python tank/layout_sweep.py               # the same planners on 1000 random patch layouts
+python tank/significance.py               # bounds and the paired tests
 ```
 
+Asking a model again is a separate flag, `--live`, on `score_survey.py` and
+`score_probes.py`. It is paid, one Token Factory request a frame or a station, and it
+writes into `tank/data/survey/runs/` rather than over the recorded files.
+`score_probes.py --live --blind` hides the camera from the planner.
+
 All of them read the captured dataset in `tank/data/survey`, which ships with the
-repository.
-Rebuilding the tank itself needs Blender running with its socket add-on on port 9876:
+repository. Rebuilding the tank itself needs Blender running with its socket add-on on
+port 9876:
 
 ```bash
 python scripts/blender_send.py tank/sim/blender_tank.py   # 473 m of seam, six courses
 python scripts/blender_send.py tank/sim/capture_tank.py   # 24 stations, pictures, depth
 ```
-
-For the welding cell: no GPU, no API key and no download. Six parts of real captured depth ship with the
-repository, and this runs the actual pipeline over them rather than replaying saved
-numbers. A Token Factory key turns on the half that calls a model.
 
 ![The dashboard's summary page](docs/figures/dashboard.png)
 
@@ -164,12 +339,12 @@ numbers. A Token Factory key turns on the half that calls a model.
 
 | | Result | Scored against |
 | --- | --- | --- |
-| Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm | the true seam, 1,000 stations |
-| Routing to the right model size | 88 of 89 for the smallest model, no part welded on a failed view | ground truth, not a larger model's opinion |
+| Seam tracked along its whole length | **22.8 mm → 0.67 mm**, 50 of 50 parts under 1 mm, on exact rendered depth | the true seam, 1,000 stations |
+| Choosing the model size for the per-part decision | 88 of 89 for the smallest model; the one miss accepted a view a second look would have improved by 0.3 mm | ground truth, not a larger model's opinion |
 | Post-weld inspection | 91% pass or defect on 150 beads, 111 of 150 named exactly, no false alarms | the defect that was injected, before the model saw the picture |
-| Thermal compensation | 0.55 mm → 0.03 mm residual | a distortion model calibrated to published figures |
+| Thermal compensation | compensating beats not compensating from -40% to +100% model error, 0.22 against 0.33 mm and 0.56 against 1.10 mm at the ends; 0.03 mm only when the model is exactly right | a distortion model calibrated to published figures, of the same form the compensator uses |
 | Which machine is drifting, on easy cases | 16 of 16 | **retired, see below** |
-| Which machine is drifting, on hard cases | **best model 72%, a fixed rule 56%** | cases sampled onto the decision boundary |
+| Which machine is drifting, on hard cases | best model 72%, the cell's default 70%, a fixed rule 56% | cases sampled onto the decision boundary |
 
 ### If you read three things
 
@@ -196,9 +371,9 @@ drift and what the arc itself does, and the chain comes to 2.82 mm against a 1.5
 requirement. The largest term is calibration, it is systematic, and this cell cannot
 measure it.
 
-Every number here was measured. Where a claim turned out to be wrong, it has been
-retracted on the spot rather than quietly deleted, with the test that disproved it
-printed next to it.
+Every number in these tables was measured on the simulated cell. Where a claim turned
+out to be wrong, it has been retracted on the spot rather than quietly deleted, with the
+test that disproved it printed next to it.
 
 ## The problem
 
@@ -208,9 +383,13 @@ That works if every part arrives in exactly the same place. They do not.
 These parts start as flat sheet metal. The sides are folded up in a press, and every
 fold springs back by a slightly different amount, so no two parts come out identical.
 The joint that needs welding, which is the line where two folded edges meet, ends up
-somewhere different on each one. Across the fifty parts measured here, the taught path
-missed the real joint by **23 mm on average and 51 mm at worst**. The weld would land on
-flat panel instead of in the joint.
+somewhere different on each one. In the simulation the parts also arrive scattered, up to
+±30 mm across and ±2 degrees in yaw. That scatter is exaggerated for visibility, so the
+correction reads on a chart, and it is most of the taught path's miss here: across the
+fifty parts measured, 23 mm on average and 51 mm at worst. The part variation sits on top
+of it, and it is the part that matters on a real line: a locator can take out where a part
+sits, but not how the press bent it. The weld would land on flat panel instead of in the
+joint.
 
 There is a second problem on top of that. The joint is not just in the wrong place, it
 is also slightly curved: the press leaves it bowed. So even a robot that found the start
@@ -257,7 +436,7 @@ of the depth buffer, including the shading: no colour pass is involved at any st
 **2. Decide whether to believe it, in the cloud.** One look is not evidence. The
 measurement comes with signals a real cell has: the angle between the fitted faces, how
 evenly the two faces were seen, the fit residual on each, how much of the joint was
-covered. An NVIDIA Nemotron model reads those and decides whether the measurement can
+covered. NVIDIA Nemotron 3 Nano reads those and decides whether the measurement can
 be trusted or whether the part should be presented differently and measured again.
 
 What this catches, measured: across fifty parts the worst individual views came back
@@ -269,10 +448,11 @@ model reads exactly those signals. Of eighty nine views taken, sixteen were badl
 or refused outright, and all sixteen were kept out of the fused answer.
 
 **3. Send each decision to the model that is actually right about it.** Four Nemotron
-sizes are served on Token Factory, and they are not interchangeable. Which one a
-decision goes to is worked out from signals already in hand, so the routing costs
-arithmetic rather than another model call. What the routing should do turned out to be
-the opposite of the obvious answer, and the numbers are under Validation.
+sizes are served on Token Factory, and all four were scored on the per-part decision
+against ground truth. The smallest gets 88 of 89 and is the one that runs; nothing is
+escalated to a larger size, because none of them did better and the 120B did worse. The
+router still records what the evidence looked like, for the operator. That is the
+opposite of the obvious design, and the numbers are under Validation.
 
 **4. Choose the weld to suit the joint that is there.** Tracking says where to go; it
 does not say how to weld. The gap between the two folded edges is not constant along
@@ -292,12 +472,14 @@ which is as large as the entire tracking accuracy. That is the arithmetic that s
 cell has to keep looking rather than measure once.
 
 **6. Inspect the weld, in the cloud.** After welding, a second camera photographs the
-bead and a vision model returns a verdict with its reasoning: pass, or a named defect.
-Defects are deliberately injected in simulation, so every verdict is scored against a
-known answer rather than admired.
+bead and a vision model, DeepSeek V4.1 Flash, returns a verdict with its reasoning:
+pass, or a named defect. Defects are deliberately injected in simulation, so every
+verdict is scored against a known answer rather than admired.
 
-**7. Supervise, and diagnose which machine to go and touch.** A Nemotron model runs as a
-cell supervisor with tools over the production database. Spotting that something is
+**7. Supervise, and diagnose which machine to go and touch.** Nemotron 3.5 Lightning runs
+as a cell supervisor with tools over the production database, and the once-a-shift
+diagnosis is asked of DeepSeek V4.1 Flash, one of the four hosted models that beat a fixed
+rule at p below 0.05 on the boundary test below. Spotting that something is
 drifting is the easy half; the half worth money is saying whether it is the press or the
 fixture, because they are fixed at opposite ends of the shop. They look alike in a
 summary number and quite different in the stream: a fixture moves the whole seam
@@ -352,27 +534,34 @@ run of parts, and explain any of it to the person responsible for the line.
 
 | Layer | Platform | Model | Runs today |
 | --- | --- | --- | --- |
-| Where to put the thickness probe next, in the tank | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
+| Where to put the thickness probe next, in the tank | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | measured against the sweep rule; the rule is used |
 | Reading a tank seam from the crawler's camera | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | View planning, inside the control loop | Nebius Token Factory | Nemotron 3 Nano 30B-A3B | yes |
 | Shift-level diagnosis, which machine slipped | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | Cell supervisor agent, with tool calling | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
-| Post-weld inspection | Nebius Token Factory | MiniMaxAI/MiniMax-M3 | yes |
+| Post-weld inspection | Nebius Token Factory | DeepSeek V4.1 Flash | yes |
 | Writing a corrective action brief from fetched documents | Nebius Token Factory | Nemotron 3.5 Lightning | yes |
-| Shift-level diagnosis, without a network | trained on Token Factory, runs on the cell's GPU | Qwen3-1.7B + LoRA | yes |
+| Shift-level diagnosis, without a network | trained on Token Factory, runs on the cell's GPU | Qwen3-1.7B + LoRA | scored; weights to be published with a release |
 | Looking up standards the cell cannot measure | Tavily | search | yes |
 | Reading the documents a fault raises | Tavily | search, then extract | yes |
 
-Four NVIDIA Nemotron sizes are served on Token Factory and this project uses three of
-them, for different jobs, because measuring them showed they are not interchangeable.
-Nothing in this table is aspirational.
+The models are named once, with their roles, in `brain/registry.py`, and the defaults are
+set in `brain/nebius.py`. Four NVIDIA Nemotron sizes are served on Token Factory. This
+project runs two of them in the loop, Nano for every per-part decision and Lightning for
+the supervisor and the briefs, and measured all four, because measuring them showed they
+are not interchangeable. Super and Ultra were scored and are not called in the loop. A
+row that says "yes" runs today; a row that does not, says what it is instead.
 
-They are not interchangeable in a blunter way than that. Nemotron 3.5 Lightning, which
-drives the supervisor perfectly well, cannot plan the tank's probing at all: given a
-station it writes its reasoning out as prose and never reaches the JSON, with three
-thousand tokens of room as readily as with three hundred. Nano and Super both answer
-cleanly on the same question. The envelope a call is made in varies by model. What is
-asked does not.
+The fine-tuned edge model's adapter is about 81 MB and is kept out of git, so until it is
+attached to a release its scores are the evidence and the weights cannot be rebuilt from a
+clone; `scripts/eval_drift_edge.py` says so when the adapter is missing.
+
+The tank's probe planner calls Nano with default reasoning. The view planner and the brief
+writer pass `reasoning_effort="none"`, which `brain/viewplanner.py`
+records as the setting that makes Nemotron answer rather than reason in prose. So the
+recorded planner runs were made in a different envelope from the cell's own Nemotron
+calls, and they are reported as they were made. The envelope a call is made in varies by
+model. What is asked does not.
 
 The inspection model is not an NVIDIA one, and that is a constraint rather than a
 preference. Every model the account serves was sent one clean bead and one with a hole
@@ -387,9 +576,11 @@ result in `data/vision_field.jsonl`):
 | judges it (6 of 23) | deepseek-ai/DeepSeek-V4.1-Flash, zai-org/GLM-5.3-Flash, google/gemma-3-27b-it, moonshotai/Kimi-K2.6, openbmb/MiniCPM-V-4_5, moonshotai/Kimi-K2.7-Code |
 <!-- vision-field:end -->
 
-All four Nemotron sizes and every frontier text model refuse the picture before any
-model runs. Reasoning about the measurement, which is text, therefore runs on Nemotron;
-reasoning about the picture runs on the best of the six that will look at it.
+Of the 23 models the key reaches, 15 refuse the image outright, all four Nemotron sizes
+among them; 8 accept it, and 6 of those judge the bead. `service/evidence.py`
+(`vision_field_study()`) counts those from `data/vision_field.jsonl`. Reasoning about the per-part
+measurement, which is text, therefore runs on Nemotron; reasoning about the picture runs
+on the best of the six that will look at it.
 
 "Best" is measured, and the first measurement was wrong about the models. The prompt as
 first written called the picture a photograph and offered "uncertain" as a way out. The
@@ -521,7 +712,7 @@ thing it is meant to explain is not a finding, it is a bug, and it was one.
 
 So the number went into the prompt the cell runs, and the table at the top of this
 section is measured under it. The small model is still the right one to run, now for the
-plain reason that it is the cheapest of the three that get every decision right, and a
+plain reason that it is the cheapest of the three that score 88 of 89, and a
 reply the planner cannot read falls back to the same numbers by arithmetic rather than
 to accepting the measurement. But "large models are inherently more cautious" was a story
 told about a prompt defect. Every model in the family improves once the boundary has a
@@ -552,10 +743,12 @@ large ones read it:
 | Nano, Lightning | 4 of 12, answered "press" 12 of 12 | 4 of 12, unchanged |
 | Super, Ultra | 8 of 12 | 10 of 12 |
 
-So the routing that survives is by task, not by evidence difficulty. A fast judgement
+So the split that survives is by task, not by evidence difficulty. A fast judgement
 over a handful of numbers goes to the smallest model at about 1.4 seconds. Trend
-reasoning across a run of parts goes to a large one. Sending the second job to the small
-model produces a confident answer that is the same every time.
+reasoning across a run of parts goes to a model that reads the trend: on this
+three-cause question that meant a large Nemotron, and on the harder boundary test below
+the cell's default became DeepSeek V4.1 Flash. Sending the second job to the small
+Nemotron produces a confident answer that is the same every time.
 
 ### Why there is no detector to harden
 
@@ -588,9 +781,10 @@ The cell runs in a physics simulation, which means ground truth exists for every
 Where the cell says the seam is can be compared against where the seam actually is.
 Scored over full campaigns rather than demonstrated once.
 
-Fifty parts arrive under physics with randomised offset, and the press leaves residual
-springback and camber on every folded side. Every arm reads the same renders of the
-same parts.
+Fifty parts arrive under physics with a randomised arrival offset, up to ±30 mm and
+±2 degrees, exaggerated for visibility, and the press leaves residual springback and
+camber on every folded side, which is the part variation a real line has. Every arm reads
+the same renders of the same parts.
 
 ### Following the seam
 
@@ -610,6 +804,12 @@ include" below before quoting it as the accuracy of the cell.
 Every part tracked, every station, none refused. The worst single station across all
 thousand reads 1.05 mm.
 
+These figures come from the campaign file, `data/seam_campaign.jsonl`, which was run with
+the slice tracker, before each face was fitted once from all its points (see "Where it
+stops working" below). The same clean campaign with the current fit gives 0.676 mm and a
+worst station of 1.03 mm. The demo runs the current tracker, so its per-part figures do
+not match the campaign file exactly.
+
 A straight path cannot reach this by being aimed better, because the seam itself is not
 straight: it bows off the line between its own ends by 0.39 mm on average
 and 0.94 mm at worst.
@@ -623,19 +823,21 @@ The narrower question, and where the model sits in the loop.
 | No correction | 22.41 mm | 36.11 | 50.17 | 0 of 50 |
 | One fixed view | 0.91 mm | 1.61 | 1.79 | 26 of 50 |
 | Loop on one fixed model | 0.89 mm | 1.61 | 1.79 | 27 of 50 |
-| Loop, routed by task | **0.91 mm** | 1.61 | 1.79 | 26 of 50 |
+| Loop, every decision to Nano (routed) | 0.91 mm | 1.61 | 1.79 | 26 of 50 |
 
 Routing costs 1.00 looks per part against 1.78, which is
 44 percent fewer robot moves, and 74 seconds of
-model time against 206, for 0.021 mm of accuracy.
+model time against 206, for 0.021 mm of accuracy. The routed file,
+`data/campaign50_routed.jsonl`, records Nemotron 3 Nano on all 50 of its decisions. The
+fixed-model file, `data/campaign50.jsonl`, does not record which model its arm called.
 
 The honest reading on the loop itself is that it is not currently earning its cost on
 this measure. An earlier run showed a large gap, and that gap closed when three faults
 were fixed in the capture: a camera near plane clipping the corner out of every depth
 image, an end stop standing on the seam, and a sheet thickness no press could fold.
 Those fixes made the single fixed view good. What the loop demonstrably still does is
-refuse bad evidence, and what routing does is stop paying a large model to answer a
-question the small one already answers correctly.
+refuse bad evidence, and what routing does is send every decision to the smallest model,
+at 1.00 looks a part against 1.78.
 
 ### What the arc does to the joint
 
@@ -680,7 +882,10 @@ the cell with no network at all.
 | Nemotron 3.5 Lightning | Token Factory | 4 of 12 | answered "press" every time |
 | Nemotron 3 Super 120B-A12B | Token Factory | 8 of 12 | read the evidence |
 | Nemotron 3 Ultra 550B | Token Factory | 8 of 12 | read the evidence |
-| **Qwen3-1.7B + LoRA** | **on the cell** | **12 of 12** | trained on simulated runs |
+| Qwen3-1.7B + LoRA | on the cell | 12 of 12, on the easy three-cause set | trained on simulated runs |
+
+The 12 of 12 is on the easy kind of set that the boundary test below was built to
+replace, so read it as the training working on this question, not as diagnosis.
 
 The comparison is kept honest by construction. The same generator (`cell/drift.py`)
 builds the training runs and the scored runs; the four seeds the evaluation lands on are
@@ -772,10 +977,13 @@ in.
 | Model error | Welding the cold measurement | Welding where it will be |
 | --- | --- | --- |
 | -40% | 0.330 mm | 0.216 mm |
-| nominal | 0.552 mm | **0.034 mm** |
+| nominal | 0.552 mm | 0.034 mm |
 | +100% | 1.103 mm | 0.557 mm |
 
-Compensating beats not compensating from -40% to +100% model error. The curve is
+The nominal row is the case the script's own header warns about: the metal and the
+compensator share one model form, so with the constants exactly right the correction is
+close to exact by construction, and 0.034 mm measures very little. The off-nominal rows
+are the ones that measure something. Compensating beats not compensating from -40% to +100% model error. The curve is
 not symmetric and that asymmetry is the practical result: under-modelling leaves
 some of the walk behind and is bounded by the distortion itself, while
 over-modelling pushes the torch past the joint and is bounded by nothing. A cell
@@ -983,28 +1191,31 @@ asserts that no pair is ever silently absent.
 **Read the gaps against the spread and the p value, not against each other.** At
 temperature zero the same model on the same cases came back 18, 16, 17 and 16 across
 four passes of the earlier set. Two arms differing by one or two are not differing.
-Three of the six hosted models beat the rule at p below 0.05 on the paired test, and
-Nemotron 3 Super 120B, which is the model this project actually routes to, is not one
-of them: 69% against 56% at p = 0.077. On the earlier 28 case set no arm at all
+Four of the six hosted models beat the rule at p below 0.05 on the paired test, and
+Nemotron 3 Super 120B, the large Nemotron the three-cause result first pointed to, is not
+one of them: 69% against 56% at p = 0.077 on its first run, and 46 of 64 on a second
+(`service/evidence.py`, `hard_study()`). The cell's diagnosis default is DeepSeek V4.1
+Flash, 45 of 64 at p = 0.035. On the earlier 28 case set no arm at all
 cleared p = 0.05, and an earlier draft of this section claimed the margin as a finding
 anyway. Pooling repeated passes would have turned that p = 0.07 into p = 0.004, which
 is significance manufactured out of a rerun; the comparison is made on one pass.
 
 **The fine-tuned model's 16 of 16 was an artefact of the easy set.** Here it scores 67%
-and answers "none" to 3 of 16 marginal cases and none of the 8 subtle camera cases. It
-learned the threshold and very little past it, which is exactly the behaviour an easy
+and answers "none" to 13 of the 16 marginal cases and to all 8 subtle camera cases (3 of
+16 and 0 of 8 right). It learned the threshold and very little past it, which is exactly the behaviour an easy
 set cannot distinguish from diagnosis, and its margin over the rule is not significant
 (p = 0.23). It is still the right thing to run for the clear cases it was built for, at
 the edge, with no network. It is not a better diagnostician than the model it was
 distilled from.
 
 **Where the models earn their place, and where the rule wins.** The gap is in the two
-families a threshold cannot reach: 8 of 8 on runs with two machines drifting, where the
-rule scores 0 of 8 because seeing two channels move gives it no branch and it falls
-through to "nothing wrong", and up to 4 of 8 on lucky noise, where the rule scores 0 of
-8 because a channel over the line is all it looks at. The rule wins on subtle camera,
-5 of 8 against 3 to 5 for the models and 0 of 8 for both the edge model and the 120B
-with the boundary withheld. A camera creeping just past the line is exactly the case
+families a threshold cannot reach: 8 of 8 on runs with two machines drifting for every
+model arm except gpt-oss (3 of 8), where the rule scores 0 of 8 because seeing two
+channels move gives it no branch and it falls through to "nothing wrong", and on lucky
+noise, up to 4 of 8 for the hosted models and 8 of 8 for the edge model, where the rule
+scores 0 of 8 because a channel over the line is all it looks at. No model beats the
+rule on subtle camera: 5 of 8 for the rule against 2 to 5 for the hosted models (gpt-oss
+2), and 0 of 8 for both the edge model and the 120B with the boundary withheld. A camera creeping just past the line is exactly the case
 where applying the boundary mechanically is right and reasoning around it is wrong.
 Nothing here is close to answering the question, on four possible answers.
 
@@ -1030,7 +1241,10 @@ away from being correct:
 python scripts/make_figures.py
 ```
 
-The studies behind them:
+The studies behind them. Most of these call models, so they need a key and are paid; the
+fine-tuning and edge commands also need the edge dependencies,
+`pip install -r requirements.txt -r requirements-edge.txt` (see that file for a CUDA
+build of torch), and the edge scores need the adapter, which is not in git yet.
 
 ```bash
 python scripts/run_seam_campaign.py --manifest data/cap50v3/manifest.json
@@ -1116,15 +1330,15 @@ retrain when the part changes.
      the cold reading
                           |
                           v
-  post-weld capture  -------------->      vision model -> pass, or a named
-                          |                               defect, with reasoning
+  post-weld capture  -------------->      DeepSeek V4.1 Flash -> pass, or a
+                          |                               named defect, with reasoning
                           v
-  FastAPI service + SQLite  <---------->  Nemotron Super: across a run of parts,
-        |                                  is the PRESS drifting or the FIXTURE?
-        |                                  a press tilts the seam, a fixture
-        +--> operator dashboard            shifts it
-        +--> Nemotron supervisor, reading the same rows through tools,
-             and searching outside the cell for anything it cannot measure
+  FastAPI service + SQLite  <---------->  DeepSeek V4.1 Flash: across a run of
+        |                                  parts, is the PRESS drifting or the
+        |                                  FIXTURE? a press tilts the seam, a
+        +--> operator dashboard            fixture shifts it
+        +--> Nemotron 3.5 Lightning supervisor, reading the same rows through
+             tools, and searching outside the cell for anything it cannot measure
 
   Ground truth exists for every part, so every number above is scored, not shown.
 ```
@@ -1154,8 +1368,11 @@ The pieces that carry the argument:
 
 | File | What it settles |
 | --- | --- |
-| `tank/probe_planner.py` | where to spend a measurement when the camera cannot help, and why it needs a floor under it |
-| `tank/score_probes.py` | the planner against three baselines, repeated, so the spread is visible |
+| `tank/probe_planner.py` | the coverage rule that drives the arm, and the model planner that was measured against it |
+| `tank/score_probes.py` | every planner against chance and the oracle, with the tie-break check, on the same stations |
+| `tank/layout_sweep.py` | how much of the sweep's score belongs to where the hidden patches were put |
+| `tank/significance.py` | what each tank count licenses, with its exact bound and the paired tests |
+| `tank/truth.py` | the one answer-key rule, rebuilt without Blender and checked against it |
 | `tank/inspect_seam.py` | what a tank seam is judged on, and why it is not the cell's vocabulary |
 | `tank/score_survey.py` | a miss, a misname and a decline counted as three different things |
 | `tank/sim/capture_tank.py` | how much of a fault is in frame, asked from both sides |
@@ -1163,24 +1380,29 @@ The pieces that carry the argument:
 | `cell/forming.py` | what a press in spec still leaves on a folded side, and what a drifting one leaves |
 | `cell/thermal.py` | what the arc does to the joint while it is welding it |
 | `cell/weld_params.py` | choosing the weld to suit the gap that is actually there |
-| `brain/router.py` | which Nemotron each decision goes to, and why that is not the obvious answer |
+| `brain/router.py` | why every per-part decision goes to the smallest Nemotron, which is not the obvious answer |
 | `scripts/eval_router_truth.py` | scores every model size against ground truth rather than against each other |
 | `scripts/eval_drift.py` | press or fixture, with a control |
 
 ## Setup
 
-Requires Python 3.12 and a Nebius Token Factory API key.
+Requires Python 3.12. A Nebius Token Factory API key is needed only to ask a model
+again; every replay, scorer and test in "If you have ten minutes" runs without one.
 
 ```bash
 git clone <this-repo>
-cd self-correcting-cell
+cd <repository-folder>
 python -m venv .venv
-.venv/Scripts/activate        # Windows
-# source .venv/bin/activate   # Linux and macOS
+source .venv/Scripts/activate    # Windows, Git Bash
+# .venv\Scripts\activate         # Windows, cmd or PowerShell
+# source .venv/bin/activate      # Linux and macOS
 pip install -r requirements.txt
 ```
 
-Copy the environment template and fill in your key:
+The edge model needs more than that, and nothing else does; `requirements-edge.txt` lists
+it, with a note on installing a CUDA build of torch.
+
+To ask models, copy the environment template and fill in your key:
 
 ```bash
 cp .env.example .env
@@ -1192,30 +1414,34 @@ call, how long to wait on one call, what the bead camera sees (BEAD_SOURCE is
 the crop box the inspector sends, and the millimetre limits every page and prompt read.
 Placing the cell somewhere else is editing that file, not the code.
 
-Verify cloud access before anything else:
+With a key set, check cloud access first. This makes a few small paid calls (tool calling
+and one image):
 
 ```bash
 python scripts/hello_nemotron.py
 ```
 
-Run the service and open the dashboard at http://127.0.0.1:8000:
+Run the service and open the dashboard at http://127.0.0.1:8000. It opens on the tank
+page:
 
 ```bash
 uvicorn service.app:app --reload
 ```
 
-It starts empty, and one command fills it:
+The tank page reads the recorded survey, so it is full from the start. The cell pages
+start empty, and one command fills them:
 
 ```bash
-python scripts/demo.py
+python scripts/demo.py --offline   # no key, nothing paid
+python scripts/demo.py             # with a key, the half that calls models too
 ```
 
 That runs the real pipeline over `data/demo`, six parts of captured depth that ship
 with this repository, and posts what it finds. It does as much as it can with what
 you have: seam tracking and weld scheduling need nothing but the depth frames and
 finish in about three seconds, and the look-and-judge routing, the post-weld
-inspection and the cited briefs each need a key. Add `--offline` to run only the half
-that calls nothing.
+inspection and the cited briefs each need a key. `--offline` runs only the half that
+calls nothing.
 
 The demo writes under `data/demo_run/` rather than over the campaign files in `data/`,
 which are the evidence for the numbers in this README and are not the demo's to
@@ -1249,15 +1475,39 @@ Sim 6.0 and is run with its bundled interpreter. Nothing above needs it. Capture
 Replicator graph grows as parts times frames and a single large capture stalls in
 graph construction. `scripts/merge_manifests.py` stitches the batches.
 
+## Where this fits
+
+Robotic tank inspection is an existing industry, and this project does not claim a new
+capability in it. Square Robot inspects tank floors from inside a tank that stays in
+service, with a submersible robot. Gecko Robotics maps wall thickness with ultrasonic
+climbing crawlers. Eddyfi's Scorpion 2 is a crawler with a dry-coupled ultrasonic wheel
+probe that records shell thickness along a vertical scanline. Those descriptions are
+from the vendors' own pages and were not measured here.
+
+A probe that reads continuously as it rolls takes away the choice this project studies.
+What is studied here applies to the other case: a single-element spot probe that has to
+be placed, coupled and read at each point, in air, on shells where the loss worth
+finding is out of sight, such as insulated or heated shells with corrosion under
+insulation. The question is where a model belongs on such a crawler. The answer measured
+here is on the picture, with arithmetic choosing where the probe goes.
+
 ## Prior work
+
+General-purpose multimodal models have been benchmarked on industrial defect inspection
+before. MMAD (Jiang et al., ICLR 2025, arXiv 2410.09453) put them through thousands of
+questions on industrial images and found them well short of industrial requirements.
+The tank inspection here is a far smaller test of the same kind, and it should be read
+against its own trivial baseline: calling every frame sound scores 13 of 24 on the
+walk-in call, because 13 frames hold no fault.
 
 The joint-finding and correction concept was validated by the author in an earlier
 project, published at
 [vision-corrected-welding](https://github.com/harshal-96/vision-corrected-welding).
 Everything in this repository was built during the hackathon submission period: the
+tank crawler, its simulated survey and its scorers, the
 press forming and drift model, seam tracking along the length of the joint, the weld
 thermal distortion model, adaptive weld parameters from the measured gap, the view
-planner that puts a reasoning model inside the control loop, the task-based model
+planner that puts a reasoning model inside the control loop, the model
 router and the evaluations that overturned its first design, the press-versus-fixture
 diagnosis, the post-weld inspection station and defect injection, the cloud inspection
 model, the supervisor agent with its tools and outside lookup, the database and
@@ -1266,4 +1516,6 @@ submission.
 
 ## License
 
-Apache License 2.0. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE). Third-party material in the repository, the
+robot arm model used to draw the welding cell, keeps its own terms, listed in
+[NOTICE](NOTICE).

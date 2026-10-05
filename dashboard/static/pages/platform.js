@@ -30,7 +30,7 @@ const ROWS = [
     platform: "Nebius Token Factory",
     model: "deepseek-ai/DeepSeek-V4.1-Flash",
     cadence: "once per shift",
-    why: "45 of 64 on the cases built to sit on the boundary, beats the arithmetic rule at p 0.035, about 3 s a diagnosis, and the cheapest of the three models that do",
+    why: "45 of 64 on the cases built to sit on the boundary, one of four hosted models that beat the arithmetic rule at p below 0.05 (here 0.035), about 3 s a diagnosis",
     tone: "s3",
   },
   {
@@ -54,7 +54,7 @@ const ROWS = [
     platform: "trained on Token Factory, runs on the cell's own GPU",
     model: "Qwen3 1.7B, fine-tuned",
     cadence: "once per shift, offline",
-    why: "12 of 12 on cases the training never saw, against 8 of 12 for the 120B it replaces",
+    why: "43 of 64 on the cases built to sit on the boundary, against 44 and 46 for Nemotron 3 Super on its two passes and 36 for the fixed rule; p 0.23 against the rule, so it is not shown to beat it. It runs with no network. On the easy three-cause set it scored 12 of 12",
     tone: "s5",
   },
   {
@@ -111,15 +111,37 @@ export function render() {
     </div>`;
 }
 
+/** The vision limit, counted from the field study rather than written down.
+
+  This sentence was typed by hand once, said 24 models and two that take an
+  image, and was wrong on both. The field study records every model the key
+  could call, so the count comes from there.
+*/
+function visionLimit(ev) {
+  const f = ev && ev.vision_field;
+  if (!f || !f.available) {
+    return "No Nemotron size on the account accepts an image, so the bead verdict runs on "
+      + "the best model that does, measured on the same beads.";
+  }
+  const nemotron = f.models.filter((m) => /nemotron/i.test(m.raw_model));
+  const refused = nemotron.filter((m) => m.outcome === "refused").length;
+  const accept = f.counts.judged + f.counts.declined;
+  const nvidiaJudges = f.models.some((m) => m.outcome === "judged" && /^nvidia\//i.test(m.raw_model));
+  const lead = nemotron.length && refused === nemotron.length
+    ? `all ${nemotron.length} Nemotron sizes refuse an image`
+    : `${refused} of ${nemotron.length} Nemotron sizes refuse an image`;
+  return `The account serves ${f.n} models; ${lead}. ${accept} accept one and `
+    + `${f.counts.judged} will judge it${nvidiaJudges ? "" : ", none of them NVIDIA's"}, so the `
+    + "bead verdict runs on the best of those, while the per-part view planning and the "
+    + "briefs run on Nemotron.";
+}
+
 const LIMITS = [
-  ["No NVIDIA vision model on Token Factory",
-   "The account serves 24 models. Four are Nemotron and all four are text only. Two are "
-   + "vision capable and neither is NVIDIA's, so the bead verdict runs on the best of "
-   + "those while every reasoning call runs on Nemotron."],
+  ["No NVIDIA vision model on Token Factory", visionLimit],
   ["Nemotron is not a fine-tuning base",
    "The supported list is DeepSeek, Gemma, GPT-OSS, Qwen and Llama. Training the shift-level "
    + "diagnosis meant taking the smallest capable model off that list instead, which is why "
-   + "the edge model is a Qwen and the baseline it beats is a Nemotron."],
+   + "the edge model is a Qwen and the baseline it is measured against is a Nemotron."],
   ["Structured output is ignored by this model",
    "Measured against the view-planning prompt: guided_json through extra_body does nothing, "
    + "response_format json_object does nothing, and reasoning_effort low is not enough. Only "
@@ -142,7 +164,7 @@ export async function mount() {
   V.$("pf-limits").innerHTML = LIMITS.map(([a, b]) => `
     <div class="step" style="padding:13px 0 12px">
       <div class="t" style="margin-top:0">${V.esc(a)}</div>
-      <div class="d">${V.esc(b)}</div>
+      <div class="d">${V.esc(typeof b === "function" ? b(ev) : b)}</div>
     </div>`).join("");
 }
 
@@ -214,5 +236,5 @@ function time(ev) {
   V.paint(V.$("pf-time"), V.ranked(rows, { width: 440, rowH: 36, padL: 176 }));
   V.$("pf-time-meta").innerHTML =
     `The routing is worth <b>${(ultra.total_latency_s - routed.total_latency_s).toFixed(0)} s</b>
-     across fifty parts, The shift-level question is asked once, so its time barely registers.`;
+     across fifty parts. The shift-level question is asked once, so its time barely registers.`;
 }

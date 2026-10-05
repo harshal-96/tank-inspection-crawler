@@ -4,11 +4,14 @@ The dashboard was built for the welding cell and knew nothing about the tank,
 which is the half the project now leads with. Somebody opening the one
 interactive thing in the repository saw the wrong project.
 
-Everything here is read from files the scorers wrote: the manifest with the
-answers, the inspection verdicts, and the probe comparison. Nothing is
-recomputed and nothing is stored twice, so a page cannot drift away from the
-run it claims to be showing. If a file is absent the page says so rather than
-inventing a shape to draw.
+The verdicts and the probe picks are read from the files the scorers wrote
+and never asked for again: nothing here calls a model. What is worked out
+here is the marking. The answer key comes from tank/truth.py, the one rule the
+scorer and the tests also use, so a frame is marked the same way on this page
+as in the replay. The random-pick band and the best-possible figure are read
+from the scorer's baselines file; the band is recomputed here, exactly, only
+when that file predates them. If a file is absent or ambiguous the page says
+so rather than inventing a shape to draw.
 """
 
 from __future__ import annotations
@@ -17,16 +20,23 @@ import json
 from pathlib import Path
 from typing import Any
 
+from tank.truth import CAMERA_WORD, TRACE, load_answers, truth_for
+
 ROOT = Path(__file__).resolve().parent.parent
 SURVEY = ROOT / "tank" / "data" / "survey"
 SCENE = ROOT / "tank" / "data" / "tank_scene.json"
 
-# What the inspector is allowed to say, worst first, so the page can colour a
-# verdict by how much it would stop the job.
-SEVERITY = ("crack", "burn_through", "lack_of_fusion", "undercut",
-            "porosity", "corrosion", "none")
-CAMERA_WORD = {"thinning": "corrosion"}
-TRACE = 0.08
+# The probe comparisons that are shown. Retired runs carry a different count
+# of failing points from the manifest and are skipped by that check, so a file
+# moved or left behind cannot put an old scene's numbers on this page.
+PROBING = ("probing.json", "probing_power.json", "probing_blind.json",
+           "probing_baselines.json")
+# The arithmetic arms are deterministic, so they are read from one file: the
+# baselines file when it is on the current scene, else the main run.
+BASELINE_FILES = ("probing_baselines.json", "probing.json")
+
+OUTCOMES = ("right", "misnamed", "missed", "false_alarm", "sliver",
+            "declined", "unjudged")
 
 
 def _load(path: Path):
@@ -38,27 +48,153 @@ def _load(path: Path):
         return None
 
 
-def _jsonl(path: Path) -> list[dict]:
-    if not path.exists():
-        return []
+def _outcome(row: dict | None, truth: str, seen: list[str], grazed: list[str]) -> str:
+    if row is None:
+        return "unjudged"
+    called = row["called"]
+    if row["verdict"] == "uncertain":
+        return "declined"
+    if called == truth:
+        return "right"
+    if truth == "none":
+        return "sliver" if called in grazed else "false_alarm"
+    if called == "none":
+        return "missed"
+    return "misnamed"
+
+
+def _per_fault(frames: list[dict], answers: dict[int, dict]) -> list[dict]:
+    """Each seam or surface fault on the run, and whether any frame holding it
+    named it. The same rule as per_fault in tank/score_survey.py, which this
+    module does not import because that one loads the model client."""
+    faults: dict[str, dict] = {}
+    for frame in frames:
+        row = answers.get(frame["station"])
+        if row is None or row["verdict"] == "uncertain":
+            continue
+        named = set(row.get("faults") or
+                    ([] if row["called"] == "none" else [row["called"]]))
+        for f in frame["faults_in_view"]:
+            if not f["visible_to_a_camera"] or f.get("coverage", 1.0) < TRACE:
+                continue
+            word = CAMERA_WORD.get(f["kind"], f["kind"])
+            entry = faults.setdefault(f["id"], {"id": f["id"], "kind": word,
+                                                "frames": [], "named_in": []})
+            entry["frames"].append(frame["station"])
+            if word in named:
+                entry["named_in"].append(frame["station"])
+    return list(faults.values())
+
+
+def _chance(frames: list[dict], budget: int) -> dict[str, Any] | None:
+    """What picking the probe places at random would find, exactly.
+
+    At each station the arm picks `budget` of the reachable places with no
+    information at all, so the count of failing points it lands on there is
+    hypergeometric. The stations are independent, so the run total is the
+    convolution of the stations. Exact, not sampled.
+    """
+    from math import comb
+
+    pmf = [1.0]
+    for frame in frames:
+        cands = frame.get("probe_candidates", [])
+        n, bad = len(cands), sum(1 for c in cands if c.get("rejectable"))
+        k = min(budget, n)
+        if n == 0 or k == 0:
+            continue
+        here = [comb(bad, j) * comb(n - bad, k - j) / comb(n, k)
+                for j in range(min(bad, k) + 1)]
+        out = [0.0] * (len(pmf) + len(here) - 1)
+        for i, a in enumerate(pmf):
+            for j, b in enumerate(here):
+                out[i + j] += a * b
+        pmf = out
+    if len(pmf) == 1:
+        return None
+
+    def quantile(q: float) -> int:
+        total = 0.0
+        for value, p in enumerate(pmf):
+            total += p
+            if total >= q - 1e-12:
+                return value
+        return len(pmf) - 1
+
+    return {"mean": round(sum(v * p for v, p in enumerate(pmf)), 3),
+            "low": quantile(0.025), "high": quantile(0.975),
+            "band": "central 95 percent, exact"}
+
+
+def _baseline_file(rejectable_total: int) -> tuple[str | None, dict]:
+    """The file the arithmetic arms are read from, and what it holds."""
+    for name in BASELINE_FILES:
+        data = _load(SURVEY / name)
+        if data is not None and data.get("rejectable") == rejectable_total:
+            return name, data
+    return None, {}
+
+
+def _planners(manifest: dict, rejectable_total: int) -> tuple[list[dict], list[str], int]:
+    """Every probe planner on the current scene, with every attempt it had.
+
+    A model at temperature zero still came back with different picks on
+    different runs, so showing only its best attempt would flatter it. Each
+    label carries all of its attempts and the page shows the range.
+    """
+    by_point = {}
+    for f in manifest["frames"]:
+        for c in f.get("probe_candidates", []):
+            by_point[(f["station"], round(c["offset_m"], 4))] = c
+
+    def patches(found) -> list[str]:
+        hit = set()
+        for station, offset, *_ in found:
+            c = by_point.get((station, round(offset, 4)))
+            if c and c.get("rejectable"):
+                hit.update(c.get("thinned_by") or [])
+        return sorted(hit)
+
+    def current(name: str):
+        data = _load(SURVEY / name)
+        if data is None or data.get("rejectable") != rejectable_total:
+            return None
+        return data
+
+    sources, budget = [], 2
+    labels: dict[str, dict] = {}
+
+    def add(pl: dict, source: str):
+        found = pl.get("rejectable_found", [])
+        entry = labels.setdefault(pl["label"], {
+            "label": pl["label"], "uses_a_model": "seconds" in pl,
+            "attempts": []})
+        entry["attempts"].append({
+            "found": len(found), "patches": patches(found),
+            "probes": pl.get("spent"), "thinned_found": pl.get("thinned_found"),
+            "source": source})
+
+    baseline_from = _baseline_file(rejectable_total)[0]
+    for name in PROBING:
+        data = current(name)
+        if data is None:
+            continue
+        sources.append(name)
+        budget = data.get("budget", budget)
+        for pl in data.get("planners", []):
+            # A model arm took time to answer; every run of one is an attempt.
+            if "seconds" in pl or name == baseline_from:
+                add(pl, name)
+
     out = []
-    for line in path.open(encoding="utf-8"):
-        line = line.strip()
-        if line:
-            out.append(json.loads(line))
-    return out
-
-
-def _truth(frame: dict) -> tuple[str, list[str], list[str]]:
-    """The same rule the scorer uses, so the page cannot disagree with it."""
-    visible = [f for f in frame.get("faults_in_view", [])
-               if f.get("visible_to_a_camera")]
-    seen = [CAMERA_WORD.get(f["kind"], f["kind"]) for f in visible
-            if f.get("coverage", 1.0) >= TRACE]
-    grazed = [CAMERA_WORD.get(f["kind"], f["kind"]) for f in visible
-              if f.get("coverage", 1.0) < TRACE]
-    ranked = sorted((k for k in seen if k in SEVERITY), key=SEVERITY.index)
-    return (ranked[0] if ranked else "none"), seen, grazed
+    for entry in labels.values():
+        found = [a["found"] for a in entry["attempts"]]
+        reached = [len(a["patches"]) for a in entry["attempts"]]
+        entry.update(low=min(found), high=max(found), runs=len(found),
+                     patches_low=min(reached), patches_high=max(reached),
+                     probes=entry["attempts"][0]["probes"])
+        out.append(entry)
+    return out, sources, budget
 
 
 def summary() -> dict[str, Any]:
@@ -69,37 +205,55 @@ def summary() -> dict[str, Any]:
                 "why": "tank/data/survey/manifest.json is not here. Run the "
                        "capture, or clone the repository with its data."}
 
-    answers = {r["station"]: r for r in _jsonl(SURVEY / "inspection.jsonl")}
-    probing = _load(SURVEY / "probing.json")
+    path = SURVEY / "inspection.jsonl"
+    try:
+        answers = load_answers(path) if path.exists() else {}
+    except ValueError as err:
+        # Said with the repository-relative name, not this machine's path.
+        shown = path.relative_to(ROOT).as_posix() if path.is_relative_to(ROOT) else path.name
+        return {"available": False,
+                "why": f"The recorded verdicts cannot be read as one answer a "
+                       f"station: {str(err).replace(str(path), shown)}"}
     scene = _load(SCENE) or {}
 
-    frames, counts = [], {"right": 0, "missed": 0, "false_alarm": 0,
-                          "misnamed": 0, "declined": 0}
+    frames = []
+    counts = dict.fromkeys(OUTCOMES, 0)
+    gate = {"right": 0, "judged": 0, "strict_right": 0,
+            "named_only_a_sliver": 0, "named_a_lesser_fault_there": 0}
+    under_pass = under_clean = 0
     for frame in manifest["frames"]:
         station = frame["station"]
-        truth, seen, grazed = _truth(frame)
+        truth, seen, grazed = truth_for(frame)
         row = answers.get(station)
         called = row["called"] if row else None
-        verdict = row["verdict"] if row else None
         listed = (row.get("faults") if row else None) or (
             [] if called in (None, "none") else [called])
+        outcome = _outcome(row, truth, seen, grazed)
+        counts[outcome] += 1
 
-        outcome = "unjudged"
-        if row is not None:
-            if verdict == "uncertain":
-                outcome = "declined"
-            elif called == truth:
-                outcome = "right"
-            elif truth == "none":
-                outcome = "sliver" if called in grazed else "false_alarm"
-            elif called == "none":
-                outcome = "missed"
-            else:
-                outcome = "misnamed"
-        if outcome in counts:
-            counts[outcome] += 1
+        if outcome not in ("declined", "unjudged"):
+            gate["judged"] += 1
+            # The gate: did it say defect exactly when a fault was in front of
+            # the lens. The strict form also asks that what it named is one of
+            # those faults, so a defect call made for a sliver at the edge of
+            # the frame is not credited for the fault it never mentioned.
+            if (truth == "none") == (called == "none"):
+                gate["right"] += 1
+            if (truth == "none" and called == "none") or (
+                    truth != "none" and called in seen):
+                gate["strict_right"] += 1
+            if outcome == "misnamed":
+                if called in seen:
+                    gate["named_a_lesser_fault_there"] += 1
+                elif called in grazed:
+                    gate["named_only_a_sliver"] += 1
 
         probes = frame.get("probe_candidates", [])
+        failing = sum(1 for c in probes if c.get("rejectable"))
+        if called == "none":
+            under_pass += failing
+        if truth == "none":
+            under_clean += failing
         frames.append({
             "station": station,
             "theta_rad": frame.get("theta_rad"),
@@ -116,34 +270,62 @@ def summary() -> dict[str, Any]:
             # reach, how many are thinned, and how many fail outright.
             "probe_points": len(probes),
             "probe_thinned": sum(1 for c in probes if c.get("thinned_by")),
-            "probe_rejectable": sum(1 for c in probes if c.get("rejectable")),
+            "probe_rejectable": failing,
             "thinnest_mm": min((c["true_thickness_mm"] for c in probes),
                                default=None),
         })
+    gate["declined"] = counts["declined"]
+    gate["slivers"] = counts["sliver"]
 
     points = [c for f in manifest["frames"] for c in f.get("probe_candidates", [])]
     rejectable = [c for c in points if c.get("rejectable")]
 
     # The contrast the whole project rests on, taken from the scene rather
-    # than asserted: the patch a camera can see against the one it cannot.
-    patches = [d for d in scene.get("defects", []) if d.get("kind") == "thinning"]
-    visible_patch = next((d for d in patches if d.get("visible")), None)
-    hidden_worst = min((d for d in patches if not d.get("visible")),
-                       key=lambda d: d.get("remaining_fraction", 1.0), default=None)
+    # than asserted: the patches a camera can see against the ones it cannot.
+    # Only patches on this run count, meaning ones some probe point sits in or
+    # some frame points at; the scene holds others on seams nobody surveyed.
+    on_run = {i for c in points for i in (c.get("thinned_by") or [])}
+    on_run |= {f["id"] for fr in manifest["frames"] for f in fr["faults_in_view"]}
+    defects = manifest.get("defects") or scene.get("defects", [])
+    patches = [d for d in defects if d.get("kind") == "thinning" and d["id"] in on_run]
+    visible = [d for d in patches if d.get("visible")]
+    hidden = [d for d in patches if not d.get("visible")]
+    visible_ids = {d["id"] for d in visible}
 
-    planners = []
-    for p in (probing or {}).get("planners", []):
-        planners.append({
-            "label": p["label"],
-            "probes": p.get("spent"),
-            "found": len(p.get("rejectable_found", [])),
-            "thinned_found": p.get("thinned_found"),
-            "attempt": p.get("attempt"),
-        })
+    def patch(d):
+        return None if d is None else {
+            "id": d["id"],
+            "loss_mm": d.get("loss_mm"),
+            "remaining_mm": d.get("remaining_mm"),
+            "remaining_fraction": d.get("remaining_fraction"),
+            "rejectable": bool(d.get("rejectable")),
+        }
+
+    def thinnest(group):
+        return min(group, key=lambda d: d.get("remaining_fraction", 1.0), default=None)
+
+    planners, sources, budget = _planners(manifest, len(rejectable))
+    faults = _per_fault(manifest["frames"], answers)
+    # The scorer writes the random-pick band and the best-possible bound beside
+    # its arms. Use its numbers when it has; the band is recomputed only for a
+    # baseline file written before the scorer recorded one.
+    baseline = _baseline_file(len(rejectable))[1]
+    recorded = baseline.get("chance") or {}
+    if "mean" in recorded and len(recorded.get("band_95") or []) == 2:
+        chance = {"mean": recorded["mean"], "low": recorded["band_95"][0],
+                  "high": recorded["band_95"][1],
+                  "band": "central 95 percent, exact, as the scorer recorded it"}
+    else:
+        chance = _chance(manifest["frames"], budget)
+    oracle = baseline.get("oracle") or {}
 
     return {
         "available": True,
         "scored": bool(answers),
+        # Which model judged the pictures, read off the verdict rows, so the
+        # page names the inspector it is scoring rather than assuming one.
+        "inspector": sorted({r["model"].split("/")[-1] for r in answers.values()
+                             if r.get("model")}),
         "stations": len(manifest["frames"]),
         "resolution": manifest.get("resolution"),
         "run": manifest.get("survey_run", {}),
@@ -152,32 +334,41 @@ def summary() -> dict[str, Any]:
         "evaluation_scene": manifest.get("evaluation_scene"),
         "frames": frames,
         "counts": counts,
+        "gate": gate,
+        "faults_on_the_run": {
+            "total": len(faults),
+            "named": sum(1 for f in faults if f["named_in"]),
+            "faults": faults,
+        },
         "probe": {
             "points": len(points),
-            "budget_points": (probing or {}).get("budget", 2) * len(manifest["frames"]),
+            "budget": budget,
+            "budget_points": budget * len(manifest["frames"]),
             "thinned": sum(1 for c in points if c.get("thinned_by")),
             "rejectable": len(rejectable),
-            "rejectable_under_a_clean_frame": sum(
-                1 for f in manifest["frames"]
-                for c in f.get("probe_candidates", [])
-                if c.get("rejectable") and _truth(f)[0] == "none"),
+            # Two different statements, so two numbers. Under a frame the
+            # inspector passed is what the camera's verdict would have left
+            # unprobed; under a frame with no visible fault is what no camera
+            # could have flagged, whatever it said.
+            "rejectable_under_a_pass": under_pass,
+            "rejectable_under_a_clean_frame": under_clean,
+            "rejectable_on_a_visible_patch": sum(
+                1 for c in rejectable
+                if set(c.get("thinned_by") or []) & visible_ids),
+            "patches_with_failing_points": len(
+                {i for c in rejectable for i in (c.get("thinned_by") or [])}),
+            "chance": chance,
+            "best_possible": oracle.get("found"),
             "planners": planners,
+            "sources": sources,
         },
         "contrast": {
-            "visible": None if visible_patch is None else {
-                "id": visible_patch["id"],
-                "loss_mm": visible_patch.get("loss_mm"),
-                "remaining_mm": visible_patch.get("remaining_mm"),
-                "remaining_fraction": visible_patch.get("remaining_fraction"),
-                "rejectable": visible_patch.get("rejectable"),
-            },
-            "hidden": None if hidden_worst is None else {
-                "id": hidden_worst["id"],
-                "loss_mm": hidden_worst.get("loss_mm"),
-                "remaining_mm": hidden_worst.get("remaining_mm"),
-                "remaining_fraction": hidden_worst.get("remaining_fraction"),
-                "rejectable": hidden_worst.get("rejectable"),
-            },
+            "visible": patch(thinnest(visible)),
+            "hidden": patch(thinnest(hidden)),
+            "visible_count": len(visible),
+            "visible_failing": sum(1 for d in visible if d.get("rejectable")),
+            "hidden_count": len(hidden),
+            "hidden_failing": sum(1 for d in hidden if d.get("rejectable")),
             "limit_fraction": manifest.get("acceptance", {})
                                       .get("thinning", {}).get("limit_fraction"),
         },

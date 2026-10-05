@@ -68,6 +68,16 @@ def api_key() -> str:
     raise MissingCredentials(_MISSING_KEY_HELP.format(names=", ".join(API_KEY_VARS)))
 
 
+def have_key() -> bool:
+    """Whether any accepted key name is set. Every caller asks this the same
+    way, so a key under the second name is never reported as missing."""
+    try:
+        api_key()
+        return True
+    except MissingCredentials:
+        return False
+
+
 # The SDK's own defaults are a 600 second timeout and two transport retries. A
 # cell waiting ten minutes on one verdict is a stopped line, so the timeout is
 # set here and can be tuned per site without touching code.
@@ -97,7 +107,9 @@ def text_model() -> str:
 
 # The once-a-shift question, which machine is going out of adjustment, on the
 # 64 boundary cases: Qwen3.5 397B 46 of 64, DeepSeek V4.1 Flash 45, Ultra 45,
-# Super 120B 44. Only the first three beat the arithmetic rule at p < 0.05.
+# Super 120B 44 and then 46 on a second run, DeepSeek V4 Pro 43. Qwen, Ultra and
+# the two DeepSeeks beat the arithmetic rule at p < 0.05 (0.013, 0.004, 0.035,
+# 0.039); Super's paired test, on its first run, is 0.077.
 # DeepSeek V4.1 Flash is the cheapest of them, so it is the default.
 DEFAULT_DIAGNOSIS_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash"
 

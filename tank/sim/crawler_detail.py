@@ -37,14 +37,15 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from tank.sim import blender_tank  # noqa: E402
 import importlib  # noqa: E402
+
+from tank.sim import blender_tank  # noqa: E402
+
 # Blender keeps a module cached between runs, so an edit to blender_tank
 # is invisible here until it is reloaded, and the failure is an
 # AttributeError on a constant that is plainly there in the file.
 importlib.reload(blender_tank)
-from tank.sim.meshkit import (box, ellipsoid, make, merge, shift,  # noqa: E402
-                              sweep, tube)
+from tank.sim.meshkit import box, ellipsoid, make, merge, shift, sweep, tube  # noqa: E402
 
 # The lens and its clear cone, so nothing is ever added into frame.
 LENS_AT = (0.46, 0.0, 0.131)
@@ -114,10 +115,8 @@ def panel_line(start, end, width=0.004, depth=0.003):
     mid = ((sx + ex) / 2, (sy + ey) / 2, (sz + ez) / 2)
     length = math.dist(start, end)
     along = (ex - sx, ey - sy, ez - sz)
-    if abs(along[0]) >= abs(along[1]):
-        size = (length, width, depth)
-    else:
-        size = (width, length, depth)
+    along_x = abs(along[0]) >= abs(along[1])
+    size = (length, width, depth) if along_x else (width, length, depth)
     return box(size, mid)
 
 
@@ -127,12 +126,9 @@ def main() -> dict:
         return {"error": "no Crawler in the scene, run blender_tank.py first"}
     coll = rig.users_collection[0] if rig.users_collection else bpy.context.scene.collection
 
-    mats = {m.name.split("crawler_")[-1]: m for m in bpy.data.materials
-            if m.name.startswith("crawler_")}
     frame = bpy.data.materials.get("crawler_frame")
     hub = bpy.data.materials.get("crawler_hub")
     tyre = bpy.data.materials.get("crawler_tyre")
-    bodym = bpy.data.materials.get("crawler_body")
     dark = bpy.data.materials.get("defect_dark")
 
     added = []
@@ -170,7 +166,7 @@ def main() -> dict:
     # Built around each wheel's own origin and parented to it, so the lugs and
     # the hub bolts come round with the wheel instead of hanging in the air
     # where the wheel used to be.
-    for index, (sx, sy) in enumerate(blender_tank.WHEEL_AT):
+    for index, (_sx, sy) in enumerate(blender_tank.WHEEL_AT):
         axle = bpy.data.objects.get(f"Crawler_Wheel_{index}")
         if axle is None:
             continue
