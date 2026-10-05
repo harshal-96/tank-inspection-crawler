@@ -1,0 +1,7 @@
+# The frame digests can be checked with sha256sum -c, which reads a carriage
+# return as part of the file name, so this one file stays LF on every checkout.
+tank/data/survey/frames.sha256 text eol=lf
+
+# Recorded evidence. Never converted, never diffed as text.
+*.png binary
+*.npy binary
