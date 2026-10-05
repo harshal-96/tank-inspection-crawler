@@ -1,7 +1,9 @@
 # Tank Inspection Crawler
 
-A robot that crawls the seams inside a steel storage tank, judges the weld and the plate
-as it goes, and chooses where to spend its next ultrasonic thickness measurement.
+A robot that crawls the weld seams inside a steel storage tank with two instruments: a
+camera that judges the surface, and an ultrasonic probe that measures what is left of the
+plate behind it. The finding this project is built on is that **neither instrument can do
+the other's job**, and that the right place for a model is on the picture, not on the arm.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
 
@@ -12,138 +14,111 @@ and the measuring. What it cannot defend, it hands to a person, and it says so.
 
 ## If you have ten minutes
 
-This file is long because the work is measured and every number has its method
-written next to it. If you are reading it against a clock, these four commands
-need no API key, no GPU and no download, and they are the whole argument.
+This file is long because every number has its method written next to it. If you are
+reading it against a clock, these commands need no API key, no GPU and no download.
 
 ```bash
 pip install -r requirements.txt
-python tank/score_survey.py --replay    # the 24 tank frames, scored. 24/24
-python tank/score_probes.py             # where to probe, against three baselines
+python tank/score_survey.py --replay    # the 24 tank frames, scored against the answers
+python tank/score_probes.py             # where to probe; baselines run without a key
+python tank/significance.py             # what each of those counts actually licenses
 python -m pytest -q                     # 319 tests
 ```
 
-The 24 frames the first command scores are **in this repository**, in
-`tank/data/survey/frames`, alongside the answers that were written before any
-model saw them. You can open them yourself and disagree with the scoring.
+The 24 frames are **in this repository**, in `tank/data/survey/frames`, next to the
+answers that were written into the scene before any model saw them. Open them and
+disagree with the scoring if you like. With a Token Factory key, drop `--replay` to ask
+the model again rather than re-mark its recorded answers.
 
-Then read the next section, which is the point of the whole thing, and
-[what is still wrong with it](#what-is-still-wrong-with-it), which is the part
-most projects leave out.
+## The argument: two instruments, and neither is enough
 
-## The argument, in one dataset
+The survey run carries patches of wall loss. One is rusted through to the surface and a
+camera finds it at once. The others have nothing on the surface at all.
 
-The survey run carries two patches of wall loss. One is rusted through to the surface and
-a camera finds it immediately. The other has nothing on the surface at all.
+The rusty one has **69 percent** of its wall left and passes. The worst of the clean
+looking ones has **35 percent** left and fails. The limit is 60.
 
-The rusted one measures **inside** the acceptance limit. The invisible one does not, and
-all four probe points on the run that fail the limit sit under frames the inspector reads
-as sound, on plate that looks like new steel.
+Across the run, 28 of the 168 places the probe can reach fail the limit, and **20 of
+those 28 sit under a frame the camera calls sound**. The loss worth finding is the loss
+that leaves no mark. So a camera cannot find what matters, and a probe with time for two
+measurements in seven cannot look everywhere. Something has to decide where to measure.
 
-So neither instrument is enough by itself, and something has to decide at every station
-where to spend a measurement there is only time to take twice. That decision is the
-machine. The rest is plumbing.
+## What was measured, and what it licenses
 
-## What the tank run measured
+Every result is a count out of a small number, so each one is printed with the bound it
+supports rather than left to look better than it is. `tank/significance.py` produces the
+right hand column.
 
-Twenty four stations along four metres of circumferential seam, rendered from a modelled
-tank with the answers written before any model saw a picture.
-
-| | Result | Scored against |
+| | Result | What it licenses |
 | --- | --- | --- |
-| Is this length of seam sound, or does somebody have to come and look | **24 of 24**, nothing missed, no false alarms, nothing declined | the faults actually inside the camera frustum, projected per frame |
-| Naming the worst fault in the frame | 20 of 24 | the same |
-| Finding every fault present, not only the worst | 9 of 13, none invented | every fault in frame, listed separately |
-| Choosing where to probe, 48 measurements out of 168 places | covering the band **by arithmetic: 16 of 28** rejectable points found | the true remaining wall at all 168 |
-| the same, planned by Nemotron Nano | 9 to 12 of 28 across three runs | the same |
-| the same, probing where the camera saw corrosion | 0 of 28 | the same |
-| the same, always probing on the seam | 2 of 28 | the same |
-| the same, probing where the camera saw corrosion | 0 of 4 | the same |
-| the same, always probing on the seam | 0 of 4 | the same |
+| Is this seam sound, or does somebody have to walk in | **24 of 24**, nothing missed, no false alarms, none declined | at least 88 percent, one sided 95 percent bound |
+| Finding every fault in the frame, not only the worst | **9 of 13**, none invented | at least 42 percent; this is the harder number |
+| Naming the worst fault | 20 of 24 | the four misses all had a second real fault in frame |
+| Where to probe: plain coverage, no model | **16 of 28**, every run | deterministic |
+| Where to probe: Nemotron 3 Nano | 9, 10 and 12 of 28 | behind the rule; paired test p = 0.14 |
+| Where to probe: Nano with the camera hidden | 11 of 28 | the camera adds nothing to the probing |
+| Where to probe: always on the seam | 2 of 28 | |
+| Where to probe: wherever the camera saw rust | 0 of 28 | worse than not looking |
 
-The inspector runs at about 9 seconds a frame and the probe planner at about 8 seconds a
-station, one model call each, no retries needed.
+The inspector takes about 9 seconds a frame and the planner 6 to 8 seconds a station,
+one model call each.
 
-The last three rows are the point. Following the camera is worse than useless here: it
-spends every measurement on the patch that is within limits and never looks at the one
-that is not.
+## How the headline changed, and why that is the result
 
-### The model planner loses to arithmetic, and the first version of this section said the opposite
+The first version of this project claimed that an NVIDIA model planned the probing
+better than arithmetic. It would have gone into the submission. It was wrong, and the
+way it was caught is the most useful thing here.
 
-This is the correction worth reading, because it is the one that would have gone
-into a submission as a claim.
+The run originally held **four** rejectable probe points, from one hidden patch. On four
+points Nano found three or four and the coverage rule found two, so the model appeared to
+win. The exact paired test on that is p = 1.00: not a near miss, no evidence in either
+direction. Repeating it eight times did not help, because all eight re-measured the same
+four points.
 
-The run originally carried **four** rejectable probe points out of 168, because
-there was one patch of hidden wall loss on it. On four points Nemotron Nano found
-three or four and the arithmetic sweep found two, so the model appeared to win and
-that is what this README said.
+So the evaluation scene was given five hidden patches instead of one, taking it to **28**
+rejectable points. Hidden loss adds no geometry, so the 24 scored frames stayed byte for
+byte identical, checked by digest, and every recorded verdict still applies.
+`tank/refresh_probes.py` recomputes the probe answers from the scene without re-rendering,
+and refuses to run if the frames have moved.
 
-Four points cannot support that. The exact McNemar on it came out at p = 1.00, which
-is not a near miss, it is no evidence in either direction. So the evaluation scene was
-given five patches of hidden loss instead of one, spread across the probe grid, taking
-the run from 4 rejectable points to **28**. No geometry changed, because wall loss a
-camera cannot see adds none, and the 24 scored frames are byte for byte the same ones.
+On 28 points the result reverses and is not close. The rule finds 16 every run; the model
+finds 9 to 12. The task rewards what a rule is good at: the loss is sparse, the budget is
+fixed, and systematic coverage beats reasoning about where loss might be. The model keeps
+returning to places it has reasons about and leaves bands of wall unvisited.
 
-On 28 points the result reverses and is not close:
+Then the ablation. Replace the one sentence about the picture with "no camera on this
+run" and the model finds 11 of 28, the same as with it. The camera contributes nothing
+to choosing where to probe, which is what the physics said it would do.
 
-| planner | rejectable points found, of 28 |
-| --- | --- |
-| **sweep, arithmetic, no model** | **16, every run** |
-| Nemotron 3 Nano | 9, 10, 12 across three runs |
-| always probe on the seam | 2 |
-| probe where the camera saw corrosion | 0 |
+So the architecture this evidence supports is the one the README now leads with: **the
+model judges the picture, where there is something to see, and arithmetic drives the
+arm.** Nemotron Super and a hybrid floor planner were measured only on the discarded four
+point set, and no figure from that set is reported here.
 
-The rule wins because the task rewards exactly what a rule is good at. Hidden loss is
-sparse and scattered, the budget is fixed at two measurements of seven, and under those
-conditions systematic coverage beats trying to be clever. The model keeps returning to
-places it has reasons about and leaves bands of the wall unvisited.
+## What is still wrong with it
 
-That is a real finding and a more useful one than the claim it replaces.
+- **Undercut.** Four frames carry a groove at the weld toe and the inspector reports the
+  corroded plate beside it. Asked to list everything it names the groove first; asked to
+  judge, it calls the toe a normal shadowed junction. Every image-capable model on the
+  account agrees, so this is the simulated groove, not the inspector. Written up, not
+  tuned away.
+- **The model is the bottleneck, not the robot.** A real 473 m shell is about 1.3 hours of
+  driving and about 13 hours of inference at the measured rates. Inference has to run
+  while the crawler moves, and nothing here does that yet.
+- **The world is ours.** We built the tank, planted the faults and wrote the answers. That
+  is how a simulated test works, but it means every number here is a statement about this
+  scene, and the evaluation scene deliberately carries more hidden loss than a real tank
+  of this age would.
+- **Small samples.** 24 frames and 28 rejectable points. Enough to rule things out, which
+  is what they did. Not enough to rank closely matched models.
+- **No hardware yet.** A bench plate with machined back-face pockets and a real gauge is
+  specified in `docs/bench/`. Nothing physical has been measured.
 
-An ablation settles the rest of it. Hide the camera from the planner, replacing the one
-sentence about the picture with a statement that there is no picture, and it finds
-**11 of 28** against 9 to 12 sighted. Identical within noise. The camera contributes
-nothing to the probing, which it was never going to, because the loss worth finding is
-the loss that leaves no mark. Run it with `python tank/score_probes.py --blind`.
+## The same discipline, first measured on a welding cell
 
-So the model belongs on the picture, where there is something to judge, and the
-arithmetic should drive the arm. The two instruments are both necessary and they do not
-need to talk to each other as much as the first design assumed.
-
-Nemotron 3 Super 120B, four times the size, is worse and far less stable: 3, 3, 0, 3
-and 0 over five runs. Two of those five are total failures where it found nothing at
-all. It is also about twice as fast per station as Nano, which is its own small
-surprise.
-
-A floor was built for this, in `plan_with_floor`, to stop the model falling below the
-rule. It was measured on the four point set and did not help there. On the twenty eight
-point set the question it was built to answer has gone away, because the rule is not
-the floor any more, it is the ceiling.
-
-The reason is worth writing down, because the idea sounds right. Reserving one probe of
-two does not give you the rule as a floor. It gives you half the rule, and half of a
-coverage sweep is not half as good, it is a sweep that takes twice as long to come back
-round to any given offset. The rule scores 2 using both of its probes. Crippled to one,
-it contributes almost nothing, and what is left is the model with a smaller budget.
-
-What would actually put a floor under it is running both planners in full and probing
-the union, which costs three or four measurements a station instead of two. Whether
-that is worth it is a question about arm time on a real crawler, not about models, and
-this project cannot answer it from a simulation.
-
-Reproduce all of it with `python tank/score_probes.py --repeat 3`, and check what the
-counts license with `python tank/significance.py`, which prints the confidence bounds
-and the paired test rather than leaving them to be assumed.
-
-### What is still wrong with it
-
-Undercut. Four of the frames carry a groove at the weld toe and the inspector reports the
-corroded plate beside it instead. Asked to list everything rather than judge, it names
-the groove first and describes it correctly, so it is not blind to it. Asked to judge, it
-calls the toe a normal shadowed junction line, which is a fair reading of how the groove
-is currently rendered. Every image-capable model the account serves agrees with it,
-including the frontier ones, so this is a limitation of the simulated undercut and not of
-the inspector. It is written up rather than tuned away.
+The loop was built and measured on a robotic welding cell before it was pointed at a tank
+wall. It is here as evidence that the method transfers, and because it is where most of
+the measured numbers in this repository come from.
 
 ![Weld seam found to under a millimetre on parts arriving centimetres out](docs/figures/seam_result.png)
 
@@ -160,14 +135,18 @@ uvicorn service.app:app            # every study page is live immediately
 python scripts/demo.py --offline   # three seconds, and the cell is running
 ```
 
-The tank run, which needs a Token Factory key because it calls models:
+The tank run. The first two commands work without a key: one re-marks the recorded
+verdicts, the other runs the three arithmetic planners. With a Token Factory key they ask
+the models again.
 
 ```bash
-python tank/score_survey.py        # 24 frames judged against answers written first
-python tank/score_probes.py        # where to probe, against three baselines
+python tank/score_survey.py --replay   # re-mark recorded verdicts; drop --replay to re-ask
+python tank/score_probes.py            # planners; add --blind to hide the camera
+python tank/significance.py            # bounds and the paired test
 ```
 
-Both read the captured dataset in `tank/data/survey`, which ships with the repository.
+All of them read the captured dataset in `tank/data/survey`, which ships with the
+repository.
 Rebuilding the tank itself needs Blender running with its socket add-on on port 9876:
 
 ```bash
