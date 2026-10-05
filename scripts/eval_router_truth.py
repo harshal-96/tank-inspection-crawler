@@ -21,12 +21,34 @@ that a shop would pick, which means accepting unless another look is worth the
 move it costs.
 
     python scripts/eval_router_truth.py --campaign data/campaign50.jsonl
+
+The model is also scored against the cell's own limits applied by arithmetic
+(brain.viewplanner.rule_decision), because that is the test the rest of the
+project uses before it keeps a model anywhere. The rule arm is free: it calls no
+model, reads the recorded answers in data/router_truth_eval.jsonl, rebuilds the
+same decision points, and puts the rule and the smallest model side by side
+with an exact McNemar test on the points where they differ.
+
+    python scripts/eval_router_truth.py --rule
+
+The 39 replayed points rebuild exactly from data/campaign50.jsonl. The 50
+first-view points were measured on the first render of the fifty parts, which
+is no longer on disk, so they are rebuilt from the re-render in data/cap50v3
+(not in the repository). Two checks gate the comparison, and the script stops
+if either fails: every rebuilt point must get the same answer key as the
+recorded one, and no signal reading the models quoted in their reasons may move
+the rule's verdict when it is put in place of the rebuilt value. Without the
+re-render it scores the first-view points from the signals kept in
+data/router_rule_eval.json; nothing is rebuilt then, so the first check only
+shows the kept file came from the same rows.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import math
+import re
 import statistics
 import sys
 import time
@@ -38,7 +60,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import numpy as np  # noqa: E402
 
 from brain.router import SIZES, assess, tier_of  # noqa: E402
-from brain.viewplanner import plan_next_view  # noqa: E402
+from brain.viewplanner import SINGLE_VIEW_OK, plan_next_view, rule_decision  # noqa: E402
 from scripts.run_campaign import load_context, take_look  # noqa: E402
 
 VIEWS = [-45.0, -22.5, 0.0, 22.5, 45.0]
@@ -164,6 +186,312 @@ def balanced(points: list[dict], per_side: int, seed: int = 0) -> list[dict]:
     return look[:n] + keep[:n]
 
 
+# The rule arm. Everything below calls no model.
+
+RULE_RECORD = Path("data/router_rule_eval.json")
+LIMIT_SIGNALS = ("included_angle_deg", "inlier_balance", "face_a_fit_rms_mm",
+                 "face_b_fit_rms_mm", "path_length_mm")
+
+
+def flatten(evidence: list[dict]) -> list[dict]:
+    """The evidence in the shape rule_decision reads.
+
+    The cell hands the planner each look with its signals nested under
+    "signals" and a refusal under "measurement_failed" (Look.for_planner), but
+    rule_decision reads the signals at the top of each look and a refusal under
+    "failed". Called on the cell's own shape it finds no signals and asks for
+    another look every time; main() prints how often. The nested copy is kept
+    so a rule that reads either shape gives the same answer here.
+    """
+    out = []
+    for look in evidence:
+        flat = dict(look)
+        flat.update(look.get("signals") or {})
+        if look.get("measurement_failed"):
+            flat["failed"] = look["measurement_failed"]
+        out.append(flat)
+    return out
+
+
+def rule_says_look_again(evidence: list[dict], remaining: list[float]) -> bool:
+    accept, _ = rule_decision(flatten(evidence), remaining)
+    return not accept
+
+
+def misses_text(evidence: list[dict]) -> str:
+    """The limits each look misses. rule_decision accepts if any look meets
+    them, so every look is listed, not only the latest."""
+    if len(evidence) == 1:
+        return ", ".join(limits_missed(evidence[0])) or "none"
+    return "; ".join(f"{float(look['view_deg']):g} deg: "
+                     f"{', '.join(limits_missed(look)) or 'none'}" for look in evidence)
+
+
+def limits_missed(look: dict) -> list[str]:
+    """Which of the single-view limits one look misses, for reading a disagreement."""
+    if look.get("failed") or look.get("measurement_failed"):
+        return ["no measurement"]
+    s = look.get("signals") or look
+    ok = SINGLE_VIEW_OK
+    missed = []
+    if abs(float(s["included_angle_deg"]) - 90.0) > ok["angle_tol_deg"]:
+        missed.append(f"angle {s['included_angle_deg']}")
+    if float(s["inlier_balance"]) < ok["min_balance"]:
+        missed.append(f"balance {s['inlier_balance']}")
+    for face in ("face_a_fit_rms_mm", "face_b_fit_rms_mm"):
+        if float(s[face]) >= ok["max_rms_mm"]:
+            missed.append(f"{face[:6]} rms {s[face]}")
+    if float(s["path_length_mm"]) < ok["min_path_mm"]:
+        missed.append(f"path {s['path_length_mm']}")
+    return missed
+
+
+def mcnemar_exact(only_a: int, only_b: int) -> float:
+    """Two sided exact McNemar on the points one arm got right and the other did not."""
+    n = only_a + only_b
+    if n == 0:
+        return 1.0
+    tail = sum(math.comb(n, k) for k in range(min(only_a, only_b) + 1))
+    return min(1.0, 2.0 * tail / 2 ** n)
+
+
+_QUOTED = re.compile(r"(included_angle_deg|inlier_balance|face_a_fit_rms_mm|"
+                     r"face_b_fit_rms_mm|path_length_mm|face_a|face_b)(\D{0,12}?)(\d+\.\d+|\d+)")
+
+# A reason quotes the prompt's limits as well as the readings: "exceeds 0.6",
+# "is under 0.5", "is within 5 of 90". A number after one of these words is the
+# limit being compared against, not what the model was shown. Dropping every
+# value equal to a limit instead would also drop the angle readings of 90.0,
+# which are real readings and agree with the rebuilt ones.
+_COMPARED = re.compile(r"\b(at least|at most|within|exceeds?|under|over|above|below|"
+                       r"less than|more than|greater than)\b")
+
+
+def quoted_readings(point: dict, reasons: list[str]) -> list[dict]:
+    """The signal readings the models quoted for one point, each tried on its own.
+
+    The recorded rows keep each model's reason, and most reasons quote the
+    signals they were shown. Each quoted reading is put in place of the rebuilt
+    value, one at a time, and the rule asked again, so a single reading that
+    would have decided the point differently cannot hide behind the others.
+    """
+    look = point["evidence"][0]
+    if "signals" not in look:
+        return []
+    before = rule_says_look_again(point["evidence"], point["remaining"])
+    out = []
+    for reason in reasons:
+        for name, gap, value in _QUOTED.findall(reason):
+            if _COMPARED.search(gap):
+                continue
+            name = {"face_a": "face_a_fit_rms_mm", "face_b": "face_b_fit_rms_mm"}.get(name, name)
+            here = float(look["signals"][name])
+            seen = {**look, "signals": {**look["signals"], name: float(value)}}
+            out.append({"trial": point["trial"], "signal": name, "quoted": float(value),
+                        "here": here,
+                        "moves": rule_says_look_again([seen], point["remaining"]) != before})
+    return out
+
+
+def run_rule_arm(args) -> int:
+    """Score the arithmetic rule on the decision points the models were scored on."""
+    record = Path(args.record)
+    rows = [json.loads(line) for line in record.read_text(encoding="utf-8").splitlines()
+            if line.strip()]
+    by_arm: dict[str, list[dict]] = {}
+    for row in rows:
+        by_arm.setdefault(row["arm"], []).append(row)
+
+    print(f"recorded answers in {record}, scored against the recorded answer key:")
+    recorded = {}
+    for name in ("nano", "lightning", "super", "ultra", "routed"):
+        arm = by_arm.get(name) or []
+        right = sum(1 for r in arm if r["said_look_again"] == r["should_look_again"])
+        recorded[name] = [right, len(arm)]
+        print(f"  {name:>10} {right} of {len(arm)}")
+
+    nano = by_arm["nano"]
+    replayed_rows = [r for r in nano if r["kind"] == "replayed"]
+    first_rows = [r for r in nano if r["kind"] == "first-view"]
+
+    # Replayed points come back in the order they were scored; check each one
+    # is the same point before trusting the pairing.
+    replayed = list(decision_points(Path(args.campaign)))
+    if len(replayed) != len(replayed_rows):
+        raise SystemExit(f"{len(replayed)} replayed points rebuilt, {len(replayed_rows)} recorded")
+    for point, row in zip(replayed, replayed_rows, strict=True):
+        if (point["trial"] != row["trial"] or abs(point["gain_mm"] - row["gain_mm"]) > 1e-9
+                or point["should_look_again"] != row["should_look_again"]):
+            raise SystemExit(f"replayed point {point['trial']} does not match the record")
+
+    reasons: dict[str, list[str]] = {}
+    for row in rows:
+        if row["kind"] == "first-view":
+            reasons.setdefault(row["trial"], []).append(row["reason"] or "")
+
+    manifest = Path(args.manifest)
+    stored = None
+    if manifest.exists():
+        rebuilt = {p["trial"]: p for p in first_view_points(manifest)}
+        first = []
+        for row in first_rows:
+            if row["trial"] not in rebuilt:
+                raise SystemExit(f"first-view point {row['trial']} cannot be rebuilt "
+                                 f"from {manifest}")
+            first.append(rebuilt[row["trial"]])
+        source = f"rebuilt from {manifest}"
+    else:
+        rule_record = Path(args.rule_out)
+        if not rule_record.exists():
+            raise SystemExit(f"{manifest} is not here and neither is {rule_record}; "
+                             "the first-view points need one of them")
+        stored = json.loads(rule_record.read_text(encoding="utf-8"))
+        first = [{"trial": p["trial"], "remaining": p["remaining"],
+                  "should_look_again": p["should_look_again_rebuilt"],
+                  "evidence": [{"view_deg": p["view_deg"], "measurement_failed": "refused"}
+                               if p["failed"] else
+                               {"view_deg": p["view_deg"], "signals": p["signals"]}]}
+                 for p in stored["first_view_points"]]
+        if [p["trial"] for p in first] != [r["trial"] for r in first_rows]:
+            raise SystemExit(f"{rule_record} does not hold the recorded first-view points")
+        source = f"read from the signals kept in {rule_record} ({manifest} is not here)"
+
+    key_agrees = sum(1 for p, r in zip(first, first_rows, strict=True)
+                     if p["should_look_again"] == r["should_look_again"])
+    quoted = [q for p, r in zip(first, first_rows, strict=True)
+              for q in quoted_readings(p, reasons.get(r["trial"], []))]
+    distinct = {(q["trial"], q["signal"], q["quoted"]): q for q in quoted}
+    moved = sorted({q["trial"] for q in quoted if q["moves"]})
+    # Rounding a reading to two places moves it by well under 5 percent; a
+    # bigger gap means the render the models saw measured something else.
+    differ = [q for q in distinct.values()
+              if abs(q["quoted"] - q["here"]) > 0.05 * max(abs(q["here"]), 1e-9)]
+    widest = {}
+    for q in distinct.values():
+        best = widest.get(q["signal"])
+        if best is None or abs(q["quoted"] - q["here"]) > abs(best["quoted"] - best["here"]):
+            widest[q["signal"]] = q
+
+    def score(points, recorded_rows):
+        out = []
+        for point, row in zip(points, recorded_rows, strict=True):
+            out.append({
+                "trial": row["trial"],
+                "kind": row["kind"],
+                "should_look_again": row["should_look_again"],
+                "rule_look_again": rule_says_look_again(point["evidence"], point["remaining"]),
+                "nano_look_again": row["said_look_again"],
+                "literal_look_again": not rule_decision(point["evidence"], point["remaining"])[0],
+                "gain_mm": row["gain_mm"],
+                "missed": misses_text(point["evidence"]),
+                "nano_reason": row["reason"] or "",
+            })
+        return out
+
+    scored = score(replayed, replayed_rows) + score(first, first_rows)
+
+    def tally(points):
+        rule = sum(1 for p in points if p["rule_look_again"] == p["should_look_again"])
+        model = sum(1 for p in points if p["nano_look_again"] == p["should_look_again"])
+        only_rule = sum(1 for p in points if p["rule_look_again"] == p["should_look_again"]
+                        and p["nano_look_again"] != p["should_look_again"])
+        only_nano = sum(1 for p in points if p["nano_look_again"] == p["should_look_again"]
+                        and p["rule_look_again"] != p["should_look_again"])
+        return {"points": len(points), "rule_right": rule, "nano_right": model,
+                "rule_only": only_rule, "nano_only": only_nano,
+                "mcnemar_p": round(mcnemar_exact(only_rule, only_nano), 4)}
+
+    sets = {
+        "replayed": tally([p for p in scored if p["kind"] == "replayed"]),
+        "first-view": tally([p for p in scored if p["kind"] == "first-view"]),
+        "all": tally(scored),
+    }
+
+    print(f"\nreplayed points: {len(replayed)}, rebuilt exactly from {args.campaign}")
+    print(f"first-view points: {len(first)}, {source}")
+    here = "rebuilt" if stored is None else "kept"
+    if stored is None:
+        print(f"  answer key on the rebuilt points equals the recorded key on {key_agrees} "
+              f"of {len(first)}")
+    else:
+        print(f"  answer key kept in {args.rule_out} equals the recorded key on {key_agrees} "
+              f"of {len(first)}; the points were not rebuilt here")
+    print(f"  {len(quoted)} signal readings quoted in the models' reasons ({len(distinct)} "
+          f"distinct), each put in place of the {here} value one at a time: the rule's "
+          f"verdict moves on {len(moved)} points")
+    print(f"  {len(differ)} distinct readings differ from the {here} value by more than "
+          f"5 percent; the widest gap for each signal:")
+    for name in LIMIT_SIGNALS:
+        q = widest.get(name)
+        if q:
+            print(f"    {name:>20}  {q['trial']:>9}  quoted {q['quoted']:g}, {here} {q['here']:g}")
+    if key_agrees != len(first) or moved:
+        raise SystemExit(f"the first-view points do not pair with the record (answer key "
+                         f"agrees on {key_agrees} of {len(first)}, quoted readings move the "
+                         f"rule on {', '.join(moved) or 'no point'}); not comparing")
+
+    print(f"\n{'points':>12} {'n':>4} {'rule':>6} {'nano':>6} {'rule only':>10} "
+          f"{'nano only':>10} {'exact McNemar p':>16}")
+    print("-" * 70)
+    for name, t in sets.items():
+        print(f"{name:>12} {t['points']:>4} {t['rule_right']:>6} {t['nano_right']:>6} "
+              f"{t['rule_only']:>10} {t['nano_only']:>10} {t['mcnemar_p']:>16}")
+
+    print("\nwhere the rule and the smallest model differ:")
+    for p in scored:
+        if p["rule_look_again"] != p["nano_look_again"]:
+            right = "rule" if p["rule_look_again"] == p["should_look_again"] else "nano"
+            print(f"  {p['trial']:>9}  truth {'look' if p['should_look_again'] else 'accept':<6} "
+                  f"rule {'look' if p['rule_look_again'] else 'accept':<6} "
+                  f"nano {'look' if p['nano_look_again'] else 'accept':<6} "
+                  f"gain {p['gain_mm']:+.3f} mm  {right} right  "
+                  f"limits missed: {p['missed']}")
+            # Read the reason before crediting the call: a right answer given
+            # for a reason the evidence contradicts is not judgement.
+            print(f"             nano said: {p['nano_reason'][:150]}")
+
+    literal = sum(1 for p in scored if p["literal_look_again"])
+    print(f"\nrule_decision called on the evidence exactly as the cell passes it (signals nested "
+          f"under 'signals') asks for another look on {literal} of {len(scored)} points.")
+    print("That is the fallback plan_next_view uses when a reply cannot be parsed. Until it was")
+    print("taught the nested shape it found no signals and asked for another look on every point.")
+
+    if stored is None:
+        out = Path(args.rule_out)
+        out.write_text(json.dumps({
+            "command": "python scripts/eval_router_truth.py --rule",
+            "answers": str(record).replace("\\", "/"),
+            "first_view_source": str(manifest).replace("\\", "/"),
+            "recorded_right": recorded,
+            "answer_key_agrees": [key_agrees, len(first)],
+            # Limits a reason compares against ("exceeds 0.6") are not counted.
+            "quoted_readings": {
+                "checked_one_at_a_time": len(quoted),
+                "distinct": len(distinct),
+                "points_where_the_rule_moves": moved,
+                "distinct_differing_by_over_5_percent": len(differ),
+                "widest_gap": {name: {"trial": q["trial"], "quoted": q["quoted"],
+                                      "rebuilt": q["here"]}
+                               for name, q in widest.items()},
+            },
+            "literal_fallback_look_again": [literal, len(scored)],
+            "compare": sets,
+            # The first-view signals, so the rule's count can be checked
+            # without the render it was measured on.
+            "first_view_points": [{
+                "trial": p["trial"],
+                "view_deg": p["evidence"][0]["view_deg"],
+                "remaining": p["remaining"],
+                "failed": bool(p["evidence"][0].get("measurement_failed")),
+                "signals": {k: p["evidence"][0]["signals"][k] for k in LIMIT_SIGNALS}
+                if "signals" in p["evidence"][0] else None,
+                "should_look_again_rebuilt": p["should_look_again"],
+            } for p in first],
+        }, indent=1) + "\n", encoding="utf-8")
+        print(f"\nwrote {out}")
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", default="data/campaign50.jsonl")
@@ -177,7 +505,17 @@ def main() -> int:
                         help="Build the decision points and report them; call no model.")
     parser.add_argument("--limit", type=int, default=0)
     parser.add_argument("--out", default="data/router_truth_eval.jsonl")
+    parser.add_argument("--rule", action="store_true",
+                        help="Score the cell's arithmetic rule against the recorded answers of "
+                             "the smallest model on the same points. Calls no model.")
+    parser.add_argument("--record", default="data/router_truth_eval.jsonl",
+                        help="The recorded model answers the rule arm is paired with.")
+    parser.add_argument("--rule-out", default=str(RULE_RECORD),
+                        help="Where the rule arm writes its counts and the first-view signals.")
     args = parser.parse_args()
+
+    if args.rule:
+        return run_rule_arm(args)
 
     points: list[dict] = []
     if args.points in ("replayed", "both"):

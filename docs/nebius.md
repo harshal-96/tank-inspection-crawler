@@ -72,7 +72,7 @@ Serverless and confirmed for this project:
 | Role | `model_id` | In / out per 1M | Context | Tools |
 | --- | --- | --- | --- | --- |
 | Supervisor agent, and the corrective action briefs | `nvidia/Nemotron-3_5-Lightning` | $0.06 / $0.24 | 1M | yes |
-| View planning in the cell; measured as the tank's probe planner | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | see the catalog | see the catalog | see the catalog |
+| Per-part view decisions in the cell; measured as the tank's probe planner | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | see the catalog | see the catalog | see the catalog |
 | Weld inspection, and the shift diagnosis | `deepseek-ai/DeepSeek-V4.1-Flash` | see the catalog | see the catalog | yes |
 | Weld inspection, earlier choices | `MiniMaxAI/MiniMax-M3`, `google/gemma-3-27b-it` | see the catalog | see the catalog | yes |
 
@@ -82,14 +82,24 @@ within noise on 50 beads. On 150 beads DeepSeek V4.1 Flash wins the pass-or-defe
 outright, so it is the inspector; the README has the tables.
 
 Nemotron 3 Nano does live work in the cell, deciding whether a view is worth believing
-or the part should be presented again. On the tank it was measured as the planner that
-picks where the thickness probe goes, and it lost: 9, 10 and 12 of the 28 rejectable
-points in three recorded runs, and 11 with the camera's report withheld, against 16 for
-a coverage rule given the same budget (`tank/data/survey/probing.json`,
-`probing_power.json`, `probing_blind.json`). So the rule drives the probe and the model
-result is reported as a negative one. Those runs used the default reasoning setting,
-unlike the cell's view planner and brief writer, which set `reasoning_effort` to
-`"none"` (see below); the result holds for that setting only.
+or the part should be presented again: 88 of 89 against ground truth, where the limits
+its prompt states, applied as arithmetic, get 86 (exact McNemar p 0.625,
+`scripts/eval_router_truth.py --rule`). At all three points where Nano alone is right,
+its stated reason misreads the inlier balance as at least 0.60 when it is 0.51 to 0.59.
+On the tank it was measured as the planner that picks where the thickness probe goes,
+and it was never ahead of the coverage rule as shipped: 9, 12 and 10 of the 28
+rejectable points in three recorded runs, and 11 with the camera's report withheld,
+against 16 for the rule at its shipped tie-break order and a median of 12 over all 5040
+orders (`tank/score_probes.py --tiebreaks`). No run differs from the rule by a paired
+exact test (p 0.143 to 0.344, `tank/significance.py`), all four model runs sit inside
+the central 95 percent band of random picks, 4 to 12 (the 12 at its top edge), and the
+hidden patches were placed by hand in the rule's favour (`tank/layout_sweep.py`: the
+shipped layout suits it better than 94.9 percent of 1000 random ones). So the rule
+drives the arm because it is no worse, deterministic and free, and the model result is
+reported as a negative one (`tank/data/survey/probing.json`, `probing_power.json`,
+`probing_blind.json`). Those runs used the default reasoning setting, unlike the cell's
+view planner and brief writer, which set `reasoning_effort` to `"none"` (see below);
+the result holds for that setting only.
 
 Twelve of the twenty-four catalog entries carry a `dedicated-endpoint` use case. Whether
 that means dedicated-only or merely dedicated-also is undocumented. Every model in the

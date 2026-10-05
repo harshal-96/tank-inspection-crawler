@@ -41,9 +41,10 @@ worked was `reasoning_effort="none"`, which cut 900 tokens of preamble to 86 tok
 correct JSON on the welding cell's view prompt. A parameter that is silently ignored is
 worse than one that is rejected, because nothing tells you to look.
 
-**Latency was never the problem.** Vision at 1280x720 ran about 9.2 seconds a frame and
-Nemotron Nano about 7.1 seconds a station, consistently, with no rate limiting at the
-volumes we used. Model availability and behaviour varied far more than speed did.
+**Latency was never the problem.** Vision at 1280x720 took a median of 9.2 seconds a
+frame (mean 10.2 s, slowest 21.3 s) and Nemotron Nano a median of 7.1 seconds a station,
+with no rate limiting at the volumes we used. Model availability and behaviour varied
+far more than speed did.
 
 ## NVIDIA Nemotron
 
@@ -61,27 +62,33 @@ you know.
 **Reasoning has to be switched off explicitly for a control loop.** Left at its default,
 Lightning reasons at length in plain prose before reaching an answer, and `"low"` was
 not enough to stop it; `"none"` was. The welding cell's view decisions and its
-corrective action briefs set it. The tank's probe planner did not, and its recorded Nano runs were made with default
-reasoning.
+corrective action briefs set it. The tank's probe planner did not, and its recorded Nano
+runs were made with default reasoning.
 
 Nemotron 3 Nano 30B-A3B and Nemotron 3 Super 120B both answered the probe planning
-prompt cleanly. We default to Nano, which is the smallest and cheapest of the sizes we
-used, though on the tank's probe planning it was never ahead of a short coverage rule
-(below).
+prompt cleanly. Nano is the size we measured as the tank's probe planner, the smallest of
+the sizes we used; it was never ahead of the shipped coverage rule (below), so on the tank
+the arm runs the rule and no NVIDIA model drives it.
 
 If there is one thing worth publishing per model, it is which response field carries
 the answer and how reliably it returns JSON under a short budget. That is the
 difference between a model being usable in a control loop and not, and it does not
 correlate with size.
 
-**Nano punches above its price.** It took 88 of 89 per-part view decisions correctly in
-the welding cell against ground truth. On the tank's probe planning it found 9 to 12 of
-28 rejectable points against the coverage rule's 16, but given only the state the model
-is shown, the same rule finds 11, so on matched information the two are level. We use
-the rule there because it is no worse, deterministic, free and adds no hours, not
-because the model was shown to reason worse. Nothing in this project needed to escalate
-to a larger Nemotron, and we removed the escalation path rather than leave a feature in
-that never fired.
+**Nano was enough, and no more than enough.** It took 88 of 89 per-part view decisions
+correctly in the welding cell against ground truth, the same count as Lightning and
+Ultra. The limits its prompt states, applied as arithmetic to the same points, get 86,
+and four disagreements cannot separate the two (exact McNemar p 0.625). At all three
+points where Nano alone is right, its stated reason misreads the inlier balance as at
+least 0.60 when it is 0.51 to 0.59, so it was right there for a reason the evidence
+contradicts. It runs because it is the cheapest size measured at least as good as the
+rule, not because it beat it. On the tank's probe planning it found 9 to 12 of 28
+rejectable points against the coverage rule's 16 at its shipped tie-break order; over
+all 5040 orders the rule finds a median of 12, and 13 when shown only what the model
+sees, and no run differs from it by a paired exact test. We use the rule there because
+it is no worse on this evidence, deterministic, free and adds no hours. Nothing in this
+project needed to escalate to a larger Nemotron, and we removed the escalation path
+rather than leave a feature in that never fired.
 
 **No NVIDIA model on Token Factory accepts images**, which forced the vision half onto
 a non-NVIDIA model. For a hackathon with a Physical AI track this is the single most

@@ -23,8 +23,9 @@ export function render() {
     <p class="lede">
       Correcting every part hides the reason they need correcting. Three machines can put a
       weld in the wrong place. The <b>press brake</b> folds the sides up, and if its angle
-      setting slowly shifts, the joint tilts. The <b>fixture</b> clamps the part for welding,
-      and if it works loose the whole joint slides over. The <b>camera</b> can creep on its
+      setting slowly shifts, the joint tilts. The <b>fixture</b> locates and clamps the part for
+      welding, and if a locator wears or a clamp loses pressure the whole joint creeps over.
+      The <b>camera</b> can creep on its
       post, in which case nothing is wrong with the part at all. Each one is a different walk
       across the shop, so the cell reads a whole run of measurements and says which.
     </p>

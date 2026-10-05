@@ -4,7 +4,12 @@ Generated from the campaign file rather than typed out, so a number on the chart
 cannot drift away from the run that produced it.
 
     python scripts/draw_result_chart.py \\
-        --campaign data/campaign50.jsonl --out data/results.html
+        --campaign data/campaign50.jsonl --out data/demo_run/result_chart.html
+
+Without --out and --png it writes under data/demo_run/, which git ignores. The
+README's figure is drawn by scripts/make_figures.py, which names its campaign,
+its subject and its paths; a bare run here must not overwrite it with another
+campaign under another label.
 """
 
 from __future__ import annotations
@@ -13,9 +18,17 @@ import argparse
 import json
 import math
 import statistics
+from html import escape
 from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
+
+# Every chart from this script carries this line on the image itself, not only in
+# the caption beside it: the arrival scatter the simulation feeds the cell is larger
+# than a real line's, and a picture reused on its own would otherwise present the
+# taught-path miss as a realistic one.
+NOTE = ("Arrival scatter exaggerated for visibility; on a real line the joint moves "
+        "with part variation")
 
 # One hue, two shades: this is a before and after on the same quantity, not two
 # different things, so a second hue would imply a distinction that is not there.
@@ -76,7 +89,7 @@ def _font(size, bold=False):
 
 
 def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
-             subject: str = "cloud guided"):
+             subject: str = "cloud guided", note: str = NOTE):
     """The same chart as a flat image, for a README or a slide.
 
     Same data, same two shades, same log axis. Drawn at twice the size and
@@ -90,7 +103,7 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
     # Lay the page out first and size the canvas to it. Guessing a height and
     # hoping the rows fit is how the last five parts got cropped off.
     row_h = 11.5
-    cards_y, legend_y = 148.0, 264.0
+    cards_y, legend_y = 168.0, 284.0
     plot_top = legend_y + 56.0
     plot_bottom = plot_top + row_h * len(rows)
     W, H = 1000, int(plot_bottom + 78)
@@ -120,9 +133,12 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
     text((44, 34), " ".join(words[:cut]), 22, ink, bold=True)
     if words[cut:]:
         text((44, 62), " ".join(words[cut:]), 22, ink, bold=True)
-    text((44, 96), f"{len(rows)} parts, {len(rows) * 5} camera views, simulated end to end. "
-                   "Error is the distance from the seam the robot", 13, ink2)
-    text((44, 114), "would weld to where the seam truly is.", 13, ink2)
+    text((44, 96), f"{len(rows)} parts, {len(rows) * 5} camera views, in simulation on exact "
+                   "rendered depth. Error is the", 13, ink2)
+    text((44, 114), "distance from the seam the robot would weld to where the seam truly is.",
+         13, ink2)
+    if note:
+        text((44, 136), note + ".", 13, ink, bold=True)
 
     cards = [
         ("TAUGHT PROGRAM", f"{before['mean']:.1f} mm",
@@ -154,7 +170,7 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
     def x(value):
         return left + (math.log10(max(value, lo)) - math.log10(lo)) / span * plot_w
 
-    text((44, top - 34), "error, millimetres - log scale, so the whole range fits", 12, ink3)
+    text((44, top - 34), "error, millimetres, log scale, so the whole range fits", 12, ink3)
     bottom = plot_bottom
     for tick in TICKS:
         px = x(tick)
@@ -188,10 +204,12 @@ def draw_png(rows, before, after, factor, out: Path, title: str, scale=2,
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", default="data/campaign50.jsonl")
-    parser.add_argument("--out", default="data/results.html")
-    parser.add_argument("--png", default="data/results.png")
+    parser.add_argument("--out", default="data/demo_run/result_chart.html")
+    parser.add_argument("--png", default="data/demo_run/result_chart.png")
     parser.add_argument("--title", default=None)
     parser.add_argument("--subject", default="cloud guided")
+    parser.add_argument("--note", default=NOTE,
+                        help="the line under the headline saying what is exaggerated")
     args = parser.parse_args()
 
     rows = load(Path(args.campaign))
@@ -244,6 +262,9 @@ def main() -> int:
     # guided" credits a model with work it did not do.
     subject = args.subject
     subject_title = subject[:1].upper() + subject[1:]
+    # The PNG draws the note only when there is one; so does the page, or an
+    # empty --note leaves a stray bold full stop under the title.
+    note_html = f"\n     <b>{escape(args.note)}.</b>" if args.note else ""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -318,8 +339,9 @@ def main() -> int:
 <body>
 <div class="wrap">
   <h1>{title}</h1>
-  <p class="sub">{len(rows)} parts, {len(rows) * 5} camera views, simulated end to end.
-     Error is distance from the seam the robot would weld to where the seam truly is.</p>
+  <p class="sub">{len(rows)} parts, {len(rows) * 5} camera views, in simulation on exact
+     rendered depth. Error is distance from the seam the robot would weld to where the
+     seam truly is.{note_html}</p>
 
   <div class="kpis">
     <div class="kpi">
@@ -384,8 +406,9 @@ def main() -> int:
     print(f"reduction     : {factor:.1f}x")
     print(f"wrote {out}")
     if args.png:
+        Path(args.png).parent.mkdir(parents=True, exist_ok=True)
         print(f"wrote {draw_png(rows, before, after, factor, Path(args.png), title,
-                                subject=subject)}")
+                                subject=subject, note=args.note)}")
     return 0
 
 

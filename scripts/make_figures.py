@@ -5,11 +5,13 @@ came from, and nobody notices because a picture does not fail a test. These are 
 generated from the campaign files or from the capture that ships with the
 repository, so a stale one is a command away from being correct.
 
-The dashboard screenshot needs the service running and a Chrome on the machine; it
-is skipped, with a note, when either is missing. Everything else needs neither.
+The dashboard screenshots need the service running and a Chrome on the machine;
+they are skipped, with a note, when either is missing. Everything else needs neither.
+None of it calls a model or needs Blender.
 
-    uvicorn service.app:app --reload      # only for the dashboard shot
+    uvicorn service.app:app --reload      # only for the dashboard shots
     python scripts/make_figures.py
+    python scripts/make_figures.py --only seam dashboard   # just those two
 """
 
 from __future__ import annotations
@@ -24,6 +26,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "figures"
+
+# What --only can name, in the order they are drawn.
+FIGURES = ("seam", "cell", "tracked", "dashboard", "boundary")
 
 CHROMES = (
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -65,24 +70,33 @@ def shoot(url: str, out: Path, width: int, height: int) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--api", default="http://127.0.0.1:8000")
+    parser.add_argument("--only", nargs="+", choices=FIGURES, default=list(FIGURES),
+                        help="redraw only these figures; by default, all of them")
     args = parser.parse_args()
+    want = set(args.only)
     OUT.mkdir(parents=True, exist_ok=True)
 
-    print("the headline result, from the fifty-part campaign")
-    run(["scripts/draw_result_chart.py",
-         "--campaign", "data/seam_campaign.jsonl",
-         "--out", "docs/figures/seam_result.html",
-         "--png", "docs/figures/seam_result.png",
-         # Named, because the seam tracking is geometry and calling it cloud
-         # guided would credit a model with work it did not do.
-         "--subject", "depth measured, no model in the loop"])
+    if "seam" in want:
+        print("the headline result, from the fifty-part campaign")
+        run(["scripts/draw_result_chart.py",
+             "--campaign", "data/seam_campaign.jsonl",
+             "--out", "docs/figures/seam_result.html",
+             "--png", "docs/figures/seam_result.png",
+             # Named, because the seam tracking is geometry and calling it cloud
+             # guided would credit a model with work it did not do.
+             "--subject", "depth measured, no model in the loop"])
 
-    print("the cell, to scale, from the constants the simulation builds from")
-    run(["scripts/draw_cell.py", "--out", "docs/figures/cell_layout.png"])
+    if "cell" in want:
+        print("the cell, to scale, from the constants the simulation builds from")
+        run(["scripts/draw_cell.py", "--out", "docs/figures/cell_layout.png"])
 
-    print("one part tracked from its depth frame, off the shipped capture")
-    run(["scripts/track_on_model.py", "--manifest", "data/demo/manifest.json",
-         "--part", "3", "--out", "docs/figures/seam_tracked.png"])
+    if "tracked" in want:
+        print("one part tracked from its depth frame, off the shipped capture")
+        run(["scripts/track_on_model.py", "--manifest", "data/demo/manifest.json",
+             "--part", "3", "--out", "docs/figures/seam_tracked.png"])
+
+    if not want & {"dashboard", "boundary"}:
+        return 0
 
     try:
         with urllib.request.urlopen(f"{args.api}/healthz", timeout=3):
@@ -94,9 +108,15 @@ def main() -> int:
         print("  start it with: uvicorn service.app:app")
         return 0
 
-    print("the dashboard summary page")
-    shoot(f"{args.api}/#/overview", OUT / "dashboard.png", 1440, 1150)
+    if "dashboard" in want:
+        # The tank page, because it is the page the dashboard opens on and the
+        # half of the project the README leads with. An earlier shot of the
+        # welding summary page outlived two changes to that page.
+        print("the dashboard's tank page")
+        shoot(f"{args.api}/#/tank", OUT / "dashboard.png", 1440, 1150)
 
+    if "boundary" not in want:
+        return 0
     print("the boundary test, cropped out of the diagnosis page")
     full = OUT / "_diagnosis_full.png"
     if shoot(f"{args.api}/#/diagnosis", full, 1440, 3300):

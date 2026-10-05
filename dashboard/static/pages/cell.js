@@ -128,9 +128,15 @@ function chips(slot) {
       `hottest ${V.fmt(s.heat_j_per_mm_max, 0)} J/mm`,
       s.refused_stations ? "var(--warning)" : "var(--good)"));
   }
-  if (exaggeration > 1) {
-    cards.push(glass("Display", `bow ×${exaggeration}`, "only the curve is exaggerated; the offset is true scale", "var(--warning)"));
-  }
+  // Always shown, as on the summary page. The offset is drawn to scale, but the
+  // arrival spread the simulation feeds it is itself exaggerated for visibility,
+  // so a chip that only appeared with the bow button would leave the miss above
+  // reading as a realistic one.
+  cards.push(glass("Display",
+    exaggeration > 1 ? `bow ×${exaggeration}` : "true scale",
+    "arrival spread exaggerated for visibility"
+      + (exaggeration > 1 ? "; bow drawn larger, offset drawn to scale" : ""),
+    exaggeration > 1 ? "var(--warning)" : "var(--text-muted)"));
   V.$("cell-chips").innerHTML = cards.join("");
 }
 

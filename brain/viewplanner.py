@@ -57,7 +57,14 @@ look costs cycle time, so ask only when one of those is actually violated."""
 
 
 def view_meets_rule(view: dict[str, Any]) -> bool:
-    """The same limits, applied by arithmetic. Missing signals fail."""
+    """The same limits, applied by arithmetic. Missing signals fail.
+
+    The cell hands each look over with its signals nested under "signals"
+    (Look.for_planner in scripts/run_campaign.py); a flat look is read too.
+    Reading only the flat shape, this found no signals on any real look, and
+    the fallback asked for another look on every part it was ever called for.
+    """
+    view = view.get("signals") or view
     try:
         angle = float(view["included_angle_deg"])
         balance = float(view["inlier_balance"])
@@ -78,7 +85,8 @@ def rule_decision(attempts: list[dict[str, Any]],
     from the ones already tried, because a face that was edge-on needs a real
     swing to open it up. With nothing left to try, accept what there is.
     """
-    if any(view_meets_rule(a) for a in attempts if not a.get("failed")):
+    if any(view_meets_rule(a) for a in attempts
+           if not (a.get("failed") or a.get("measurement_failed"))):
         return True, None
     if not available_deg:
         return True, None

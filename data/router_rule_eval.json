@@ -1,0 +1,968 @@
+{
+ "command": "python scripts/eval_router_truth.py --rule",
+ "answers": "data/router_truth_eval.jsonl",
+ "first_view_source": "data/cap50v3/manifest.json",
+ "recorded_right": {
+  "nano": [
+   88,
+   89
+  ],
+  "lightning": [
+   88,
+   89
+  ],
+  "super": [
+   61,
+   89
+  ],
+  "ultra": [
+   88,
+   89
+  ],
+  "routed": [
+   88,
+   89
+  ]
+ },
+ "answer_key_agrees": [
+  50,
+  50
+ ],
+ "quoted_readings": {
+  "checked_one_at_a_time": 363,
+  "distinct": 117,
+  "points_where_the_rule_moves": [],
+  "distinct_differing_by_over_5_percent": 3,
+  "widest_gap": {
+   "included_angle_deg": {
+    "trial": "1@45",
+    "quoted": 43.8,
+    "rebuilt": 89.3
+   },
+   "inlier_balance": {
+    "trial": "1@45",
+    "quoted": 0.142,
+    "rebuilt": 0.151
+   },
+   "face_b_fit_rms_mm": {
+    "trial": "41@22.5",
+    "quoted": 0.389,
+    "rebuilt": 0.244
+   },
+   "face_a_fit_rms_mm": {
+    "trial": "6@22.5",
+    "quoted": 0.095,
+    "rebuilt": 0.094
+   },
+   "path_length_mm": {
+    "trial": "0@0",
+    "quoted": 377.8,
+    "rebuilt": 377.5
+   }
+  }
+ },
+ "literal_fallback_look_again": [
+  28,
+  89
+ ],
+ "compare": {
+  "replayed": {
+   "points": 39,
+   "rule_right": 39,
+   "nano_right": 39,
+   "rule_only": 0,
+   "nano_only": 0,
+   "mcnemar_p": 1.0
+  },
+  "first-view": {
+   "points": 50,
+   "rule_right": 47,
+   "nano_right": 49,
+   "rule_only": 1,
+   "nano_only": 3,
+   "mcnemar_p": 0.625
+  },
+  "all": {
+   "points": 89,
+   "rule_right": 86,
+   "nano_right": 88,
+   "rule_only": 1,
+   "nano_only": 3,
+   "mcnemar_p": 0.625
+  }
+ },
+ "first_view_points": [
+  {
+   "trial": "6@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 43.2,
+    "inlier_balance": 0.098,
+    "face_a_fit_rms_mm": 0.047,
+    "face_b_fit_rms_mm": 0.234,
+    "path_length_mm": 357.4
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "10@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 44.7,
+    "inlier_balance": 0.121,
+    "face_a_fit_rms_mm": 0.038,
+    "face_b_fit_rms_mm": 0.353,
+    "path_length_mm": 348.3
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "43@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 46.0,
+    "inlier_balance": 0.127,
+    "face_a_fit_rms_mm": 0.087,
+    "face_b_fit_rms_mm": 0.234,
+    "path_length_mm": 356.4
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "11@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "4@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "32@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "43@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "47@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "8@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "22@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.5,
+    "inlier_balance": 0.148,
+    "face_a_fit_rms_mm": 0.123,
+    "face_b_fit_rms_mm": 0.806,
+    "path_length_mm": 354.2
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "20@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 43.0,
+    "inlier_balance": 0.1,
+    "face_a_fit_rms_mm": 0.154,
+    "face_b_fit_rms_mm": 0.234,
+    "path_length_mm": 356.0
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "26@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.8,
+    "inlier_balance": 0.792,
+    "face_a_fit_rms_mm": 0.584,
+    "face_b_fit_rms_mm": 0.272,
+    "path_length_mm": 374.7
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "29@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.2,
+    "inlier_balance": 0.17,
+    "face_a_fit_rms_mm": 0.159,
+    "face_b_fit_rms_mm": 0.91,
+    "path_length_mm": 358.9
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "1@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.3,
+    "inlier_balance": 0.151,
+    "face_a_fit_rms_mm": 0.156,
+    "face_b_fit_rms_mm": 0.878,
+    "path_length_mm": 349.6
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "49@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "10@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "17@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.138,
+    "face_a_fit_rms_mm": 0.141,
+    "face_b_fit_rms_mm": 0.786,
+    "path_length_mm": 357.3
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "5@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "22@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "14@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "1@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 49.0,
+    "inlier_balance": 0.065,
+    "face_a_fit_rms_mm": 0.151,
+    "face_b_fit_rms_mm": 1.339,
+    "path_length_mm": 345.8
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "49@45",
+   "view_deg": 45.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    22.5
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 43.3,
+    "inlier_balance": 0.106,
+    "face_a_fit_rms_mm": 0.218,
+    "face_b_fit_rms_mm": 0.234,
+    "path_length_mm": 352.4
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "20@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.5,
+    "inlier_balance": 0.148,
+    "face_a_fit_rms_mm": 0.063,
+    "face_b_fit_rms_mm": 0.787,
+    "path_length_mm": 357.3
+   },
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "31@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "19@-45",
+   "view_deg": -45.0,
+   "remaining": [
+    -22.5,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": true,
+   "signals": null,
+   "should_look_again_rebuilt": true
+  },
+  {
+   "trial": "40@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.705,
+    "face_a_fit_rms_mm": 0.016,
+    "face_b_fit_rms_mm": 0.412,
+    "path_length_mm": 369.3
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "48@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.835,
+    "face_a_fit_rms_mm": 0.196,
+    "face_b_fit_rms_mm": 0.235,
+    "path_length_mm": 380.7
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "17@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.828,
+    "face_a_fit_rms_mm": 0.246,
+    "face_b_fit_rms_mm": 0.255,
+    "path_length_mm": 376.0
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "23@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.745,
+    "face_a_fit_rms_mm": 0.235,
+    "face_b_fit_rms_mm": 0.413,
+    "path_length_mm": 373.2
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "49@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.608,
+    "face_a_fit_rms_mm": 0.237,
+    "face_b_fit_rms_mm": 0.297,
+    "path_length_mm": 369.8
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "13@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.725,
+    "face_a_fit_rms_mm": 0.129,
+    "face_b_fit_rms_mm": 0.364,
+    "path_length_mm": 370.9
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "31@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.675,
+    "face_a_fit_rms_mm": 0.036,
+    "face_b_fit_rms_mm": 0.356,
+    "path_length_mm": 365.7
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "6@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.508,
+    "face_a_fit_rms_mm": 0.094,
+    "face_b_fit_rms_mm": 0.399,
+    "path_length_mm": 374.0
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "13@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.8,
+    "inlier_balance": 0.65,
+    "face_a_fit_rms_mm": 0.299,
+    "face_b_fit_rms_mm": 0.453,
+    "path_length_mm": 370.6
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "45@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.998,
+    "face_a_fit_rms_mm": 0.248,
+    "face_b_fit_rms_mm": 0.252,
+    "path_length_mm": 369.0
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "14@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.974,
+    "face_a_fit_rms_mm": 0.137,
+    "face_b_fit_rms_mm": 0.311,
+    "path_length_mm": 368.5
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "47@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.735,
+    "face_a_fit_rms_mm": 0.194,
+    "face_b_fit_rms_mm": 0.382,
+    "path_length_mm": 372.2
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "37@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.668,
+    "face_a_fit_rms_mm": 0.144,
+    "face_b_fit_rms_mm": 0.328,
+    "path_length_mm": 364.7
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "33@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.917,
+    "face_a_fit_rms_mm": 0.15,
+    "face_b_fit_rms_mm": 0.298,
+    "path_length_mm": 375.1
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "12@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.82,
+    "face_a_fit_rms_mm": 0.248,
+    "face_b_fit_rms_mm": 0.311,
+    "path_length_mm": 381.1
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "14@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.672,
+    "face_a_fit_rms_mm": 0.114,
+    "face_b_fit_rms_mm": 0.461,
+    "path_length_mm": 365.3
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "45@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.678,
+    "face_a_fit_rms_mm": 0.175,
+    "face_b_fit_rms_mm": 0.33,
+    "path_length_mm": 365.8
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "9@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.526,
+    "face_a_fit_rms_mm": 0.253,
+    "face_b_fit_rms_mm": 0.321,
+    "path_length_mm": 376.4
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "20@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.769,
+    "face_a_fit_rms_mm": 0.151,
+    "face_b_fit_rms_mm": 0.336,
+    "path_length_mm": 382.5
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "0@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.879,
+    "face_a_fit_rms_mm": 0.199,
+    "face_b_fit_rms_mm": 0.399,
+    "path_length_mm": 377.5
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "41@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.586,
+    "face_a_fit_rms_mm": 0.124,
+    "face_b_fit_rms_mm": 0.244,
+    "path_length_mm": 373.9
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "21@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.711,
+    "face_a_fit_rms_mm": 0.111,
+    "face_b_fit_rms_mm": 0.329,
+    "path_length_mm": 368.9
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "35@-22.5",
+   "view_deg": -22.5,
+   "remaining": [
+    -45.0,
+    0.0,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 90.0,
+    "inlier_balance": 0.758,
+    "face_a_fit_rms_mm": 0.257,
+    "face_b_fit_rms_mm": 0.319,
+    "path_length_mm": 374.9
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "18@0",
+   "view_deg": 0.0,
+   "remaining": [
+    -45.0,
+    -22.5,
+    22.5,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.97,
+    "face_a_fit_rms_mm": 0.16,
+    "face_b_fit_rms_mm": 0.331,
+    "path_length_mm": 372.2
+   },
+   "should_look_again_rebuilt": false
+  },
+  {
+   "trial": "44@22.5",
+   "view_deg": 22.5,
+   "remaining": [
+    -45.0,
+    -22.5,
+    0.0,
+    45.0
+   ],
+   "failed": false,
+   "signals": {
+    "included_angle_deg": 89.9,
+    "inlier_balance": 0.691,
+    "face_a_fit_rms_mm": 0.16,
+    "face_b_fit_rms_mm": 0.331,
+    "path_length_mm": 369.2
+   },
+   "should_look_again_rebuilt": false
+  }
+ ]
+}

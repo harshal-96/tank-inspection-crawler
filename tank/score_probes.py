@@ -30,6 +30,8 @@ The planners compared on the same stations:
   sweep, model's view
                  the same rule given only the state the model's prompt carries,
                  so the comparison with the model is matched on information.
+                 --tiebreaks pairs it with the sweep order by order: shown less,
+                 the rule does no worse.
   Nemotron       the same job given to an NVIDIA model, one call a station.
                  Only with --live, because it is paid for.
 
@@ -59,6 +61,7 @@ sys.path.insert(0, str(ROOT))
 from brain import nebius, registry  # noqa: E402
 from tank.probe_planner import (  # noqa: E402
     DEFAULT_BUDGET,
+    FALLBACK_WHY,
     Memory,
     Reading,
     plan_probes,
@@ -76,6 +79,75 @@ RUNS = SURVEY / "runs"
 # "model's view" arm is held to the same window, so if the prompt changes this
 # has to change with it.
 SHOWN_READINGS = 6
+
+# The recorded comparisons of the model planner with the sweep on this scene.
+# Each holds the sweep and one or more Nemotron runs over the same stations.
+# significance.py reads the same list.
+RECORDED_RUNS = ("probing.json", "probing_power.json", "probing_blind.json")
+
+
+def fell_back_stations(planner: dict) -> list[int] | None:
+    """Stations where a model run's reply was unusable and the sweep chose.
+
+    A live run records this per station as `fell_back`. The runs recorded
+    before that field existed carry only the reason plan_probes wrote, and a
+    fallback writes one of FALLBACK_WHY, so those runs are read back from it.
+    A run with neither cannot be audited and gets None, not an empty list.
+
+    What cannot be read back from the old runs is padding: a reply that named
+    one offset where two were asked for was topped up from the sweep under the
+    model's own reason, so nothing recorded says where that happened.
+    """
+    if "fell_back" in planner:
+        return sorted(int(s) for s, fell in planner["fell_back"].items() if fell)
+    if "why" in planner:
+        return sorted(int(s) for s, why in planner["why"].items()
+                      if any(words in str(why) for words in FALLBACK_WHY))
+    return None
+
+
+def model_only_hits(planner: dict) -> list[list]:
+    """The points a model run found, less those at stations the sweep chose.
+
+    A station that fell back was planned wholly by the rule, so what it found
+    is the rule's and not the model's. Padded stations are not taken out: the
+    model's own pick there is still the model's, and the old runs do not say
+    which pick was which.
+    """
+    fell = set(fell_back_stations(planner) or [])
+    return [hit for hit in planner["rejectable_found"] if int(hit[0]) not in fell]
+
+
+def plan_record(plans: dict) -> dict:
+    """What a live run keeps of each station's plan, beside the points it found.
+
+    Per station, so a score can leave out what the rule chose: a fallback is
+    the sweep's whole plan, padding is the sweep's second pick after a reply
+    that named one. The runs recorded before this kept only `why`.
+    """
+    return {"why": {k: v.why for k, v in plans.items()},
+            "fell_back": {k: v.fell_back for k, v in plans.items()},
+            "padded": {k: v.padded for k, v in plans.items()}}
+
+
+def recorded_model_runs(rejectable: int) -> list[dict]:
+    """Every recorded Nemotron run on this scene, with what the model chose itself."""
+    out = []
+    for name in RECORDED_RUNS:
+        path = SURVEY / name
+        if not path.exists():
+            continue
+        data = json.loads(path.read_text(encoding="utf-8"))
+        if data["rejectable"] != rejectable:
+            continue
+        for p in data["planners"]:
+            if "Nemotron" not in p["label"]:
+                continue
+            out.append({"file": name, "label": p["label"], "attempt": p.get("attempt"),
+                        "found": len(p["rejectable_found"]),
+                        "fell_back_stations": fell_back_stations(p),
+                        "model_only_found": len(model_only_hits(p))})
+    return out
 
 
 def said(row: dict) -> str:
@@ -306,12 +378,22 @@ def tiebreak_study(frames, answers, budget, rejectable) -> dict:
     if mine["rows"] != reference["rows"]:
         raise SystemExit("sweep_ordered does not reproduce sweep_rule with the "
                          "shipped tie-break; the study would be about another rule")
-    found = []
+    # Both arms under every order, side by side. The model's view breaks more
+    # ties than the sweep does, because it cannot order offsets last measured
+    # before its window, so it gets the same study; and taking the two at the
+    # same order is what pairs them, so the difference between them is the
+    # information withheld and not a different tie-break draw.
+    found, viewed = [], []
     for order in itertools.permutations(offsets):
         got = run(frames, answers,
                   lambda o, s, m, b, f, r, order=order: sweep_ordered(o, s, m, b, order),
                   budget, "")
         found.append(len(got["rejectable_found"]))
+        seen = run(frames, answers,
+                   lambda o, s, m, b, f, r, order=order:
+                   sweep_models_view(o, s, m, b, list(order)),
+                   budget, "")
+        viewed.append(len(seen["rejectable_found"]))
     as_shipped = len(reference["rejectable_found"])
     rotations = []
     for k in range(len(shipped)):
@@ -324,15 +406,7 @@ def tiebreak_study(frames, answers, budget, rejectable) -> dict:
     got = run(frames, answers,
               lambda o, s, m, b, f, r: sweep_ordered(o, s, m, b, mirrored), budget, "")
     counts = {v: found.count(v) for v in sorted(set(found))}
-    # The model's view breaks more ties than the sweep does, because it cannot
-    # order offsets last measured before its window, so it gets the same study.
-    viewed = []
-    for order in itertools.permutations(offsets):
-        seen = run(frames, answers,
-                   lambda o, s, m, b, f, r, order=order:
-                   sweep_models_view(o, s, m, b, list(order)),
-                   budget, "")
-        viewed.append(len(seen["rejectable_found"]))
+    diff = [a - b for a, b in zip(found, viewed, strict=True)]
     return {"orders": len(found), "rejectable": rejectable,
             "shipped_order": shipped, "shipped_found": as_shipped,
             "counts": counts,
@@ -346,7 +420,21 @@ def tiebreak_study(frames, answers, budget, rejectable) -> dict:
             "models_view": {"counts": {v: viewed.count(v) for v in sorted(set(viewed))},
                             "mean": statistics.fmean(viewed),
                             "median": statistics.median(viewed),
-                            "min": min(viewed), "max": max(viewed)}}
+                            "min": min(viewed), "max": max(viewed)},
+            "full_minus_models_view": {
+                "counts": {v: diff.count(v) for v in sorted(set(diff))},
+                "mean": statistics.fmean(diff), "median": statistics.median(diff),
+                "share_full_ahead": sum(1 for d in diff if d > 0) / len(diff),
+                "share_level": sum(1 for d in diff if d == 0) / len(diff),
+                "share_full_behind": sum(1 for d in diff if d < 0) / len(diff)}}
+
+
+def orders_against(counts: dict[int, int], found: int) -> dict:
+    """Shares of tie-break orders in which a rule finds more, the same, fewer."""
+    total = sum(counts.values())
+    return {"more": sum(n for v, n in counts.items() if v > found) / total,
+            "same": counts.get(found, 0) / total,
+            "fewer": sum(n for v, n in counts.items() if v < found) / total}
 
 
 def is_protected(path: Path) -> bool:
@@ -516,6 +604,54 @@ def main() -> int:
             print(f"  {value:>3} found  {n:>5} orders")
         print(f"  mean {view['mean']:.2f}, median {view['median']:g}, "
               f"range {view['min']} to {view['max']}")
+        paired = study["full_minus_models_view"]
+        print()
+        print("paired at each order, full history minus model's view:")
+        for value, n in paired["counts"].items():
+            print(f"  {value:>+3}  {n:>5} orders")
+        print(f"  mean {paired['mean']:+.2f}, median {paired['median']:+g}. Full history "
+              f"ahead in {paired['share_full_ahead'] * 100:.1f}% of orders, level in "
+              f"{paired['share_level'] * 100:.1f}%, behind in "
+              f"{paired['share_full_behind'] * 100:.1f}%.")
+        print("  Withholding the history the model is not shown "
+              + ("does not lower the rule's typical count."
+                 if paired["median"] <= 0 else "lowers the rule's typical count."))
+        # Each recorded run against both arms across every order, so a run is
+        # read against the rule's spread and not against one lucky order.
+        recorded = recorded_model_runs(rejectable)
+        study["recorded_runs"] = []
+        if recorded:
+            print()
+            print("each recorded Nemotron run against the rule over all orders, "
+                  "percent of orders\nin which the rule finds more, the same, fewer:")
+            print(f"  {'':<54} {'':>5}   {'full history':^17}   {'model view':^17}")
+            print(f"  {'run':<54} {'found':>5}   "
+                  + "   ".join(f"{'more':>5} {'same':>5} {'fewer':>5}" for _ in range(2)))
+            # Each run is counted as recorded. A run that fell back is not
+            # given a second "model only" row: that would set the model's count
+            # without the fallback stations against the rule's count with
+            # them, marking the model down at stations it never planned.
+            for r in recorded:
+                n = r["found"]
+                full = orders_against(study["counts"], n)
+                matched = orders_against(view["counts"], n)
+                name = (f"{r['file']}: {r['label']}"
+                        + (f" #{r['attempt']}" if r["attempt"] else ""))
+                print(f"  {name:<54} {n:>5}   "
+                      f"{full['more'] * 100:>5.1f} {full['same'] * 100:>5.1f} "
+                      f"{full['fewer'] * 100:>5.1f}   "
+                      f"{matched['more'] * 100:>5.1f} {matched['same'] * 100:>5.1f} "
+                      f"{matched['fewer'] * 100:>5.1f}")
+                study["recorded_runs"].append(
+                    {**r, "counted": n, "full_history": full, "models_view": matched})
+            for r in recorded:
+                if r["fell_back_stations"]:
+                    print(f"  {r['file']} #{r['attempt']}: station(s) "
+                          f"{', '.join(map(str, r['fell_back_stations']))} fell back "
+                          f"to the rule, so the model's own picks found "
+                          f"{r['model_only_found']}, not {r['found']};\n  it is counted "
+                          f"as recorded above (significance.py tests it with those "
+                          f"stations dropped\n  from both arms)")
         if out_path is not None:
             write(out_path, {"budget": args.budget, "places": total,
                              "rejectable": rejectable, "tiebreaks": study})
@@ -558,7 +694,8 @@ def main() -> int:
 
         # Repeated, because the same prompt at temperature zero does not
         # produce the same plan twice. On the 28 point run Nano has found 9,
-        # 12 and 10 over three recorded runs (probing.json, probing_power.json),
+        # 12 and 10 over three recorded runs (probing.json, probing_power.json;
+        # in the third station 10 fell back, so its own picks found 9),
         # and on the retired four point scene it found 4, 3 and 4 while Super
         # found 0, 3 and 0 (archive_four_point). One run of either would
         # support almost any claim, so the spread gets reported and the worst
@@ -572,7 +709,7 @@ def main() -> int:
                       + (" + rule floor" if args.floor else "")
                       + (" (blind)" if args.blind else ""))
             got["seconds"] = time.perf_counter() - started
-            got["why"] = {k: v.why for k, v in plans.items()}
+            got.update(plan_record(plans))
             got["attempt"] = index + 1
             attempts.append(got)
             results.append(got)

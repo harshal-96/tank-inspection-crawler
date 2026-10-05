@@ -381,12 +381,12 @@ function machines() {
      + "comes out bent a little differently, and the joint tilts: the top of it moves while "
      + "the bottom stays put."],
     ["The fixture", "var(--series-3)",
-     "The jig that clamps the part down for welding. If it works loose or gets knocked, the "
-     + "part sits in the wrong place, and the whole joint slides over together, top and "
-     + "bottom by the same amount."],
+     "The locators and clamps that hold the part for welding. If a locator wears or a clamp "
+     + "loses pressure, the part settles a little off, and the whole joint shifts over "
+     + "together, top and bottom by the same amount."],
     ["The camera mount", "var(--series-4)",
      "Nothing is wrong with the part at all. The camera has crept on its post, so the "
-     + "measurement is wrong. This looks identical to a loose fixture, which is why the cell "
+     + "measurement is wrong. This looks identical to a creeping fixture, which is why the cell "
      + "has a fixed reference marker to tell them apart."],
   ];
   host.innerHTML = `
@@ -480,7 +480,7 @@ function novelty(ev) {
   }
   if (c && c.available) {
     items.push(["A blind spot fixed with an instrument, not a bigger model",
-      "A loose fixture moves the part. A creeping camera moves the measurement. In the weld "
+      "A creeping fixture moves the part. A creeping camera moves the measurement. In the weld "
       + "seam they produce identical numbers, so no model can separate them. One reference "
       + "marker bolted to the machine base can, because only the camera can appear to move it.",
       `drifting cameras found: ${c.camera_without.correct}/${c.camera_without.n} `

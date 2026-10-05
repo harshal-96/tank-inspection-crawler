@@ -1,13 +1,25 @@
 # Tank Inspection Crawler
 
-A robot that crawls the seams inside a steel storage tank with two instruments: a camera
-that judges the weld and the plate, and an ultrasonic probe that measures what is left of
-the wall behind them. The premise this project is built on, and standard API 653
-practice, is that neither instrument can do the other's job. The camera cannot find
-hidden wall loss, and on this rig it cannot even see 6 of the 7 places the probe can
-reach. The probe cannot judge a weld surface.
+A robot that crawls the weld seams inside a steel storage tank, the lines where its plates
+are welded together, with two instruments: a camera that judges the weld and the plate,
+and an ultrasonic probe that measures what is left of the wall behind them. The premise
+this project is built on, and standard API 653 practice, is that neither instrument can
+do the other's job. The camera cannot find hidden wall loss, and on this rig it cannot
+even see 6 of the 7 places the probe can reach. The probe cannot judge a weld surface.
 
 What we measured is where a model belongs on that robot. The answer is on the picture.
+
+Where NVIDIA models run live: on the robotic welding cell in the same repository, where
+this loop was first built. With a Token Factory key, `scripts/demo.py` runs
+`scripts/run_campaign.py --routed`, and there NVIDIA Nemotron 3 Nano makes every per-part
+decision about whether a measurement is good enough to weld on: 88 of 89 right against
+ground truth, where the same limits written as arithmetic get 86, a gap an exact paired
+test cannot call (p 0.625). At all three points where Nano alone is right, its stated
+reason misreads the inlier balance as at least 0.60 when it is 0.51 to 0.59, so it was
+right there for a reason the evidence contradicts. Nemotron 3.5 Lightning, the default
+text model, runs the supervisor agent and writes the corrective action briefs. In the
+tank no NVIDIA model runs: Nemotron 3 Nano was measured as the probe planner and the
+coverage rule is used.
 
 ## Inspiration
 
@@ -71,12 +83,16 @@ crews.
 
 **It decides where to measure.** The arm can reach seven places across the seam and
 there is time for two. That budget is a stated design assumption for a spot probe that
-is placed, coupled and read at each point, not a measured cycle time. A coverage rule picks them: chase a low reading from the last two
-stations, otherwise take the offset that has gone longest without one. We also asked
-NVIDIA Nemotron 3 Nano to choose them. It found 9 to 12 of 28 against the rule's 16 and
-reached 4 of 5 hidden patches against 5 of 5. Given only the state the model sees, the
-same rule finds 11, level with the model. So the model was never ahead, and on matched
-information the two are level. The rule drives the arm because it is no worse, it is
+is placed, coupled and read at each point, not a measured cycle time. A coverage rule
+picks them: chase a low reading from the last two stations, otherwise take the offset
+that has gone longest without one. We also asked NVIDIA Nemotron 3 Nano to choose them.
+It found 9 to 12 of 28 against the rule's 16 and reached 4 of 5 hidden patches against 5
+of 5. The 16 is a lucky tie-break order: over all 5040 orders the rule finds a median of
+12, and 13 when shown only what the model sees, so typically 12 to 13 against the
+model's 9 to 12, and no run differs from it by a paired exact test. The model was never
+ahead of the rule at its shipped tie-break order in a recorded run. There is no evidence
+that it places probes better than a coverage rule, and only weak evidence that it places
+them worse. The rule drives the arm because it is no worse on this evidence, it is
 deterministic, it costs nothing and it adds no hours.
 
 **It refuses to guess.** A frame it cannot judge is recorded in its own column, neither
@@ -95,20 +111,29 @@ bounds.
 | | Result | One sided 95% exact lower bound |
 | --- | --- | --- |
 | Is this seam sound, or does somebody have to walk in | **23 of 24**; 1 missed, 0 false alarms, 0 declined | 0.817 |
-| The same call, counted only when the fault it names is actually in view | 21 of 24 | 0.708 |
+| The same call, counted only when the fault it names is actually in view | 22 of 24 | 0.760 |
 | Naming the worst fault in the frame | 19 of 24 | 0.611 |
-| Finding every fault present, not only the worst | 9 of 14, none invented | 0.390 |
+| Finding every fault present, not only the worst | 10 of 15, none invented | 0.423 |
 | Frames with every fault found | 19 of 24 | 0.611 |
 | Distinct faults on the run named in at least one frame that holds them | 4 of 5 | 0.343 |
+| Frames holding a fault, flagged | 10 of 11 | 0.636 |
+| Frames holding a fault, flagged for a fault really in view | 9 of 11 | 0.530 |
+| Clean frames passed | 13 of 13 | 0.794 |
+
+Calling every frame sound would score 13 of 24 on the first row, because 13 frames hold
+no fault, so the pooled 23 is mostly clean frames. The 11 frames that hold a fault are the
+real test, which is why the last three rows split it by class.
 
 The one miss is station 12, which holds the same 64 mm crack that frame 11 had already
 named. The fault never named is the undercut in frames 1 to 4, reported each time as the
-corroded plate beside it. In frames 1 and 2 that rust is a sliver below the counting
-threshold, so those two gate calls were right for the wrong reason, which is why the
-strict row is 21 and not 23. These are not independent trials: a frame shows 0.295 m of
-seam and the stations are 0.1739 m apart, so 41 percent of each frame is in the next
-one, and 14 sightings are 5 physical faults. The 24 frames are also a development set:
-the scene was corrected after reading model answers on these same frames.
+corroded plate beside it; in those frames it renders faintly, a thin line rather than the
+dark groove the prompt describes. In frame 1 the rust it named is a sliver, 0.01 of the
+picture, below the counting threshold, so that gate call was right for the wrong reason,
+which is why the strict row is 22 and not 23. These are not independent trials: a
+frame shows 0.295 m of seam and the stations are 0.1739 m apart, so 41 percent of each
+frame is in the next one, and 15 sightings are 5 physical faults. The 24 frames are also
+a development set: the scene was corrected after reading model answers on these same
+frames.
 
 Choosing where to probe, 48 measurements out of 168 places, scored against the true
 remaining wall at all 168. `python tank/score_probes.py --baselines` prints the
@@ -117,39 +142,48 @@ model runs. `python tank/score_probes.py --tiebreaks` prints the tie-break row a
 `python tank/layout_sweep.py` the layout figures below; neither calls a model or writes
 a file.
 
-| Planner | Rejectable found, of 28 | Hidden patches reached, of 5 | Chance a random planner does as well |
-| --- | --- | --- | --- |
-| Oracle, knows the answers | 23 | | |
-| Coverage rule, shipped tie-break order | **16** | 5 | 0.0002 |
-| The same rule under all 5040 tie-break orders | 7 to 18, median 12 | | |
-| The same rule, given only the state the model sees | 11 | 5 | 0.11 |
-| Nemotron 3 Nano, three runs | 9, 10 and 12 | 4 each | 0.40, 0.23, 0.047 |
-| Nemotron 3 Nano, camera report removed | 11 | 4 | 0.11 |
-| Two of seven at random | 8 expected, central 95% 4 to 12 | | |
-| Always on the seam, then -0.15 m | 2 | 1 | 0.9997 |
-| Probe beside reported rust | 2 | 1 | 0.9997 |
+| Planner | Rejectable found, of 28 | Hidden patches reached, of 5 | Chance a random planner does as well | Paired p against the shipped rule |
+| --- | --- | --- | --- | --- |
+| Oracle, knows the answers | 23 | | | |
+| Coverage rule, shipped tie-break order | **16** | 5 | 0.0002 | |
+| The same rule under all 5040 tie-break orders | 7 to 18, median 12 | | | |
+| The same rule, given only the state the model sees | 11 (7 to 19 over tie-break orders, median 13) | 5 | 0.11 | |
+| Nemotron 3 Nano, three runs | 9, 12 and 10 | 4 each | 0.40, 0.047, 0.23 | 0.143, 0.344, 0.146 |
+| Nemotron 3 Nano, camera report removed (one run) | 11; no change seen | 4 | 0.11 | 0.267 |
+| Two of seven at random | 8 expected, central 95% 4 to 12 | | | |
+| Always on the seam, then -0.15 m | 2 | 1 | 0.9997 | |
+| Probe beside reported rust | 2 | 1 | 0.9997 | |
 
-The rule found more than the model in every recorded run, but the exact paired test per
-run gives p = 0.14 to 0.34 (camera hidden, 0.27), so no run is significant on its own,
-and the points cluster in five patches, so the pairs are not independent either. For
-three of the four model runs (9, 10 and 11 found), a random picker does as well at least
-11 percent of the time (P 0.40, 0.23, 0.11). The fourth, 12, is at the top edge of the
-random band (P 0.047). The rule's 16 is a favourable
-draw: 93.9 percent of the other tie-break orders find fewer than 16, and on 1000
-random layouts of the same five patches the shipped layout suits it better than 94.9
-percent of them. On a random layout the rule finds a median of 41 percent of the
-rejectable points, and finds more than always-on-the-seam in only 572 of 1000.
+At its shipped tie-break order the rule found more than the model in every recorded run,
+but the exact paired test per run gives p 0.143 to 0.344, so no run is significant on its
+own, and the points cluster in five patches, so the pairs are not independent either.
+Against the rule shown only the model's view the model was not always behind: one run
+found 12 to its 11, and the camera-hidden run tied at 11. In the run that found 10, the
+reply at station 10 was unreadable and the rule chose there, so the model's own picks
+found 9; with station 10 left out of both arms the paired p is still 0.146. Replies that
+named fewer than two offsets were also topped up from the rule, and these runs did not
+record where, so every model count may include some rule picks. For three of
+the four model runs (9, 10 and 11 found), a random picker does as well at least 11
+percent of the time (P 0.40, 0.23, 0.11). The fourth, 12, is at the top edge of the
+random band (P 0.047).
+
+The rule's 16 is a favourable draw: 93.9 percent of the other tie-break orders find fewer
+than 16. Shown only what the model sees, it finds a median of 13 over the same orders,
+against 12 with its full history, so withholding that history does not hurt it. The
+layout favours it too: the hidden patches were placed by hand, and on 1000 random layouts
+of the same five patches the shipped layout suits the rule better than 94.9 percent of
+them. On a random layout the rule finds a median of 40.7 percent of the rejectable
+points, and finds more than always-on-the-seam in only 572 of 1000.
 
 On this run the "probe beside reported rust" baseline finds the same 2 points as
-always-on-the-seam. Under the frames the
-inspector flagged there are only 8 rejectable points, and with two probes a station only
-6 of those can be reached. With the camera's report removed from its prompt, the model
-found 11, inside the range of its three sighted runs. That is one run, so read it as no
-change seen, and since the camera cannot see 6 of the 7 offsets, it could not have shown
-much either way.
+always-on-the-seam. Under the frames the inspector flagged there are only 8 rejectable
+points, and with two probes a station only 6 of those can be reached. With the camera's
+report removed from its prompt, the model found 11, inside the range of its three
+sighted runs. That is one run, so read it as no change seen, and since the camera cannot
+see 6 of the 7 offsets, it could not have shown much either way.
 
-The inspector runs at about 9.2 seconds a frame and the probe planner at about 7.1
-seconds a station, one model call each.
+The inspector takes a median of 9.2 seconds a frame (mean 10.2 s) and the probe planner a
+median of 7.1 seconds a station, one model call each.
 
 ## The same loop, on a second problem
 
@@ -160,12 +194,19 @@ assumes it will be, because camber, springback and fit-up move the joint from on
 to the next. It also raises the alarm when a machine upstream starts drifting. This is
 where the NVIDIA models do live work: Nemotron 3 Nano decides on every part whether the
 view is good enough to weld on, and Nemotron 3.5 Lightning runs the supervisor and
-writes the corrective action briefs.
+writes the corrective action briefs. The view decision was also scored against the
+limits its own prompt states, applied as arithmetic to the same 89 decision points with
+no model call (`python scripts/eval_router_truth.py --rule`): the rule gets 86, Nano 88,
+and the four points where they disagree cannot separate them (exact McNemar p 0.625). At
+all three points where Nano alone is right, its stated reason misreads the inlier
+balance as at least 0.60 when it is 0.51 to 0.59, so it was right there for a reason the
+evidence contradicts. So Nano makes the decision because it was measured at least as
+good as the rule on this set, not because it was measured better.
 
 | | Result |
 | --- | --- |
 | Seam tracked along its whole length | 22.8 mm to 0.67 mm, 50 of 50 parts under a millimetre (arrival spread exaggerated for visibility, part variation on top). That is the tracker on exact rendered depth; with hand-eye calibration and the rest of the chain it comes to 2.82 mm against a 1.5 mm requirement, which this cell cannot yet measure |
-| Deciding whether a view is good enough to weld on | 88 of 89; the one miss accepted a view a second look would have improved by 0.3 mm |
+| Deciding whether a view is good enough to weld on | 88 of 89; the one miss accepted a view a second look would have improved by 0.3 mm. The prompt's limits as arithmetic: 86 of 89, exact paired p 0.625 |
 | Post-weld bead inspection | 91% pass or defect on 150 beads, no false alarms |
 | Supervisor, on questions its own database answers exactly | 9 of 10 |
 | Corrective action briefs: back, cited, figure carried, steps | 6 of 6 on all four |
@@ -175,7 +216,10 @@ failure is never allowed to become a verdict.
 
 ## How it is built
 
-Everything runs on **Nebius Token Factory** through one shared client.
+Every hosted model call runs on **Nebius Token Factory** through one shared client, in
+`brain/nebius.py`. The one offline model, the shift diagnosis LoRA, was trained there and
+runs on the cell's own GPU; its adapter is not in git yet, so its scores cannot be rebuilt
+from a clone.
 
 | Layer | Model |
 | --- | --- |
@@ -217,10 +261,21 @@ One more cost us a clean score. The key placed every fault at the crown of the b
 proud of the plate. The crack is drawn 2.4 mm proud and shows on the plate above and
 below the bead, and near the edge of the lens that one difference put it just outside
 frame 12, a frame it is plainly in. The verdict had been recorded against "crack", and
-the replay had silently overwritten that with "none". The key now projects each seam fault from its rendered vertices, is
-checked against Blender's own camera projection on 630 points, and refuses to rebuild
-unless every frame matches its recorded hash. Station 12 is now the one miss in the table
-above.
+the replay had silently overwritten that with "none". The key now projects each seam
+fault from its rendered vertices, is checked against Blender's own camera projection on
+630 points, and refuses to rebuild unless every frame matches its recorded hash. Station
+12 is now the one miss in the table above.
+
+Then the projection was wrong a second way. It measured a fault's share of the picture
+on a grid of wall points round the crawler's origin, but the lens sits 0.46 m ahead of
+the origin, so that grid covered only the left sixth of every frame. The key now samples
+the picture itself, rays cast onto the wall and tested against the rendered outline of
+every visible rust patch, and a test checks that share against the rust-coloured pixels
+of every frame. Frame 2's rust is really in view, 0.16 of the picture by the key and
+0.12 by pixels, so the strict row rose from 21 to 22 of 24. No worst-fault answer moved.
+That is the third time a headline number has moved because the project re-checked its
+own scoring: the four-point probe headline below, the station 12 crack, and the share of
+frame 2.
 
 **Models are not interchangeable, and not in the way you expect.** Of the 23 models the
 key reaches, 15 refused an image outright, all four NVIDIA models among them; 8 accepted
@@ -236,25 +291,32 @@ in this project.**
 
 The run originally held four rejectable probe points. On four points Nemotron Nano
 found three or four and the arithmetic rule found two, so the model appeared to win.
-We wrote that down. Then we ran the paired test on it: p = 0.50 to 1.00 across the three
-runs. No evidence in either direction. Four points cannot separate two planners.
+We wrote that down. Then we ran the paired test on it: p 0.5, 1.0 and 0.5 across the three
+runs. No evidence in either direction. On four points the smallest two-sided exact p
+attainable is 0.125, so that design could never have shown a difference at 0.05.
 
 So the evaluation scene was given five patches of hidden wall loss instead of one,
 taking it from 4 rejectable points to 28. Nothing visible changed, because loss a camera
 cannot see adds no geometry, and the 24 scored frames stayed byte for byte identical.
 
-On 28 points the rule was ahead in every run, 16 against 9, 10 and 12. But the model was
-shown less state than the rule (its last six readings, with no record of how long each
-offset had gone unmeasured), and the hidden patches were hand-placed after the first
-result, all at least 0.27 m off the seam, where a coverage rule does well. Given only
-what the model sees, the rule finds 11. So the size of the gap belongs to this scene.
-Nothing here shows a model choosing probe points better than coverage, and nothing shows
-coverage reasoning better than the model either; what the gap mostly measures is the
-state the planner keeps. That fits published work on language-model planning, such as
-PlanBench (Valmeekam et al.) and the LLM-Modulo framework (arXiv 2402.01817), which find
-that language models are weak planners on their own and more useful inside a loop with
-an external checker. The standard tool for this job is kriging or Gaussian-process
-thickness mapping, which we have not run here.
+On 28 points the rule was ahead in every run, 16 against 9, 10 and 12. We first read that
+as coverage beating reasoning. It does not survive two checks. The 16 is one tie-break
+order of 5040; over all of them the rule finds a median of 12. And the hidden patches
+were hand-placed after the first result, all at least 0.27 m off the seam, where a
+coverage rule does well. We also offered an explanation that failed: the model is shown
+less state than the rule (its last six readings, with no record of how long each offset
+had gone unmeasured), and held to that, the rule finds 11 at its shipped order. But over
+all orders the rule shown only the model's view finds a median of 13, so withholding the
+state does not hurt it, and the 11 is a draw like the 16.
+
+So across tie-break orders the rule typically finds 12 to 13 against the model's 9 to 12,
+and no comparison is significant. There is no evidence that the model places probes
+better than a coverage rule, and only weak evidence that it places them worse. That fits
+published work on language-model planning, such as PlanBench (Valmeekam et al.) and the
+LLM-Modulo framework (arXiv 2402.01817), which find that language models are weak
+planners on their own and more useful inside a loop with an external checker. The
+standard tool for this job is kriging or Gaussian-process thickness mapping, which we
+have not run here.
 
 Arithmetic drives the arm because on this evidence it is no worse, it is deterministic
 and free, and a model planner would add about 5.3 hours to a real 473 m tank (4.0 even
@@ -264,9 +326,10 @@ The model belongs on the picture, where there is something to judge.
 ## What we are still wrong about
 
 - **Undercut.** Four frames carry a groove at the weld toe and the inspector reports the
-  corroded plate beside it every time. That is the recorded fact. Whether the cause is
-  the model or the way the groove is rendered has not been separated, and it is written
-  up rather than tuned away.
+  corroded plate beside it every time. That is the recorded fact. In those frames the
+  groove renders faintly, a thin line rather than the dark groove the prompt describes,
+  so they are weak tests of it. Whether the cause is the model or the render has not been
+  separated, and it is written up rather than tuned away.
 - **The crack at station 12.** The inspector named it in frame 11 and passed it in frame
   12.
 - **The world is ours.** We built the tank, planted the faults and wrote the answers, and
@@ -279,8 +342,9 @@ The model belongs on the picture, where there is something to judge.
   safety factor of 3 in every case, so the wheels have to be kept out of the couplant or
   rated higher.
 - **Speed.** A 473 m shell is about 1.3 hours of driving and 7.0 hours of vision
-  inference run serially. About six requests in flight would keep inference at drive
-  speed; nothing here does that yet. Cost per tank has not been measured.
+  inference run serially at the median frame time (7.7 at the mean). About six requests
+  in flight would keep inference at drive speed; nothing here does that yet. Cost per
+  tank has not been measured.
 
 ## Why this can be deployed rather than only demonstrated
 
@@ -305,3 +369,17 @@ they would have had. It is not trying to sign the report.
    with drive speed.
 4. Cosmos on Nebius AI Cloud, which Token Factory does not serve. No result from it is
    claimed here.
+
+## Try it
+
+Code: REPOSITORY_URL (Apache 2.0). These need no API key, no GPU and no download, and
+none of the tank scripts calls a model or writes a file, with a key set or without one:
+
+```bash
+pip install -r requirements.txt
+python tank/score_survey.py --replay      # the 24 tank frames, recorded verdicts re-marked
+python tank/score_probes.py --baselines   # where to probe: arithmetic, chance and oracle
+python tank/score_probes.py --tiebreaks   # the coverage rule under every tie-break order
+python tank/significance.py               # what each of those counts actually licenses
+python -m pytest -q
+```

@@ -108,9 +108,11 @@ def text_model() -> str:
 # The once-a-shift question, which machine is going out of adjustment, on the
 # 64 boundary cases: Qwen3.5 397B 46 of 64, DeepSeek V4.1 Flash 45, Ultra 45,
 # Super 120B 44 and then 46 on a second run, DeepSeek V4 Pro 43. Qwen, Ultra and
-# the two DeepSeeks beat the arithmetic rule at p < 0.05 (0.013, 0.004, 0.035,
-# 0.039); Super's paired test, on its first run, is 0.077.
-# DeepSeek V4.1 Flash is the cheapest of them, so it is the default.
+# the two DeepSeeks beat the arithmetic rule at an uncorrected p < 0.05 (0.013,
+# 0.004, 0.035, 0.039); after a Holm correction over the nine arms only Ultra does
+# (0.035). So none of them is shown better than another, and the default is
+# DeepSeek V4.1 Flash because it is also the image inspector: one model, one
+# client, both jobs.
 DEFAULT_DIAGNOSIS_MODEL = "deepseek-ai/DeepSeek-V4.1-Flash"
 
 

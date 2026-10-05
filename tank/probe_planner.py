@@ -14,9 +14,12 @@ So probing on the seam, or beside the rust the camera reports, finds 2 of the
 28 (score_probes.py --baselines). A planner has to cover the band the arm can
 reach, notice a thin reading when it gets one, and go back to it. This module
 asks a text model to make that choice, and sweep_rule below makes it with
-arithmetic. On the recorded runs the arithmetic is ahead: the sweep finds 16
-of 28 and the model 9 to 12 (tank/significance.py), so the rule drives the
-arm and this planner is kept as the measured alternative.
+arithmetic. The model was never ahead in a recorded run: it found 9 to 12 of
+28, and the sweep 16 at its shipped tie-break order, a lucky one (median 12
+over all 5040 orders, score_probes.py --tiebreaks). No run differs from the
+sweep significantly (tank/significance.py). So the rule drives the arm because
+it is no worse on this evidence, deterministic and free, and this planner is
+kept as the measured alternative.
 
 The arm offers seven places across the seam at every station and there is time
 for two, so this is 2 of 7, twenty four times, with the answers written before
@@ -27,7 +30,10 @@ crawler knows: what the inspector said about the picture, which offsets exist,
 which have never been measured, and the last six readings on this run. The
 sweep reads the whole run's history, so the two are not matched on
 information; score_probes.py --baselines has a "sweep, model's view" arm that
-holds the rule to the model's six readings.
+holds the rule to the model's six readings. Withholding that history does not
+hurt the rule: over all tie-break orders it finds a median of 13 shown only the
+model's view against 12 with the whole history (score_probes.py --tiebreaks),
+so the state the sweep keeps is not what separates it from the model.
 """
 
 from __future__ import annotations
@@ -93,6 +99,14 @@ Answer with the JSON object and nothing else. Do not write your reasoning out as
 # in the same envelope. The envelope changes per model; the question does not.
 DEFAULT_PLANNER_MODEL = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
 
+# What plan_probes writes in `why` when the reply could not be used and the
+# sweep chose instead. The recorded runs made before fell_back was stored carry
+# only these words, so score_probes.fell_back_stations reads them back from
+# there; change them and the old runs can no longer be audited.
+UNREADABLE_WHY = "unreadable reply, swept instead"
+EMPTY_WHY = "no usable offsets in reply, swept instead"
+FALLBACK_WHY = (UNREADABLE_WHY, EMPTY_WHY)
+
 
 def planner_model() -> str:
     """The planner's model, overridable without touching the code."""
@@ -108,6 +122,10 @@ class ProbePlan:
     latency_ms: float = 0.0
     fell_back: bool = False
     raw: str = ""
+    # The reply named fewer offsets than the budget and the sweep supplied the
+    # rest. Recorded per station by score_probes.py from now on; the runs
+    # recorded before this field existed cannot show it.
+    padded: bool = False
 
 
 @dataclass
@@ -240,22 +258,24 @@ def plan_probes(station: int, offsets: list[float], nominal_mm: float,
         data = nebius.extract_json(reply.raw)
     except Exception:  # noqa: BLE001  any unreadable reply
         return ProbePlan(sweep_rule(offsets, station, memory, budget),
-                         "unreadable reply, swept instead", model, elapsed,
+                         UNREADABLE_WHY, model, elapsed,
                          fell_back=True, raw=reply.raw)
 
     picked = _coerce(data, offsets, budget)
     if not picked:
         return ProbePlan(sweep_rule(offsets, station, memory, budget),
-                         "no usable offsets in reply, swept instead", model,
+                         EMPTY_WHY, model,
                          elapsed, fell_back=True, raw=reply.raw)
     # Short of budget is not a failure of judgement, but the arm has the time,
     # so the rest goes to the stalest offsets rather than being left unused.
-    if len(picked) < budget:
+    # Marked, so a score can tell the model's picks from the rule's.
+    padded = len(picked) < budget
+    if padded:
         for offset in sweep_rule(offsets, station, memory, budget):
             if offset not in picked and len(picked) < budget:
                 picked.append(offset)
     return ProbePlan(picked, str(data.get("why") or "").strip()[:160],
-                     model, elapsed, raw=reply.raw)
+                     model, elapsed, raw=reply.raw, padded=padded)
 
 
 def plan_with_floor(station: int, offsets: list[float], nominal_mm: float,
@@ -299,4 +319,5 @@ def plan_with_floor(station: int, offsets: list[float], nominal_mm: float,
             if offset not in picked and len(picked) < budget:
                 picked.append(offset)
     return ProbePlan(picked, f"rule floor {floor[0]:+.2f}; {plan.why}"[:160],
-                     plan.model, plan.latency_ms, plan.fell_back, plan.raw)
+                     plan.model, plan.latency_ms, plan.fell_back, plan.raw,
+                     padded=plan.padded)

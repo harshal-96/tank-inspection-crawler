@@ -24,8 +24,8 @@ import pytest
 
 from brain import nebius
 from service import tank_view
-from tank import layout_sweep, score_probes, score_survey, significance
-from tank.probe_planner import Memory, sweep_rule
+from tank import layout_sweep, probe_planner, score_probes, score_survey, significance
+from tank.probe_planner import UNREADABLE_WHY, Memory, sweep_rule
 from tank.thickness import thickness_mm
 from tank.truth import load_answers
 
@@ -216,6 +216,54 @@ def test_the_paired_tests_are_one_per_run_and_never_pooled():
     assert probe["skipped"] == []
 
 
+def test_the_same_runs_against_the_rule_shown_only_the_models_view():
+    """The sweep held to the model's view finds 11 at its shipped order, and no
+    run is anywhere near significant against it."""
+    probe = significance.probing(MANIFEST)
+    assert probe["models_view"]["found"] == 11
+    got = [(r["only_model_vs_view"], r["only_view"], r["mcnemar_p_vs_view"])
+           for r in probe["runs"]]
+    assert got == [(4, 6, pytest.approx(0.7539, abs=1e-4)), (9, 8, 1.0), (6, 7, 1.0),
+                   (8, 8, 1.0)]
+    tb = probe["tiebreaks"]
+    assert (tb["full_median"], tb["view_median"], tb["full_minus_view_median"]) == (12, 13, 0)
+    assert (tb["full_mean"], tb["view_mean"], tb["full_minus_view_mean"]) == (
+        12.35, 12.76, -0.41)
+
+
+def test_the_four_point_runs_could_never_have_been_significant():
+    fp = significance.four_point()
+    assert fp["rejectable"] == 4
+    nano = [(r["file"], r["found"], r["rule_found"], r["mcnemar_p"]) for r in fp["runs"]
+            if r["label"] == "Nemotron 3 Nano 30B"]
+    assert nano == [("probing_run3.json", 4, 2, 0.5), ("probing_run4.json", 3, 2, 1.0),
+                    ("probing_run5.json", 4, 2, 0.5)]
+    assert fp["smallest_attainable_p"] == 0.125
+    assert significance.smallest_attainable_p(28) < 0.05
+    assert all(r["mcnemar_p"] >= fp["smallest_attainable_p"] for r in fp["runs"])
+
+
+def test_the_walk_in_call_is_bounded_by_class():
+    per_class = significance.inspection(MANIFEST)["per_class"]
+    got = {k: (v["right"], v["of"], v["lower_95_one_sided"])
+           for k, v in per_class.items() if isinstance(v, dict)}
+    assert got == {
+        "frames_holding_a_fault_flagged": (10, 11, pytest.approx(0.636, abs=5e-4)),
+        "frames_holding_a_fault_flagged_for_a_fault_in_view": (
+            9, 11, pytest.approx(0.530, abs=5e-4)),
+        "clean_frames_passed": (13, 13, pytest.approx(0.794, abs=5e-4)),
+    }
+    assert per_class["calling_every_frame_sound_scores"] == 13
+
+
+def test_the_hours_say_which_frame_time_they_use():
+    hrs = significance.hours(MANIFEST, significance.probing(MANIFEST))
+    assert hrs["hours_use"] == "median"
+    assert (hrs["median_frame_s"], hrs["mean_frame_s"]) == (9.21, 10.15)
+    assert (hrs["serial_vision_h"], hrs["serial_vision_h_at_mean"]) == (6.96, 7.67)
+    assert hrs["concurrent_requests_to_keep_up"] == hrs["concurrent_requests_at_mean"] == 6
+
+
 def test_each_model_run_reached_four_of_the_five_patches():
     probe = significance.probing(MANIFEST)
     assert probe["hidden_patches"] == ["D006", "D007", "D008", "D009", "D010"]
@@ -239,7 +287,8 @@ def test_the_sweep_finds_16_of_28_with_48_measurements():
 
 
 def test_the_sweep_given_only_the_models_view_finds_11():
-    """Matched on information, the rule is level with the model's 9 to 12."""
+    """At its shipped tie-break order. Over all orders it finds a median of 13,
+    which the tie-break test below pins; 11 is one draw, not the arm's level."""
     got = _arm(lambda o, s, m, b, f, r: score_probes.sweep_models_view(o, s, m, b))
     assert got["spent"] == 48
     assert len(got["rejectable_found"]) == 11
@@ -296,6 +345,97 @@ def test_the_sweeps_16_is_near_the_top_of_its_tie_break_orders():
     view = study["models_view"]
     assert (view["min"], view["max"], view["median"]) == (7, 19, 13)
     assert view["mean"] == pytest.approx(12.76, abs=5e-3)
+    # Paired at each order: withholding the history does not lower the rule.
+    paired = study["full_minus_models_view"]
+    assert sum(paired["counts"].values()) == 5040
+    assert paired["median"] == 0
+    assert paired["mean"] == pytest.approx(-0.41, abs=5e-3)
+    assert paired["share_full_ahead"] == pytest.approx(0.308, abs=5e-4)
+    assert paired["share_level"] == pytest.approx(0.197, abs=5e-4)
+    assert paired["share_full_behind"] == pytest.approx(0.495, abs=5e-4)
+    assert sum(v * n for v, n in paired["counts"].items()) == (
+        sum(v * n for v, n in study["counts"].items())
+        - sum(v * n for v, n in view["counts"].items()))
+
+
+def test_the_tiebreak_report_prints_the_paired_difference_and_each_run(monkeypatch, capsys):
+    monkeypatch.setattr(sys, "argv", ["score_probes.py", "--tiebreaks"])
+    before = _tree(DATA)
+    assert score_probes.main() == 0
+    assert _tree(DATA) == before
+    out = capsys.readouterr().out
+    assert ("mean -0.41, median +0. Full history ahead in 30.8% of orders, level in "
+            "19.7%, behind in 49.5%.") in out
+    assert "does not lower the rule's typical count" in out
+    row = next(line for line in out.splitlines()
+               if line.strip().startswith("probing.json: Nemotron"))
+    assert row.split()[-7:] == ["9", "94.4", "4.3", "1.3", "94.6", "4.0", "1.3"]
+    assert "station(s) 10 fell back to the rule, so the model's own picks found 9, not 10" in out
+    # No "model only" row: it would compare 23 stations of the model with 24 of the rule.
+    assert "model only" not in out
+    assert sum(1 for line in out.splitlines()
+               if line.strip().startswith("probing") and "Nemotron" in line) == 4
+
+
+def test_one_recorded_run_fell_back_at_station_10():
+    """The recorded runs carry no fell_back field; the reason plan_probes wrote
+    is the record, and it names one station."""
+    runs = score_probes.recorded_model_runs(28)
+    got = [(r["file"], r["attempt"], r["found"], r["fell_back_stations"],
+            r["model_only_found"]) for r in runs]
+    assert got == [
+        ("probing.json", 1, 9, [], 9),
+        ("probing_power.json", 1, 12, [], 12),
+        ("probing_power.json", 2, 10, [10], 9),
+        ("probing_blind.json", 1, 11, [], 11),
+    ]
+    probe = significance.probing(MANIFEST)
+    fell = [(r["model_only_found"], r["model_only_mcnemar_p"]) for r in probe["runs"]
+            if r["fell_back_stations"]]
+    # Station 10 is dropped from both arms, not counted as a model miss: the
+    # sweep found the same point there, so the p is the uncorrected 0.146.
+    assert fell == [(9, pytest.approx(0.146, abs=1e-4))]
+    same = next(r for r in probe["runs"] if r["fell_back_stations"])
+    assert same["model_only_mcnemar_p"] == same["mcnemar_p"]
+    assert not any(r["padding_recorded"] for r in probe["runs"])
+
+
+def test_a_recorded_fell_back_field_is_read_before_the_reasons():
+    planner = {"rejectable_found": [[3, -0.15, 5.0], [4, 0.3, 5.0]],
+               "why": {"3": UNREADABLE_WHY, "4": "chase the thin reading"},
+               "fell_back": {"3": False, "4": True}}
+    assert score_probes.fell_back_stations(planner) == [4]
+    assert score_probes.model_only_hits(planner) == [[3, -0.15, 5.0]]
+    del planner["fell_back"]
+    assert score_probes.fell_back_stations(planner) == [3]
+    assert score_probes.fell_back_stations({"rejectable_found": []}) is None
+
+
+def _reply(raw):
+    return nebius.ChatReply(raw=raw, model="fake", latency_ms=0.0)
+
+
+def test_a_plan_says_when_the_rule_chose(monkeypatch):
+    """No model: the client's chat is replaced by canned replies."""
+    offsets = [c["offset_m"] for c in FRAMES[0]["probe_candidates"]]
+    memory = Memory()
+
+    def plan(raw):
+        monkeypatch.setattr(nebius, "chat", lambda *a, **k: _reply(raw))
+        return probe_planner.plan_probes(5, offsets, 10.0, 0.6, "sound seam", memory)
+
+    both = plan('{"offsets": [0.3, -0.3], "why": "cover the band"}')
+    assert (both.offsets, both.fell_back, both.padded) == ([0.3, -0.3], False, False)
+    one = plan('{"offsets": [0.3], "why": "one"}')
+    assert one.offsets[0] == 0.3 and len(one.offsets) == 2
+    assert (one.fell_back, one.padded) == (False, True)
+    junk = plan("I would measure the middle")
+    assert (junk.fell_back, junk.padded, junk.why) == (True, False, UNREADABLE_WHY)
+    assert junk.offsets == sweep_rule(offsets, 5, memory, BUDGET)
+    record = score_probes.plan_record({5: one, 6: junk})
+    assert record["fell_back"] == {5: False, 6: True}
+    assert record["padded"] == {5: True, 6: False}
+    assert score_probes.fell_back_stations(json.loads(json.dumps(record))) == [6]
 
 
 def test_the_hand_placed_layout_favours_the_sweep(monkeypatch, capsys):
@@ -365,6 +505,11 @@ def test_every_current_probe_record_is_on_the_28_point_scene():
 
 
 def test_no_code_reads_the_archived_four_point_files():
+    """None by name. significance.four_point() reads the folder whole and
+    reports it apart; nothing pools it with the current runs."""
+    assert significance.ARCHIVE == ARCHIVE
+    assert {r["file"] for r in significance.probing(MANIFEST)["runs"]} <= set(
+        significance.PROBE_RUNS)
     archived = {p.name for p in ARCHIVE.glob("*.json")}
     assert archived
     skip = {".venv", ".git", "node_modules", "__pycache__"}

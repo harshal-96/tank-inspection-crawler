@@ -164,7 +164,26 @@ def _planners(manifest: dict, rejectable_total: int) -> tuple[list[dict], list[s
     sources, budget = [], 2
     labels: dict[str, dict] = {}
 
-    def add(pl: dict, source: str):
+    def points(found) -> set:
+        return {(station, round(offset, 4)) for station, offset, *_ in found}
+
+    def paired_p(pl: dict, rule_hits: set | None) -> float | None:
+        """Exact McNemar of a model run against the sweep in the same file.
+
+        The same pairing and the same function as tank/significance.py, which
+        calls no model, so the page can only say "no run differs" when every
+        run on record has been tested and none does.
+        """
+        if "seconds" not in pl or rule_hits is None:
+            return None
+        try:
+            from tank.significance import mcnemar_exact
+        except ImportError:
+            return None
+        hits = points(pl.get("rejectable_found", []))
+        return round(mcnemar_exact(len(hits - rule_hits), len(rule_hits - hits)), 4)
+
+    def add(pl: dict, source: str, rule_hits: set | None):
         found = pl.get("rejectable_found", [])
         entry = labels.setdefault(pl["label"], {
             "label": pl["label"], "uses_a_model": "seconds" in pl,
@@ -172,6 +191,7 @@ def _planners(manifest: dict, rejectable_total: int) -> tuple[list[dict], list[s
         entry["attempts"].append({
             "found": len(found), "patches": patches(found),
             "probes": pl.get("spent"), "thinned_found": pl.get("thinned_found"),
+            "paired_p": paired_p(pl, rule_hits),
             "source": source})
 
     baseline_from = _baseline_file(rejectable_total)[0]
@@ -181,20 +201,68 @@ def _planners(manifest: dict, rejectable_total: int) -> tuple[list[dict], list[s
             continue
         sources.append(name)
         budget = data.get("budget", budget)
+        sweep = next((pl for pl in data.get("planners", [])
+                      if pl["label"].startswith("sweep (")), None)
+        rule_hits = points(sweep["rejectable_found"]) if sweep else None
         for pl in data.get("planners", []):
             # A model arm took time to answer; every run of one is an attempt.
             if "seconds" in pl or name == baseline_from:
-                add(pl, name)
+                add(pl, name, rule_hits)
 
     out = []
     for entry in labels.values():
         found = [a["found"] for a in entry["attempts"]]
         reached = [len(a["patches"]) for a in entry["attempts"]]
+        tested = [a["paired_p"] for a in entry["attempts"]]
         entry.update(low=min(found), high=max(found), runs=len(found),
                      patches_low=min(reached), patches_high=max(reached),
-                     probes=entry["attempts"][0]["probes"])
+                     probes=entry["attempts"][0]["probes"],
+                     # Only when every attempt was tested; one untested run
+                     # leaves the range unknown rather than understated.
+                     paired_p=None if None in tested else [min(tested), max(tested)])
         out.append(entry)
     return out, sources, budget
+
+
+# The tie-break study is two passes over 5040 orders, about two seconds, so it
+# is worked out once and kept for as long as the files it reads are unchanged.
+_TIEBREAKS: dict[tuple, dict | None] = {}
+
+
+def _tiebreaks(manifest: dict, answers: dict[int, dict], budget: int,
+               rejectable_total: int, read: tuple[Path, ...]) -> dict[str, Any] | None:
+    """The coverage rule under every order of its tie-break.
+
+    The rule's count on this page is one order out of 5040, and the order it
+    ships with happens to be a good one. Without the spread the page would
+    compare one lucky draw with the model's runs. This is the scorer's own
+    study (tank/score_probes.py --tiebreaks), which calls no model, run on the
+    same manifest and verdicts, for the rule with its full history and for the
+    rule shown only what the model's prompt carries.
+    """
+    key = (budget, *(p.stat().st_mtime_ns if p.exists() else 0 for p in read))
+    if key not in _TIEBREAKS:
+        try:
+            from tank.score_probes import tiebreak_study
+            study = tiebreak_study(manifest["frames"], answers, budget, rejectable_total)
+        except (ImportError, KeyError, SystemExit):
+            # SystemExit is the study refusing because its reordered rule no
+            # longer reproduces the shipped one; the page then says nothing
+            # rather than describing a different rule.
+            study = None
+        _TIEBREAKS.clear()
+        _TIEBREAKS[key] = None if study is None else {
+            "orders": study["orders"],
+            "shipped_found": study["shipped_found"],
+            "median": study["median"],
+            "mean": round(study["mean"], 2),
+            "min": study["min"],
+            "max": study["max"],
+            "share_below_shipped": round(study["share_below_shipped"], 3),
+            "models_view": {k: (round(v, 2) if k == "mean" else v)
+                            for k, v in study["models_view"].items() if k != "counts"},
+        }
+    return _TIEBREAKS[key]
 
 
 def summary() -> dict[str, Any]:
@@ -359,6 +427,8 @@ def summary() -> dict[str, Any]:
                 {i for c in rejectable for i in (c.get("thinned_by") or [])}),
             "chance": chance,
             "best_possible": oracle.get("found"),
+            "tiebreaks": _tiebreaks(manifest, answers, budget, len(rejectable),
+                                    (SURVEY / "manifest.json", path)),
             "planners": planners,
             "sources": sources,
         },

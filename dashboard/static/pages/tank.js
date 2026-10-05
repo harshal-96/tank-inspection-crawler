@@ -25,14 +25,18 @@ const WORDS = ["no", "one", "two", "three", "four", "five", "six", "seven", "eig
                "nine", "ten"];
 const word = (n) => WORDS[n] ?? String(n);
 const plural = (n, one, many) => (n === 1 ? one : many);
-const pc = (f) => `${Math.round(f * 100)}%`;
+// One decimal, dropped when it is zero: the worst hidden patch has 34.5% of its
+// wall left, and rounding it to 35% would put a number on this page that no
+// document says.
+const pc = (f) => `${(f * 100).toFixed(1).replace(/\.0$/, "")}%`;
 
 let d = null;
 
 export function render() {
   return `
     <p class="lede">
-      A robot crawls a weld seam inside a steel tank. A camera judges the seam, an
+      A robot crawls a weld seam, the line where two steel plates are welded together,
+      inside a steel tank. A camera judges the seam, an
       ultrasonic probe measures what is left of the plate, and something has to decide
       where to spend the next measurement. Every number here is scored against answers
       worked out from the scene file. These frames are the development set: the scene was
@@ -305,39 +309,82 @@ function probe() {
     const low = Math.min(...models.map((m) => m.low));
     const runsAll = models.reduce((a, m) => a + m.runs, 0);
     ruleWon = rule.low > top;
+    const modelRange = low === top ? `${low}` : `${low} to ${top}`;
     if (ruleWon) {
-      said.push(`<b>The plain coverage rule found more than the model on every one of the
+      // Said as what the runs show, not as the rule beating the model: the
+      // rule's count is one tie-break order, and no run differs significantly.
+      said.push(`<b>The model was never ahead of the plain coverage rule in any of the
         ${runsAll} model runs on record, and we expected the opposite.</b>`);
     } else if (rule.high < low) {
       said.push(`<b>The model found more than the coverage rule on every run on record.</b>`);
     } else {
       said.push(`<b>The coverage rule and the model overlap across the runs on record.</b>`);
     }
-    said.push(`The rule found ${rule.low} and the model ${low === top ? low : `${low} to ${top}`},
-      with the budget fixed at ${p.budget_points} measurements out of ${p.points}.`);
+    said.push(`At its shipped tie-break order the rule found ${rule.low} and the model
+      ${modelRange}, with the budget fixed at ${p.budget_points} measurements out of
+      ${p.points}.`);
     if (p.chance && low >= p.chance.low && top <= p.chance.high) {
-      said.push(`Every model run sits inside the band random picks land in
-        (${p.chance.low} to ${p.chance.high}), so this run cannot tell the model's picks from
-        chance.`);
+      said.push(top === p.chance.high
+        ? `Every model run sits inside the band random picks land in
+          (${p.chance.low} to ${p.chance.high}), the best of them at its top edge, so these runs
+          cannot tell the model's picks from chance with any confidence.`
+        : `Every model run sits inside the band random picks land in
+          (${p.chance.low} to ${p.chance.high}), so these runs cannot tell the model's picks
+          from chance.`);
     }
     if (p.chance && rule.low > p.chance.high) {
-      said.push("The rule is above that band.");
+      said.push(`The rule's ${rule.low} is above that band.`);
     }
-    // The same rule, shown only what the model is shown. Without this arm the
-    // gap reads as judgement, when most of it is the state the rule keeps.
+    // How typical the rule's count is. It is one order of its tie-break, so the
+    // study over every order says what the rule usually finds, with its full
+    // history and when shown only what the model's prompt carries. An earlier
+    // version of this paragraph read the second arm at its shipped order alone
+    // and put the gap down to the history the rule reads; over all orders,
+    // withholding that history does not hurt the rule.
+    const t = p.tiebreaks;
     const matched = p.planners.find((pl) => pl.label === "sweep, model's view");
-    if (matched && ruleWon) {
-      const level = matched.high <= top && matched.low >= low;
-      said.push(`Given only the state the model's prompt carries, the same rule finds
-        ${range(matched)}${level ? ", inside the model's range" : ""}, so most of the gap is
-        what the rule remembers, not better judgement. Its ${rule.low} also depends on its
-        tie-break order and on where the hidden patches were put: tank/score_probes.py
-        --tiebreaks and tank/layout_sweep.py show how far it moves.`);
+    if (t && t.shipped_found === rule.low) {
+      said.push(`That ${rule.low} is one tie-break order out of ${t.orders}. Over all of them
+        the same rule finds ${t.min} to ${t.max}, median ${t.median}, and
+        ${pc(t.share_below_shipped)} of the orders find fewer than the shipped one.`);
+      const mv = t.models_view;
+      if (matched && mv) {
+        said.push(`Shown only the state the model's prompt carries, it finds
+          ${range(matched)} at the shipped order and ${mv.min} to ${mv.max}, median
+          ${mv.median}, over all orders${mv.median >= t.median
+            ? ", so withholding the state it keeps does not hurt it" : ""}.`);
+        const typical = [t.median, mv.median].sort((a, b) => a - b);
+        said.push(`So the typical rule finds ${typical[0] === typical[1] ? typical[0]
+          : `${typical[0]} to ${typical[1]}`} against the model's ${modelRange}.`);
+      }
+    } else {
+      said.push(`That ${rule.low} is one order of the rule's tie-break: tank/score_probes.py
+        --tiebreaks scores every order.`);
     }
+    // The paired test, read per run from the API (the same exact McNemar as
+    // tank/significance.py) and said only as far as it holds: a run that was
+    // not tested leaves the sentence out rather than letting it stand.
+    const ps = models.map((m) => m.paired_p);
+    if (ps.length && ps.every(Boolean)) {
+      const pmin = Math.min(...ps.map((r) => r[0]));
+      const pmax = Math.max(...ps.map((r) => r[1]));
+      const fmt = (x) => x.toFixed(3);
+      const spread = pmin === pmax ? fmt(pmin) : `${fmt(pmin)} to ${fmt(pmax)}`;
+      const below = models.flatMap((m) => m.attempts)
+        .filter((a) => a.paired_p !== null && a.paired_p < 0.05).length;
+      said.push(below === 0
+        ? `No run on record differs from the rule by a paired exact test at 0.05 (p
+          ${spread}, one per run, tank/significance.py).`
+        : `${below} of the ${runsAll} runs ${below === 1 ? "differs" : "differ"} from the rule by a paired exact test at
+          0.05 (p ${spread}, one per run, tank/significance.py).`);
+    }
+    said.push(`The hidden patches were also placed by hand, in a layout that favours
+      coverage; tank/layout_sweep.py scores the rule on other layouts.`);
   }
   said.push(`An earlier version of this run carried only four failing points, on which the
     model appeared to win. A paired test on four points supports nothing, so the scene was
-    given more hidden loss, placed by hand after that result, and the result reversed.`);
+    given more hidden loss, placed by hand after that result, and on the new scene the model
+    was not ahead in any run.`);
   // Which model does which job, named from the records: the inspector from the
   // verdict rows, the planner from the probe runs. They are different models,
   // and the planner is not the one that looks at the picture.
@@ -349,7 +396,8 @@ function probe() {
   if (planner) {
     jobs.push(ruleWon
       ? `${V.esc(planner)} was measured as the probe planner and is reported here as a
-        negative result: the plain coverage rule found more on every run.`
+        negative result. Arithmetic drives the arm because on this evidence it is no worse,
+        and it is deterministic, free and instant.`
       : `${V.esc(planner)} was measured as the probe planner, beside the coverage rule.`);
   }
   said.push(...jobs);
@@ -380,7 +428,9 @@ function detail(station) {
   V.paint(V.$("tk-detail"), `
     <div class="split">
       <div><img src="/api/tank/frame/${f.station}" alt="station ${f.station}"
-        style="width:100%;border-radius:8px;border:1px solid var(--line)"></div>
+        style="width:100%;border-radius:8px;border:1px solid var(--line)">
+        <div class="hint">Weld bead exaggerated for visibility, about 2.8 times the API 650
+          reinforcement limit.</div></div>
       <div>
         <h3>Station ${f.station}</h3>
         <table class="kv">

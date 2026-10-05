@@ -14,12 +14,11 @@ Record at 1920x1080, 24 fps, to match the rendered footage.
 crawler small against the shell. Slow. Let it breathe.
 
 **Narration.**
-> A storage tank has to be emptied, cleaned, ventilated and certified before anyone can
-> climb inside it. Then a person goes in with a lamp and a probe.
+> A storage tank has to be emptied, cleaned, ventilated and certified before anyone
+> climbs inside. Then a person goes in with a lamp and a probe.
 >
-> Confined space work is dangerous. US Bureau of Labor Statistics figures put the deaths
-> at roughly ninety to a hundred and thirty a year, and NIOSH has reported that a large
-> share of those who die are would-be rescuers.
+> Confined space work kills roughly ninety to a hundred and thirty people a year in the
+> US.
 
 **Lower third, plain text, no animation.** Roughly 90 to 130 US confined-space deaths a
 year (BLS figures).
@@ -35,9 +34,9 @@ year (BLS figures).
 > The tank is drained for its floor inspection anyway. This crawler does not remove that
 > outage. It cuts the hours people spend inside.
 >
-> It carries two instruments. A camera that judges the weld, and an ultrasonic probe that
-> measures the wall behind it. Neither can do the other's job. So the question is which
-> part of the work a model should do.
+> It carries two instruments: a camera that judges the weld, and an ultrasonic probe that
+> measures the wall behind it. Neither can do the other's job. Which part should a model
+> do?
 
 ---
 
@@ -54,8 +53,8 @@ for a live call.
 `tank/data/shots/seam_shot.mp4`.
 
 **Narration.**
-> This is the crawler working a circumferential seam, rendered from a modelled tank. The
-> answer key is computed from the scene, not from any model's answer.
+> A crawler working a circumferential seam, the welded line where two rings of plate
+> meet, in a modelled tank. The answer key comes from the scene, not from a model.
 
 ### 0:52 to 1:12  Reading the seam
 
@@ -64,14 +63,13 @@ for a live call.
 on the frame table, then on the summary lines.
 
 **Narration.**
-> At every station a vision model on Nebius Token Factory judged the length of seam in
-> frame. This replays its recorded verdicts against the answer key.
->
-> Twenty three of twenty four on the call that decides whether a person has to walk in.
-> No false alarms. One miss: a crack the frame before had already named.
+> At every station a vision model on Nebius Token Factory judged the seam in frame.
+> Twenty three of twenty four right on whether a person has to walk in, on a development
+> set. It passed all thirteen clean frames. The one miss is a crack the frame before had
+> already named.
 
-**Lower third.** pass or defect 23/24 . missed 1 . false alarms 0 . replayed from
-recorded verdicts
+**Lower third.** pass or defect 23/24, development set . clean frames passed 13/13 .
+fault frames flagged 10/11 . missed 1 . false alarms 0 . replayed from recorded verdicts
 
 ### 1:12 to 1:45  The decision the camera cannot make
 
@@ -79,45 +77,59 @@ recorded verdicts
 frame 15, plate the inspector passes. Caption frame 15: "the probe offsets that fail
 here, 0.30 and 0.45 m below the seam, are outside this frame". Then cut to a terminal
 running `python tank/score_probes.py --baselines`, captioned "arithmetic planners, no
-model", and hold on the table. Then `python tank/significance.py`, held on the Nemotron
-rows.
+model", and hold on the table. Then `python tank/score_probes.py --tiebreaks`, held on
+the "mean 12.35, median 12" line, and `python tank/significance.py`, held on the Nemotron
+rows and their paired p.
 
 **Narration.**
-> The run carries six patches of wall loss. One shows as rust on the surface and the
-> camera finds it at once. It is inside the limit. The other five leave no mark, and they fail.
+> One patch of wall loss shows as rust and is inside the limit. Five more leave no mark,
+> and fail.
 >
-> Twenty eight of the hundred and sixty eight places the probe can reach fail the limit,
-> and twenty of those twenty eight sit under frames the inspector passes.
+> At each station there is time for two measurements in seven. The coverage rule found
+> sixteen at its shipped settings, typically twelve over every tie-break order. Nemotron
+> Nano found nine to twelve. No run is a significant difference, and the hidden patches
+> were placed where coverage does well.
 >
-> There is time for two measurements in seven at each station. The coverage rule finds
-> sixteen. Nemotron Nano, asked to plan it, found nine to twelve. Give the rule only what
-> the model is shown, and it finds eleven.
->
-> So the model was never ahead, and on the same information they are level. Arithmetic
-> drives the arm because it is no worse, it is deterministic, it is free, and it adds no
-> hours. The model belongs on the picture.
+> Arithmetic drives the arm: no worse, deterministic, free. The model belongs on the
+> picture.
 
-**Lower third, as the tables land.** coverage rule 16/28 . same rule, model's view
-11/28 . Nemotron Nano 9 to 12/28 . random picks 4 to 12
+**Lower third, as the tables land.** 28 of 168 places fail, on 5 hidden patches . 20 of
+them under frames the inspector passed . coverage rule 16/28 at its shipped tie-break,
+median 12 over all 5040 . Nemotron Nano 9 to 12/28 . no run significant, paired p 0.143
+to 0.344 . random picks 4 to 12
 
 ---
 
 ## 1:45 to 2:10  What it runs on
 
 **On screen.** The model table from the "How it is built" section of
-`docs/submission/devpost.md`, as plain text, each row highlighted as it is named. Then
-the `reply_text` docstring in `brain/nebius.py`. No logos, no spinning cubes.
+`docs/submission/devpost.md`, as plain text, each row highlighted as it is named, with
+the lower third below. Then, for the last 9 seconds, the live clip below if the owner has
+approved and recorded it, with no narration over it. No logos, no spinning cubes.
+
+**Live clip, about 9 seconds, owner's take, paid.** One short live run, recorded only
+with the owner's approval because it spends real Token Factory requests:
+`python scripts/demo.py` with a key set, which runs `scripts/run_campaign.py --routed`,
+held on the per-part lines as the Nemotron 3 Nano view decisions for the six demo parts
+come back. Those lines show the part, the error before and after, the number of looks, the
+spread and the start of the decision's reason; the per-call latency is not printed, it
+is in `data/demo_run/campaign.jsonl` under `latency_ms`. It needs the service running,
+and with a key it also judges the six beads with DeepSeek V4.1 Flash (and writes briefs
+if a Tavily key is set), so budget the whole run, not only the Nano calls. It writes
+under `data/demo_run/`, which is gitignored. Caption it on screen for its whole length:
+"live call: Nemotron 3 Nano on Nebius Token Factory, not a replay". Every scored number
+in this video still comes from the replays; the clip shows the call running, it does not
+score anything. If it is not recorded, hold on the table for those 9 seconds instead.
 
 **Narration.**
-> Everything runs on Nebius Token Factory through one shared client. DeepSeek V4.1 Flash
-> reads the seam. Nemotron Nano plans views in the welding cell. Nemotron Lightning
-> supervises and writes the corrective action briefs. Nano was measured as the tank's
-> probe planner and was never ahead of arithmetic, so the arithmetic is what runs.
->
-> One thing worth saying out loud. The Nemotron sizes do not agree on where the answer
-> goes. Lightning puts it in the content field. Nano leaves that empty and puts the whole
-> answer in the reasoning field. Read only one, and an evaluation quietly scores the
-> fallback.
+> Every hosted model call runs on Nebius Token Factory. DeepSeek V4.1 Flash reads the
+> seam. In the welding cell, Nemotron Nano makes every per-part view decision, and
+> Nemotron Lightning supervises and writes the briefs. In the tank, the arithmetic runs.
+
+**Lower third, over the table.** Nemotron 3 Nano, per-part view decision 88/89 . the
+prompt's limits as arithmetic 86/89, paired p 0.625 . Nano's 3 extra right calls cite a
+misread inlier balance . tank probe planner: the coverage rule . offline diagnosis model
+trained on Token Factory, runs on the cell
 
 ---
 
@@ -127,13 +139,12 @@ the `reply_text` docstring in `brain/nebius.py`. No logos, no spinning cubes.
 or two frames of the welding cell.
 
 **Narration.**
-> The same loop was first measured on a different problem. A welding cell that
-> photographs every part before it welds and measures where the seam actually runs,
-> because part variation moves it. The tracker found the joint to under a millimetre on
-> fifty of fifty simulated parts, on exact rendered depth. With calibration and the rest
-> of the chain it comes to about 2.8 millimetres, which this cell cannot yet measure.
+> The same loop first ran on a welding cell that finds where each part's joint runs,
+> because part variation moves it. On fifty of fifty simulated parts its tracker is under
+> a millimetre, on exact rendered depth. The whole chain comes to about 2.8 millimetres,
+> which this cell cannot yet measure.
 >
-> That is the point. This is a method, not one demonstration.
+> A method, not one demonstration.
 
 **Lower third.** 22.8 mm to 0.67 mm . 50 of 50 parts under a millimetre . tracker,
 exact rendered depth . whole chain 2.82 mm against 1.5 mm . arrival spread exaggerated
@@ -146,19 +157,21 @@ for visibility
 **On screen.** The undercut frame, held. Then black with the closing line.
 
 **Narration.**
-> One honest thing. There is a groove at the weld toe on four of these frames, and the
-> inspector reports the corroded plate beside it every time. Whether that is the model
-> or the rendered groove, we have not separated. It is written up rather than tuned away.
+> Still wrong: a groove at the weld toe, in four frames, reported each time as the
+> corroded plate beside it.
 >
-> Next is a bench plate with two pockets milled into its back face, and a real gauge.
-> The same hidden wall loss, measured for real.
+> Next, a bench plate with hidden wall loss, measured for real.
+
+**Lower third, over the undercut frame.** undercut in frames 1 to 4, never named . it
+renders faintly; model or render, not yet separated . next: a bench plate with two
+pockets milled into its back face, and a real gauge
 
 ---
 
 ## Capture checklist
 
-Record these before editing. Everything is runnable with no key, and none of these
-commands writes a file.
+Record these before editing. Everything except the live clip is runnable with no key,
+and none of those commands writes a file.
 
 | Clip | Command or file | Length |
 | --- | --- | --- |
@@ -168,13 +181,16 @@ commands writes a file.
 | Inspection, replayed | `python tank/score_survey.py --replay` | seconds; hold on the summary |
 | Probe planning, arithmetic | `python tank/score_probes.py --baselines` | seconds; hold on the table |
 | Probe planning, recorded model runs | `python tank/significance.py` | seconds; hold on the Nemotron rows |
+| Probe planning, tie-break orders | `python tank/score_probes.py --tiebreaks` | seconds; hold on the median line |
+| Live clip, owner's take, paid | `python scripts/demo.py` with a key, service running | about 9 s, captioned as live |
 | Rust frame and passed frame | `tank/data/survey/frames/rgb_0005.png` and `rgb_0015.png` | stills |
 | Undercut frame | `tank/data/survey/frames/rgb_0003.png` | still |
 | Cell result chart | `docs/figures/seam_result.png` | still |
 
-Do not record a `--live` run. If one is ever needed for a clip, pass `--out` to a scratch
-path outside the repository. Commit the working tree before recording. After recording,
-`git diff --exit-code HEAD -- tank/data/survey` must exit 0 and
+Do not record a tank `--live` run. The one live take is the demo clip above, and only
+with the owner's approval. If a tank live run is ever needed for a clip, pass `--out` to a
+scratch path outside the repository. Commit the working tree before recording. After
+recording, `git diff --exit-code HEAD -- tank/data/survey` must exit 0 and
 `git status --porcelain -- tank/data/survey` must print nothing; if either fails,
 something wrote over the record and the take is void.
 
@@ -184,14 +200,29 @@ wrap. Clear the screen before each run so nothing from a previous attempt is on 
 
 ## Rules check
 
-- Under three minutes.
+- Under three minutes, on a word count, not yet on a read-through. The narration is 388
+  words, segment by segment 43, 55, 30, 51, 82, 40, 56 and 31, which at 150 words a
+  minute is about 2:35, plus the 9 second silent live clip: about 2:44. Each segment is
+  within half a second of its slot at that rate. Time a read-through at recording pace
+  before the take, and cut further if it runs past 2:50.
 - 65 seconds of modules in action, which satisfies the Physical AI requirement for a
   project with no hardware component.
-- Every number spoken appears on screen and is printed by a command in the repository:
-  23 of 24, 1 missed and 0 false alarms by `score_survey.py --replay`; 168, 28, 20, 16
-  and 11, and the five hidden patches, by `score_probes.py --baselines`; 9 to 12 by
-  `significance.py`; the cell figures by `scripts/run_seam_campaign.py`, and the 2.82 mm
-  chain by `cell/error_budget.py` (its `summary()`, pure arithmetic, set out in the
-  README section "What the 0.67 mm does not include"). The confined-space figure is a public BLS figure,
+- Every number spoken appears on screen, and every number spoken or shown in a lower
+  third is printed by a command in the repository:
+  23 of 24, 1 missed, 0 false alarms and the undercut in frames 1 to 4 by
+  `score_survey.py --replay`; 13 of 13 clean frames passed and 10 of 11 fault frames
+  flagged by `significance.py`; 168, 28, 20 and 16, the five hidden patches, the one
+  visible patch and two of seven at random by `score_probes.py --baselines`; the median
+  of 12 over 5040 tie-break orders by `score_probes.py --tiebreaks`; 9 to 12 and the
+  paired p 0.143 to 0.344 by `significance.py`; 88 and 86 of 89, and the three points
+  where only Nano is right with its stated reasons, by
+  `scripts/eval_router_truth.py --rule`, which pairs the rule with the recorded answers
+  and makes no model call (it rewrites `data/router_rule_eval.json` when
+  `data/cap50v3` is present; pass `--manifest` an absent path to only read it); the cell
+  figures by `scripts/run_seam_campaign.py`, and the 2.82 mm chain by
+  `cell/error_budget.py` (its `summary()`, pure arithmetic, set out in the README section
+  "What the 0.67 mm does not include"). The confined-space figure is a public BLS figure,
   shown with its source.
+- The live clip, if recorded, is captioned as live for its whole length and carries no
+  scored number.
 - No claim is made about hardware that does not exist.
