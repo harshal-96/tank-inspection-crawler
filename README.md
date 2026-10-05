@@ -48,7 +48,7 @@ pip install -r requirements.txt
 python tank/score_survey.py --replay      # the 24 tank frames, recorded verdicts re-marked
 python tank/score_probes.py --baselines   # where to probe: arithmetic, chance and oracle
 python tank/significance.py               # what each of those counts actually licenses
-python -m pytest -q                       # 383 tests
+python -m pytest -q                       # 383 tests; on a fresh clone 1 skips (no render)
 ```
 
 None of these calls a model, even with a Token Factory key set, and none of them writes a
