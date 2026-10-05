@@ -194,11 +194,39 @@ def export_fault_geometry(run) -> int:
             w = obj.matrix_world @ v.co
             points.append([round(math.atan2(w.y, w.x), 7), round(w.z, 6),
                            round(radius - math.hypot(w.x, w.y), 6)])
-    truth.GEOMETRY.write_text(json.dumps(
-        {"what_this_is": truth.GEOMETRY_NOTE, "meshes": meshes, "faults": faults},
-        separators=(",", ":")), encoding="utf-8")
-    truth.drawn_geometry.cache_clear()
-    return sum(len(v) for v in faults.values())
+    # The edge of every rust patch a camera can see, and of each island: the
+    # outermost ring of each mesh, in the order it was built.
+    outlines = {}
+    for obj in sorted(bpy.data.objects, key=lambda o: o.name):
+        if obj.type != "MESH" or not (obj.name.startswith("Defect_")
+                                      and obj.name.endswith("_rust")):
+            continue
+        fid = obj.name.split("_")[1]
+        around, out = blender_tank.RUST_AROUND, blender_tank.RUST_OUT
+
+        def ring_point(o, index):
+            w = o.matrix_world @ o.data.vertices[index].co
+            return [round(math.atan2(w.y, w.x), 7), round(w.z, 6),
+                    round(radius - math.hypot(w.x, w.y), 6)]
+
+        rings = [[ring_point(obj, i * (out + 1) + out) for i in range(around + 1)]]
+        meshes[fid] = [obj.name]
+        islands = bpy.data.objects.get(f"Defect_{fid}_freckles")
+        if islands is not None:
+            steps, deep = blender_tank.ISLAND_STEPS, blender_tank.ISLAND_RINGS
+            per = (steps + 1) * (deep + 1)
+            for k in range(len(islands.data.vertices) // per):
+                rings.append([ring_point(islands, k * per + i * (deep + 1) + deep)
+                              for i in range(steps + 1)])
+            meshes[fid].append(islands.name)
+        outlines[fid] = rings
+    with truth.GEOMETRY.open("w", encoding="utf-8", newline="\n") as handle:
+        handle.write(json.dumps({"what_this_is": truth.GEOMETRY_NOTE, "meshes": meshes,
+                                 "faults": faults, "outlines": outlines},
+                                separators=(",", ":")))
+    truth.reload_geometry()
+    return sum(len(v) for v in faults.values()) + sum(
+        len(ring) for rings in outlines.values() for ring in rings)
 
 
 def check_projection(scene, cam, theta, z) -> float:

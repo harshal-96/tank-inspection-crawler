@@ -15,9 +15,17 @@ So the key is now computed here, from two things a reader can check:
   checked against Blender's own projection of 630 wall points in
   projection_check.json;
 - where each fault was drawn. For the seam faults on the run that is the
-  vertices of the rendered meshes themselves, read out of the evaluation scene
-  into fault_geometry.json. Patches of wall loss keep the description from the
-  scene file, projected at the depth their rust is drawn.
+  vertices of the rendered meshes themselves, and for every patch of rust a
+  camera can see it is the rendered edge of the patch and of each island,
+  all read out of the evaluation scene into fault_geometry.json. Wall loss
+  with nothing on the surface keeps the description from the scene file.
+
+How much of the picture a fault fills is measured on the picture: a grid of
+points across the frame, each cast onto the wall and tested against the
+fault. It used to be a grid of wall points round the crawler's own origin,
+and the lens sits 0.46 m ahead of that, so the grid covered the left sixth of
+every frame and a rust patch filling the right edge of frame 2 came out as a
+sliver.
 
 Nothing here imports bpy, so the scorer, the dashboard and the tests all use
 the same rule, and none of them needs a GPU.
@@ -39,8 +47,10 @@ GEOMETRY_NOTE = (
     "The vertices of every fault mesh on the survey run, read out of the "
     "evaluation scene the frames were rendered from. Wall coordinates: theta in "
     "radians, z in metres, and inset, how far toward the middle of the tank the "
-    "vertex is drawn. tank/truth.py projects these, so the answer key is the "
-    "geometry that was rendered and not a description of it.")
+    "vertex is drawn. outlines holds the rendered edge of every visible rust "
+    "patch and of each of its islands, as closed rings. tank/truth.py projects "
+    "these, so the answer key is the geometry that was rendered and not a "
+    "description of it.")
 
 _C = scene_constants("RADIUS", "BEAD_R", "RUST_INSET", "CAMERA_EYE", "CAMERA_LENS_MM")
 RADIUS = _C["RADIUS"]
@@ -66,6 +76,10 @@ CAMERA_WORD = {"thinning": "corrosion"}
 # in the picture. Below it the frame holds a sliver at the very edge, which an
 # inspector may name or not and is not marked down either way.
 TRACE = 0.08
+
+# The picture is sampled on this grid, columns by rows, to measure how much of
+# it a fault fills. 20 pixels a sample on a 1280 by 720 frame.
+FRAME_SAMPLES = (64, 36)
 
 # How wide each kind of fault is, half width in metres, across the line it
 # runs along. One shared figure made a crack as wide as the bead.
@@ -149,12 +163,52 @@ def in_frame(xyd) -> bool:
 
 
 @lru_cache(maxsize=1)
-def drawn_geometry() -> dict:
-    """The rendered vertices of the seam faults on the run, by fault id."""
+def _geometry_file() -> dict:
     if not GEOMETRY.exists():
         return {}
-    data = json.loads(GEOMETRY.read_text(encoding="utf-8"))
-    return {fid: [tuple(p) for p in pts] for fid, pts in data["faults"].items()}
+    return json.loads(GEOMETRY.read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=1)
+def drawn_geometry() -> dict:
+    """Rendered vertices by fault id: every mesh of the seam faults on the run,
+    and the edge of every visible rust patch with its islands."""
+    data = _geometry_file()
+    out = {fid: [tuple(p) for p in pts] for fid, pts in data.get("faults", {}).items()}
+    for fid, rings in data.get("outlines", {}).items():
+        out.setdefault(fid, [tuple(p) for ring in rings for p in ring])
+    return out
+
+
+@lru_cache(maxsize=1)
+def drawn_outlines() -> dict:
+    """The rendered edge of each visible rust patch and of each island, as
+    closed rings of (theta, z)."""
+    return {fid: [tuple((p[0], p[1]) for p in ring) for ring in rings]
+            for fid, rings in _geometry_file().get("outlines", {}).items()}
+
+
+def reload_geometry() -> None:
+    """Forget the cached geometry, after the capture has written a new file."""
+    for cached in (_geometry_file, drawn_geometry, drawn_outlines):
+        cached.cache_clear()
+
+
+def _wrap(angle: float) -> float:
+    return (angle + math.pi) % math.tau - math.pi
+
+
+def _inside(x: float, y: float, ring) -> bool:
+    """Even-odd test of a point against a closed ring of (x, y)."""
+    inside = False
+    j = len(ring) - 1
+    for i in range(len(ring)):
+        xi, yi = ring[i]
+        xj, yj = ring[j]
+        if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
+            inside = not inside
+        j = i
+    return inside
 
 
 def footprint(d) -> list[tuple[float, float, float]]:
@@ -196,6 +250,20 @@ def covers(d):
     if "arc_from" in d:                       # runs along a circumferential seam
         lo, hi = d["arc_from"], d["arc_to"]
         return lambda t, y: lo <= t <= hi and abs(y - z) <= hw
+    rings = drawn_outlines().get(d["id"])
+    if rings:                                 # a rust patch, as it was rendered
+        prepared = []
+        for ring in rings:
+            pts = [(_wrap(t - theta) * R, y) for t, y in ring]
+            xs, ys = [q[0] for q in pts], [q[1] for q in pts]
+            prepared.append((min(xs), max(xs), min(ys), max(ys), pts))
+
+        def drawn(t, y):
+            x = _wrap(t - theta) * R
+            return any(x0 <= x <= x1 and y0 <= y <= y1 and _inside(x, y, pts)
+                       for x0, x1, y0, y1, pts in prepared)
+
+        return drawn
     if d["kind"] == "thinning":               # a patch, and its islands
         r = d["patch_radius_m"] * 0.70        # the mean reach of the ragged edge
         islands = d.get("rust_islands") or []
@@ -216,20 +284,31 @@ def covers(d):
 
 
 @lru_cache(maxsize=512)
-def wall_in_frame(centre_theta: float, centre_z: float, inset: float):
-    """A grid of wall points the lens can see, at one depth.
+def frame_samples(centre_theta: float, centre_z: float, inset: float):
+    """Where a regular grid of points across the picture lands on the wall.
 
-    Twenty millimetre steps. At thirty the grid walked over rust islands small
-    enough to fit between two samples and reported clean plate.
+    Each sample is a ray from the lens through one point of the frame, cast
+    onto the shell at the given depth. Sampling the picture rather than the
+    wall means the grid is the frame by construction, wherever the lens is.
     """
-    shown = []
-    for i in range(37):
-        t = centre_theta + (i - 18) * 0.020 / RADIUS
-        for j in range(25):
-            y = centre_z + (j - 12) * 0.016
-            if in_frame(project(wall_point(t, y, inset), centre_theta, centre_z)):
-                shown.append((t, y))
-    return tuple(shown)
+    origin, right, up, back = camera_pose(centre_theta, centre_z)
+    half_x = SENSOR_MM / 2 / LENS_MM
+    half_y = half_x * RESOLUTION[1] / RESOLUTION[0]
+    r = RADIUS - inset
+    cols, rows = FRAME_SAMPLES
+    out = []
+    for j in range(rows):
+        sy = (2 * (j + 0.5) / rows - 1) * half_y
+        for i in range(cols):
+            sx = (2 * (i + 0.5) / cols - 1) * half_x
+            d = tuple(-back[k] + right[k] * sx + up[k] * sy for k in range(3))
+            a = d[0] * d[0] + d[1] * d[1]
+            b = 2 * (origin[0] * d[0] + origin[1] * d[1])
+            c = origin[0] * origin[0] + origin[1] * origin[1] - r * r
+            t = (-b + math.sqrt(b * b - 4 * a * c)) / (2 * a)
+            hit = tuple(origin[k] + t * d[k] for k in range(3))
+            out.append((math.atan2(hit[1], hit[0]), hit[2]))
+    return tuple(out)
 
 
 def faults_in_view(defects, centre_theta: float, centre_z: float) -> list[dict]:
@@ -243,7 +322,7 @@ def faults_in_view(defects, centre_theta: float, centre_z: float) -> list[dict]:
             if in_frame(xyd):
                 inside.append(xyd)
         depth = sorted(p[2] for p in points)[len(points) // 2]
-        shown = wall_in_frame(centre_theta, centre_z, round(depth, 6))
+        shown = frame_samples(centre_theta, centre_z, round(depth, 6))
         here = covers(d)
         share = (sum(1 for t, y in shown if here(t, y)) / len(shown)) if shown else 0.0
         if not inside and share <= 0.0:

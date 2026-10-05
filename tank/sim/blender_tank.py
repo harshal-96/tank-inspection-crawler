@@ -146,6 +146,11 @@ DETAIL_ARC_M = SURVEY_ARC_M + 1.2   # the run, plus enough that its edge is
 # of these numbers is a key that can quietly stop matching the pictures.
 CAMERA_EYE = (0.46, 0.0, 0.126)
 CAMERA_LENS_MM = 14.0
+# How a visible rust patch is meshed: steps round the edge and rings out from
+# the middle, and the same for each island. Named because the capture reads the
+# outermost ring of each back out as the patch's rendered edge.
+RUST_AROUND, RUST_OUT = 180, 12
+ISLAND_STEPS, ISLAND_RINGS = 24, 4
 # The running gear, named here because the detail pass hangs parts off these
 # wheels and the animation has to know how big they are to roll them.
 WHEEL_R = 0.078          # tyre radius, and therefore metres per radian
@@ -850,7 +855,7 @@ def build_defects(mats, coll, defects, rng):
             # the crawler works close enough to see every one of them: the
             # boundary came out as a drawn polygon. The outline is what gives a
             # patch away, so the detail goes there and not into the middle.
-            around, out = 180, 12
+            around, out = RUST_AROUND, RUST_OUT
             phase = rng.uniform(0, math.tau)
 
             def reach(a, phase=phase):
@@ -890,7 +895,7 @@ def build_defects(mats, coll, defects, rng):
                 return min(abs(y - k * COURSE_H)
                            for k in range(COURSES + 1)) < clear
 
-            freckles, islands, steps, rings = [], [], 24, 4
+            freckles, islands, steps, rings = [], [], ISLAND_STEPS, ISLAND_RINGS
             for _ in range(rng.randint(14, 26)):
                 a = rng.uniform(0, math.tau)
                 rr = patch * rng.uniform(1.05, 1.85)

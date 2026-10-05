@@ -94,8 +94,8 @@ def test_the_replay_gives_the_published_survey_marks():
     got = score_survey.score(_rows())
     assert (got["frames"], got["judged"], got["declined"]) == (24, 24, 0)
     assert got["pass_or_defect_right"] == 23
-    assert got["gate_right_for_a_fault_in_view"] == 21
-    assert (got["faults_found"], got["faults_present"]) == (9, 14)
+    assert got["gate_right_for_a_fault_in_view"] == 22
+    assert (got["faults_found"], got["faults_present"]) == (10, 15)
     assert got["invented"] == 0
     assert got["named_right"] == 19
     assert got["frames_all_found"] == 19
@@ -114,16 +114,19 @@ def test_four_of_the_five_faults_on_the_run_were_named_somewhere():
     assert sum(1 for f in faults if f["named_in"]) == 4
     never = [(f["id"], f["kind"], f["frames"]) for f in faults if not f["named_in"]]
     assert never == [("D001", "undercut", [1, 2, 3, 4])]
-    assert sum(len(f["frames"]) for f in faults) == 14
+    assert sum(len(f["frames"]) for f in faults) == 15
 
 
-def test_the_replay_prints_no_key_disagreement(monkeypatch, capsys):
+def test_the_replay_prints_every_key_disagreement(monkeypatch, capsys):
+    """Station 2 was recorded against a key that did not count the rust in
+    it; the key now does. The replay must say so, and say nothing else."""
     monkeypatch.setattr(sys, "argv", ["score_survey.py", "--replay"])
     assert score_survey.main() == 0
     out = capsys.readouterr().out
     assert "pass or defect 23/24" in out
-    assert "faults found 9/14" in out
-    assert "differs from the key" not in out
+    assert "faults found 10/15" in out
+    assert "differs from the key now, at 1 frame(s)" in out
+    assert "station 2: recorded against undercut ['undercut']" in out
 
 
 def test_without_a_flag_the_survey_scorer_runs_nothing(monkeypatch, capsys):
@@ -185,8 +188,8 @@ def test_significance_reads_the_same_marks_as_the_scorer(monkeypatch, capsys):
     # The one sided 95 percent exact lower bounds the README quotes.
     assert m["pass_or_defect"]["lower_95_one_sided"] == pytest.approx(0.817, abs=5e-4)
     assert m["right_call_for_a_fault_in_view"]["lower_95_one_sided"] == pytest.approx(
-        0.708, abs=5e-4)
-    assert m["faults_found"]["lower_95_one_sided"] == pytest.approx(0.390, abs=5e-4)
+        0.760, abs=5e-4)
+    assert m["faults_found"]["lower_95_one_sided"] == pytest.approx(0.423, abs=5e-4)
     assert m["headline_named"]["lower_95_one_sided"] == pytest.approx(0.611, abs=5e-4)
     assert ins["faults_on_the_run"]["lower_95_one_sided"] == pytest.approx(0.343, abs=5e-4)
     # Its probing section agrees with the arms recomputed here.
