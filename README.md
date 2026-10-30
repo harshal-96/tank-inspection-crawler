@@ -1,6 +1,6 @@
 # Tank Inspection Crawler
 
-![The crawler on a weld seam inside the simulated tank, with rust beside the seam. Rendered: the project runs in simulation and no hardware was built](tank/data/shots/crawler_hero.png)
+![The crawler on a weld seam inside the simulated tank, with rust beside the seam. Rendered: the project runs in simulation and no hardware was built](docs/figures/crawler_hero.jpg)
 
 A robot that crawls the weld seams inside a steel storage tank, the lines where its steel
 plates are welded together, with two instruments: a camera that judges the surface, and an
