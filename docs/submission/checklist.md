@@ -12,8 +12,8 @@ on 23 September 2026. Deadline **30 October 2026, 10:00 Pacific**.
 | Open source licence file in the repo | **done** | Apache 2.0 at the root, explicitly named as acceptable |
 | README with setup and run instructions | **done** | verified working: service starts, `scripts/demo.py --offline` populates the cell in about three seconds |
 | Public repo on GitHub, GitLab or Bitbucket | **NOT DONE** | owner's step, below. This is the one item that voids the entry |
-| Video under 3 minutes | **not done** | script and shot list written, footage partly rendered |
-| At least 1 minute of hardware operating, or key modules in action | **ready** | script allocates 65 seconds to modules running, which satisfies the no-hardware branch of the rule; the live clip is the owner's step, below |
+| Video under 3 minutes | **rendered, not uploaded** | 2:58, narrated and subtitled, from recorded runs only (`docs/submission/video_script.md`). Uploading it and putting its link in the submission is the owner's step, below |
+| At least 1 minute of hardware operating, or key modules in action | **done** | 77 seconds of the modules running (chapters 03 to 07), plus 20 seconds of the welding cell, which satisfies the no-hardware branch of the rule. No hardware is claimed |
 | Demo URL | **not required** | Physical AI is the one track exempt from this |
 | Text description | **done** | `docs/submission/devpost.md`, once the repository URL is filled in |
 | One track selected | Physical AI | |
@@ -57,31 +57,26 @@ decides whether the entry counts at all.
    `docs/submission/devpost.md`, and `git clone <this-repo>` in the README's Setup
    section, with the real URL and folder name. Then run the README's ten-minute block
    from a fresh clone of the remote.
-6. **Record the live clip, with the owner's approval of the spend.** One take of about 9
-   seconds of `python scripts/demo.py` with a key set and the service running, shown
-   with no narration over it and captioned on screen as a live call for its whole length
-   (`docs/submission/video_script.md`, the "What it runs on" block). It is a small paid
-   run: Nano view decisions on the six demo parts, plus DeepSeek V4.1 Flash on the six
-   beads, plus briefs if a Tavily key is set. It scores nothing; every scored number
-   stays on the replays.
+6. **Upload the video** (YouTube, unlisted or public) and paste its link into the
+   submission form. The description is ready to paste; it is kept next to the film,
+   outside the repository. Put the repository URL in it. The
+   film shows no live call, so none needs recording; every number in it comes from a
+   replay.
 7. **Quote pytest's own count.** Before quoting a test count anywhere, run
    `python -m pytest -q` on the committed tree and use the count it prints, not a number
    from this file or the README.
 
-## Before recording the video
+## The video
 
-- [ ] Finish the 240 frame seam shot and encode it: `python scripts/encode_shot.py`
-- [ ] Screen record `python tank/score_survey.py --replay`, captioned as a replay of
-      recorded verdicts
-- [ ] Screen record `python tank/score_probes.py --baselines`,
-      `python tank/score_probes.py --tiebreaks` and `python tank/significance.py`,
-      captioned the same way
-- [ ] Do not record a tank `--live` run; if one is ever needed, pass `--out` to a scratch
-      path outside the repository. The one live take is step 6 above
-- [ ] Commit the working tree before recording
-- [ ] After recording, `git diff --exit-code HEAD -- tank/data/survey` exits 0 and
-      `git status --porcelain -- tank/data/survey` prints nothing
-- [ ] Check every number spoken in the script against the current README
+- [x] Rendered from the 240 frame seam shot, the 24 survey frames, the recorded verdicts,
+      the manifest's probe grid and the dashboard, with no model call
+- [x] Opens on the US Bureau of Labor Statistics confined-space figures, then the
+      illustrated scaffold fall (tagged ILLUSTRATION); the crawler first appears after it
+- [x] Every number spoken or shown checked against the repository (the rules check at the
+      end of `docs/submission/video_script.md`)
+- [x] `tank/data/survey` untouched: the film reads it and writes nothing into the
+      repository
+- [ ] Watch it through once, with sound, before uploading
 
 ## Numbers as they stand
 

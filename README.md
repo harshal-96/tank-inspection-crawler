@@ -48,7 +48,7 @@ pip install -r requirements.txt
 python tank/score_survey.py --replay      # the 24 tank frames, recorded verdicts re-marked
 python tank/score_probes.py --baselines   # where to probe: arithmetic, chance and oracle
 python tank/significance.py               # what each of those counts actually licenses
-python -m pytest -q                       # 383 tests; on a fresh clone 1 skips (no render)
+python -m pytest -q                       # 393 tests; on a fresh clone 1 skips (no render)
 ```
 
 None of these calls a model, even with a Token Factory key set, and none of them writes a
@@ -79,6 +79,52 @@ Across the run, 28 of the 168 places the probe can reach fail the limit, all of 
 the five hidden patches and none on the visible one. **20 of those 28 sit under frames the
 inspector passed**, and 18 under frames with no visible fault in them at all.
 `tank/score_probes.py` prints these counts from the manifest every time it runs.
+
+Those readings are now also measured, not only looked up. `tank/ultrasound.py` simulates
+the gauge: a 5 MHz pulse through couplant into the wall, a finite-difference pressure wave
+that bounces between the two faces, and the thickness read the way a contact gauge reads
+it, from the gap between one back-wall echo and the next, so the couplant film drops out.
+It is calibrated on two reference blocks of 5 and 10 mm and then handed only a wall. At
+all 168 places it reads within 0.005 mm of the thickness model and puts the same 28 below
+the limit. Give every plate its own sound velocity, up to half a percent off the value
+the gauge was calibrated at, as real carbon steel varies, and the largest error grows to
+0.05 mm with no verdict changing; the place nearest the limit is 0.21 mm from it. The
+thinnest place probed, station 9 at +0.30 m, has 3.86 mm of a 10 mm plate, and the
+simulated echoes there come 1.30 µs apart against 3.38 µs on sound plate. The model is
+longitudinal waves only, with no shear, no mode conversion and no attenuation, and the
+back face under the probe is taken as flat, which holds because the patches are 0.55 to
+1.2 m across and the probe is 10 mm.
+
+Two checks on the gauge itself, both in the same run and both pinned by tests.
+
+- **Through a lining.** Many tanks are lined inside, and a lining sits between the probe
+  and the steel. API RP 652, the practice for tank-bottom linings, splits them into thin
+  and thick film at 20 mils, 0.5 mm. The simulation puts epoxy there: 2,540 m/s, the epoxy
+  resin row of the gauge makers' velocity tables, and 1,200 kg/m³, which gives 3.0 MRayl,
+  inside the 0.88 to 6.25 MRayl measured across epoxies ([JASA 128, 2010](https://doi.org/10.1121/1.3483734)). A
+  gauge that times the pulse to the first back-wall echo, calibrated on bare blocks, counts
+  the lining's transit as steel. Through 0.5 mm that adds 1.17 mm, and it would pass 15 of
+  the 28 failing places. That is arithmetic, and the best case: it assumes the gauge picks
+  the right echo. In the simulation the lining's own echo arrives first and is nearly four
+  times the back-wall echo. Timing echo to echo cancels the lining, since every back-wall echo
+  crosses it the same number of times, but only once the lining has stopped ringing. Read
+  over the whole trace, the autocorrelation locks onto the lining's ringing and reports
+  1.42 mm through 0.5 mm of epoxy whatever the wall. Each round trip in the lining keeps
+  about 0.3 of the echo's pressure, set by the impedance steps at its two faces, so the gauge opens
+  its read window four lining round trips after the pulse, when the ringing is under the
+  1% noise. With that window it reads 3.86, 6 and 10 mm walls through 0.25, 0.5 and 1.0 mm
+  linings to the display's last digit. Run over all 168 places under 0.5 mm of epoxy, with
+  every plate at its own velocity as well, it is within 0.05 mm and fails the same 28.
+- **Grid convergence.** Timed raw, before calibration, a 10 mm wall reads long by 21.2,
+  11.3 and 5.4 µm on 40, 20 and 10 µm grids: half a cell each time, from where the
+  staggered grid puts the free back face. That is a fixed length, not a velocity error, so
+  the two-block calibration's zero term takes it out, which is why the calibrated gauge
+  lands within 0.005 mm. The film's gauge runs on the 20 µm grid, 59 cells to a wavelength
+  in steel at 5 MHz.
+
+![The simulated gauge on a bare 6 mm wall and on the same wall under 0.5 mm of epoxy: the
+lining's echo is nearly four times the first back-wall echo, and only the read window
+opened past its ringing gets 6.00 mm](docs/figures/ultrasound_lining.png)
 
 The geometry leaves the camera very little to say about the probe. A frame covers 0.295 m
 along the seam and 0.166 m across it, about ±0.083 m. The probe reaches seven offsets: 0,
@@ -377,6 +423,7 @@ python tank/score_probes.py --baselines   # the arithmetic planners, chance and 
 python tank/score_probes.py --tiebreaks   # the sweep under every order of its tie-break
 python tank/layout_sweep.py               # the same planners on 1000 random patch layouts
 python tank/significance.py               # bounds and the paired tests
+python tank/ultrasound.py --no-write      # the simulated gauge at all 168 probe places, about 45 s
 ```
 
 Asking a model again is a separate flag, `--live`, on `score_survey.py` and
@@ -1494,8 +1541,8 @@ Requires Python 3.12. A Nebius Token Factory API key is needed only to ask a mod
 again; every replay, scorer and test in "If you have ten minutes" runs without one.
 
 ```bash
-git clone <this-repo>
-cd <repository-folder>
+git clone https://github.com/harshal-96/tank-inspection-crawler.git
+cd tank-inspection-crawler
 python -m venv .venv
 source .venv/Scripts/activate    # Windows, Git Bash
 # .venv\Scripts\activate         # Windows, cmd or PowerShell

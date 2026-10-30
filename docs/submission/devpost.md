@@ -25,9 +25,11 @@ coverage rule is used.
 
 A storage tank has to be emptied, cleaned, ventilated and certified before anyone can
 climb into it, and the inspection itself is a person with a lamp and a probe standing
-inside a steel drum. Confined space entry is dangerous work: US Bureau of Labor
-Statistics figures put confined-space deaths at roughly 90 to 130 a year, and NIOSH has
-reported that a large share of the people who die are would-be rescuers.
+inside a steel drum. Confined space entry is dangerous work. The US Bureau of Labor
+Statistics counted 1,030 workers killed in confined spaces from 2011 to 2018, between 88
+and 166 a year: 205 of them inside tanks, bins and vats, and 156 in falls to a lower level
+("Fatal occupational injuries involving confined spaces, 2011 to 2018", published 2020).
+NIOSH has reported that a large share of the people who die are would-be rescuers.
 
 A tank comes out of service for its internal inspection anyway, mostly for the floor.
 The crawler does not remove that outage. What it can cut is the time people spend inside
@@ -57,6 +59,25 @@ screening limit set for this benchmark (a screening threshold, not an API 653 mi
 thickness, which depends on the tank's fill height, product and joint efficiency). Of
 the 168 places the probe can reach, 28 fail, and 20 of those 28 sit at stations whose
 frame the inspector passes.
+
+Those readings come from a simulated gauge as well as from the thickness model.
+`tank/ultrasound.py` sends a 5 MHz pulse into the wall, runs the pressure wave by finite
+differences, and reads the thickness from the gap between back-wall echoes, the way a
+contact gauge does. Calibrated on two reference blocks and then handed only the wall, it
+reads all 168 places within 0.005 mm and fails the same 28. With each plate's sound
+velocity up to half a percent off the calibration, as real steel varies, the error grows
+to 0.05 mm and no verdict changes. It models longitudinal waves only, with no shear and
+no attenuation.
+
+The same simulation shows why the gauge times echo to echo. Put a 0.5 mm epoxy lining on
+the inner face, the 20 mil line API RP 652 draws between thin and thick film. A gauge that times the pulse to the
+first echo counts the lining as 1.17 mm of steel and would pass 15 of the 28 failing
+places. Echo to echo cancels the lining, but only once the lining stops ringing: read over
+the whole trace, the gauge locks onto the lining's own echo, which is nearly four times the
+back-wall echo. With its window opened four lining round trips in, it reads every wall
+through 0.25, 0.5 and 1.0 mm linings to the last digit, and all 168 places under 0.5 mm of
+epoxy within 0.05 mm, failing the same 28. On a finer grid the raw error
+halves each time: a half-cell offset at the back face, which the calibration removes.
 
 The scene is built that way on purpose. It encodes the premise, from field practice,
 that the loss worth finding often leaves no mark on the surface you can see. What the
@@ -372,7 +393,7 @@ they would have had. It is not trying to sign the report.
 
 ## Try it
 
-Code: REPOSITORY_URL (Apache 2.0). These need no API key, no GPU and no download, and
+Code: https://github.com/harshal-96/tank-inspection-crawler (Apache 2.0). These need no API key, no GPU and no download, and
 none of the tank scripts calls a model or writes a file, with a key set or without one:
 
 ```bash

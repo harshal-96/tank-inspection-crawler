@@ -28,7 +28,7 @@ ROOT = Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "figures"
 
 # What --only can name, in the order they are drawn.
-FIGURES = ("seam", "cell", "tracked", "dashboard", "boundary")
+FIGURES = ("seam", "cell", "tracked", "ultrasound", "dashboard", "boundary")
 
 CHROMES = (
     r"C:\Program Files\Google\Chrome\Application\chrome.exe",
@@ -94,6 +94,10 @@ def main() -> int:
         print("one part tracked from its depth frame, off the shipped capture")
         run(["scripts/track_on_model.py", "--manifest", "data/demo/manifest.json",
              "--part", "3", "--out", "docs/figures/seam_tracked.png"])
+
+    if "ultrasound" in want:
+        print("the simulated gauge through a bare wall and a lined one")
+        run(["scripts/draw_ultrasound.py", "--out", "docs/figures/ultrasound_lining.png"])
 
     if not want & {"dashboard", "boundary"}:
         return 0
