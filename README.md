@@ -1,5 +1,7 @@
 # Tank Inspection Crawler
 
+![The crawler on a weld seam inside the simulated tank, with rust beside the seam. Rendered: the project runs in simulation and no hardware was built](tank/data/shots/crawler_hero.png)
+
 A robot that crawls the weld seams inside a steel storage tank, the lines where its steel
 plates are welded together, with two instruments: a camera that judges the surface, and an
 ultrasonic probe that measures what is left of the plate behind it. The premise this project is built on, and standard API 653 practice, is
@@ -30,6 +32,15 @@ runs on Nebius Token Factory; the offline diagnosis model was trained there and 
 the cell.
 
 Built for the Nebius x NVIDIA Global AI Hackathon, Physical AI track.
+
+| At a glance | |
+|---|---|
+| Walk-in call on the weld surface, DeepSeek V4.1 Flash on Nebius Token Factory | 23 of 24 frames right |
+| Probe places along the run, read by the simulated ultrasonic gauge | 168, all within 0.05 mm, even under a 0.5 mm lining |
+| Of those, below the 60% wall limit | 28, and 20 of them sit behind frames the camera passed |
+| Where to probe: coverage rule against NVIDIA Nemotron 3 Nano | rule median 12 of 28 over every tie-break order, model 9 to 12; no run differs by a paired exact test |
+| Welding cell, Nemotron 3 Nano deciding whether a measurement is good enough to weld on | 88 of 89 right, against 86 for the same limits as arithmetic (p 0.625) |
+| Everything above, replayed without a key, a GPU or a download | `python -m pytest -q`, 393 tests |
 
 Confined space entry is what makes this work dangerous. A tank has to be emptied,
 cleaned, ventilated and certified before anyone climbs in, and the inspection itself is a
