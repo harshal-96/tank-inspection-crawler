@@ -178,8 +178,9 @@ frame.
   class, and the 11 frames that hold a fault are the real test.
 - The strict row is lower because frame 1 holds D001, a 1.7 mm undercut against a 0.8 mm
   limit, and was called defect for a sliver of rust, 0.01 of the picture, under the
-  counting threshold. The right call for the wrong reason. Frame 2 was that case too
-  until the answer key was corrected (below): its rust is really in view.
+  counting threshold. The right call for the wrong reason. An earlier answer key put frame 2
+  in that case too; measured on the picture, its rust is really in view (see "How the
+  scoring is checked").
   All five headline misses are that same undercut, reported in frames 1 to 4 as the
   corroded plate beside it, and the station 12 crack.
 - Looking at frames 1 to 4, the undercut renders faintly: a thin line, not the dark groove
@@ -303,41 +304,45 @@ because it is no worse, deterministic, free and instant. A model planner would a
 5.3 hours to a real tank, 4.0 even overlapped with driving, because each plan waits for the
 last station's readings.
 
-## How the answer key was corrected
+## How the scoring is checked
 
-The survey score this README used to lead with had no misses. It was scored against an
-answer key that hid a crack visible in frame 12.
+Every inspection number in this README is a model's recorded verdict marked against an
+answer key: for each of the 24 frames, which faults are really in the picture. The key is
+computed from the scene, never from a model's answer, by `tank/truth.py`, and it rebuilds
+without Blender.
 
-The old key projected every fault through the camera at the bead crown, 8 mm proud of the
-plate. The crack is drawn lower, 2.4 mm proud, and shows on the plate above and below the
-bead. Near the edge of the 14 mm lens that moved its projection to u = -0.006, just outside
-a frame it is plainly in, at pixels 16 to 33 of 1280. The verdict at station 12 had been
-recorded against "crack"; the old replay overwrote that with the key's "none" without
-saying so.
+- Each fault is projected into each frame from its rendered outline
+  (`tank/data/survey/fault_geometry.json`), through a camera model that matches Blender's
+  own projection to within 0.02 px on 630 test points
+  (`tank/data/survey/projection_check.json`).
+- How much of a frame a fault fills is measured on the picture itself: 64 by 36 rays from
+  the camera, cast onto the wall and tested against the outline of every visible rust
+  patch. A test compares that share with the rust-coloured pixels of every frame.
+- `tank/refresh_probes.py` rebuilds the key and refuses to write it unless the frames match
+  `frames.sha256`, and `tests/test_tank_truth.py` pins the result.
+- The recorded verdicts are never edited. `--replay` prints any frame whose key has changed
+  since its verdict was recorded.
 
-The key is now rebuilt without Blender, in `tank/truth.py`. Seam faults are projected from
-their rendered vertices (`tank/data/survey/fault_geometry.json`), and the camera model is
-checked against Blender's own projection on 630 points
-(`tank/data/survey/projection_check.json`, worst 0.02 px). `tank/refresh_probes.py`
-rebuilds the key and refuses to write unless the frames match `frames.sha256`, and
-`tests/test_tank_truth.py` pins all of it. The recorded verdicts were not touched, and
-`--replay` prints any row where the answer stored with a verdict and the rebuilt key
-disagree. Every inspection number above is scored against the corrected key.
+Building the key this way caught two mistakes in an earlier version of it, one in each
+direction.
 
-Then the key turned out to be wrong a second way. It measured a fault's share of the
-picture on a grid of wall points round the crawler's origin, but the lens sits 0.46 m ahead
-of the origin, so that grid covered only the left sixth of every frame. `tank/truth.py` now
-samples the picture itself, 64 by 36 rays cast onto the wall and tested against the
-rendered outline of every visible rust patch, and a test checks that share against the
-rust-coloured pixels of every frame. Frame 2's rust is really in view, 0.16 of the picture
-by the key and 0.12 by pixels, not a sliver, so the strict row rose from 21 to 22 of 24. No
-worst-fault answer moved, and `--replay` prints station 2 as the one frame where the key now
-differs from the key its verdict was recorded against.
+- **Frame 12: a crack the earlier key missed.** That key placed every fault at the top of
+  the weld bead, 8 mm above the plate. The crack lies lower, 2.4 mm above it, and near the
+  edge of the lens that small difference put it just outside frame 12, though the picture
+  plainly shows it, at pixels 16 to 33 of 1280. Against that key the survey had no misses.
+  Against the corrected one, frame 12 is a miss: the inspector passed a frame showing the
+  crack it had named one frame earlier. That is why the headline is 23 of 24.
+- **Frame 2: rust the earlier key undercounted.** That key measured how much of a frame a
+  fault fills on a grid centred on the crawler, but the camera sits 0.46 m ahead of that
+  point, so the grid covered only the left sixth of each picture. Measured on the picture,
+  frame 2's rust fills 0.16 of it, and 0.12 by counting rust-coloured pixels, not a
+  sliver. The inspector's call there is right for the right reason, and the strict row
+  rose from 21 to 22 of 24. No worst-fault answer changed.
 
-This is the third time the project has corrected its own scoring: the four-point probe
-headline, the station 12 crack, and now the share of frame 2.
+One correction lowered the score and the other raised it. Both are in the commit history
+with the numbers they moved.
 
-## What is still wrong with it
+## Known limitations
 
 - **Station 12.** The inspector passed a frame holding a 64 mm crack, the same crack it
   named in frame 11. The run still flagged the crack, but one frame's pass is not a clean

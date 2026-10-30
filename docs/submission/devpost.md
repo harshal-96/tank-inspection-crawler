@@ -278,25 +278,22 @@ asked to name it for its appearance, so every correct call of rust scored as an
 invention. A scoring order borrowed from new fabrication ranked plate corrosion last, in
 a project whose entire premise is that plate corrosion is what opens tanks.
 
-One more cost us a clean score. The key placed every fault at the crown of the bead, 8 mm
-proud of the plate. The crack is drawn 2.4 mm proud and shows on the plate above and
-below the bead, and near the edge of the lens that one difference put it just outside
-frame 12, a frame it is plainly in. The verdict had been recorded against "crack", and
-the replay had silently overwritten that with "none". The key now projects each seam
-fault from its rendered vertices, is checked against Blender's own camera projection on
-630 points, and refuses to rebuild unless every frame matches its recorded hash. Station
+One more cost us a clean score. An earlier answer key placed every fault at the top of
+the weld bead, 8 mm above the plate. The crack lies lower, 2.4 mm above it, and near the
+edge of the lens that small difference put it just outside frame 12, though the picture
+plainly shows it. Against that key the survey had no misses, and the replay had quietly
+replaced the answer stored with that verdict, "crack", with the key's "none". The key now
+projects each fault from its rendered outline, matches Blender's own camera projection on
+630 points, and refuses to rebuild unless every frame matches its recorded hash. Frame
 12 is now the one miss in the table above.
 
-Then the projection was wrong a second way. It measured a fault's share of the picture
-on a grid of wall points round the crawler's origin, but the lens sits 0.46 m ahead of
-the origin, so that grid covered only the left sixth of every frame. The key now samples
-the picture itself, rays cast onto the wall and tested against the rendered outline of
-every visible rust patch, and a test checks that share against the rust-coloured pixels
-of every frame. Frame 2's rust is really in view, 0.16 of the picture by the key and
-0.12 by pixels, so the strict row rose from 21 to 22 of 24. No worst-fault answer moved.
-That is the third time a headline number has moved because the project re-checked its
-own scoring: the four-point probe headline below, the station 12 crack, and the share of
-frame 2.
+A second correction went the other way. The earlier key measured how much of a frame a
+fault fills on a grid centred on the crawler, but the camera sits 0.46 m ahead of that
+point, so the grid covered only the left sixth of each picture. Measured on the picture
+itself, frame 2's rust fills 0.16 of it, and 0.12 by rust-coloured pixels, not a sliver,
+so the strict row rose from 21 to 22 of 24. No worst-fault answer changed. That makes
+three headline numbers the project has moved by re-checking its own scoring: the
+four-point probe headline below, the frame 12 crack and the frame 2 rust.
 
 **Models are not interchangeable, and not in the way you expect.** Of the 23 models the
 key reaches, 15 refused an image outright, all four NVIDIA models among them; 8 accepted
