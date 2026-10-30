@@ -57,7 +57,8 @@ decides whether the entry counts at all.
    `docs/submission/devpost.md`, and `git clone <this-repo>` in the README's Setup
    section, with the real URL and folder name. Then run the README's ten-minute block
    from a fresh clone of the remote.
-6. **Upload the video** (YouTube, unlisted or public) and paste its link into the
+6. **Upload the video** to YouTube as **public**, which the rules ask for ("made publicly
+   visible on YouTube"), and paste its link into the
    submission form. The description is ready to paste; it is kept next to the film,
    outside the repository. Put the repository URL in it. The
    film shows no live call, so none needs recording; every number in it comes from a
