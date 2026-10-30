@@ -2,6 +2,8 @@
 
 ![The crawler on a weld seam inside the simulated tank, with rust beside the seam. Rendered: the project runs in simulation and no hardware was built](docs/figures/crawler_hero.jpg)
 
+**[Watch the film, 2:58](https://youtu.be/u5000IhyzRs).** Everything in it runs in simulation.
+
 A robot that crawls the weld seams inside a steel storage tank, the lines where its steel
 plates are welded together, with two instruments: a camera that judges the surface, and an
 ultrasonic probe that measures what is left of the plate behind it. The premise this project is built on, and standard API 653 practice, is

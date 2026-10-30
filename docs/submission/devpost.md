@@ -390,6 +390,8 @@ they would have had. It is not trying to sign the report.
 
 ## Try it
 
+Video: https://youtu.be/u5000IhyzRs (2:58, simulation only).
+
 Code: https://github.com/harshal-96/tank-inspection-crawler (Apache 2.0). These need no API key, no GPU and no download, and
 none of the tank scripts calls a model or writes a file, with a key set or without one:
 
